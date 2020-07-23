@@ -1,3 +1,5 @@
+#![no_std]
+
 #[macro_use]
 extern crate alloc;
 
@@ -59,8 +61,7 @@ mod tests {
     fn add() {
         let exprs = init("").unwrap();
         let ctx = typing(&exprs).unwrap();
-        let result = eval("(+ 10 20)", &ctx).unwrap();
-        println!("(+ 10 20) = {:#?}", result);
+        eval("(+ 10 20)", &ctx).unwrap();
     }
 
     #[test]
@@ -72,8 +73,6 @@ mod tests {
         let exprs = init(expr).unwrap();
         let ctx = typing(&exprs).unwrap();
         let e = "(lambda-test (lambda (x y) (* x y)))";
-        let result = eval(e, &ctx).unwrap();
-        println!("{}", expr);
-        println!("{} = {:#?}", e, result);
+        eval(e, &ctx).unwrap();
     }
 }
