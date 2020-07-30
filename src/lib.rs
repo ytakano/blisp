@@ -1,4 +1,4 @@
-#![no_std]
+//#![no_std]
 
 #[macro_use]
 extern crate alloc;
@@ -100,6 +100,18 @@ mod tests {
         eval(e, &ctx).unwrap();
 
         let e = "(tail '(30 40 50))";
+        eval(e, &ctx).unwrap();
+    }
+
+    #[test]
+    fn tuple() {
+        let expr = "(export first (x) (Pure (-> ([Int Bool]) Int))
+    (match x
+        ([n _] n)))
+";
+        let exprs = init(expr).unwrap();
+        let ctx = typing(&exprs).unwrap();
+        let e = "(first [10 false])";
         eval(e, &ctx).unwrap();
     }
 }

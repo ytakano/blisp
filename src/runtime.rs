@@ -673,7 +673,7 @@ fn eval_pat(pat: &Pattern, data: RTData, vars: &mut Variables) -> bool {
         },
         Pattern::PatTuple(p) => match data {
             RTData::LData(ptr) => {
-                if unsafe { (*ptr).label == "Tuple" } {
+                if unsafe { &(*ptr).label } != "Tuple" {
                     return false;
                 }
 
