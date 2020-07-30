@@ -2,8 +2,6 @@ use super::parser;
 use super::semantics;
 use super::{LispErr, Pos};
 
-// use crate::driver::uart;
-
 use alloc::collections::btree_map::BTreeMap;
 use alloc::collections::linked_list::LinkedList;
 use alloc::string::{String, ToString};

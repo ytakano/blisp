@@ -12,13 +12,13 @@ use alloc::vec::Vec;
 type ID = u64;
 type Sbst = BTreeMap<ID, Type>;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum Type {
     TCon(Tycon),
     TVar(ID),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Tycon {
     id: String,
     args: Vec<Type>,
@@ -238,7 +238,7 @@ impl TypingErr {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) enum LangExpr {
     IfExpr(Box<IfNode>),
     LetExpr(Box<LetNode>),
@@ -304,6 +304,7 @@ impl LangExpr {
                 e.ty = app(&e.ty);
             }
             LangExpr::MatchExpr(e) => {
+                e.ty = app(&e.ty);
                 e.expr.apply_sbst(sbst);
                 for cs in e.cases.iter_mut() {
                     cs.pattern.apply_sbst(sbst);
@@ -340,7 +341,7 @@ impl LangExpr {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct Lambda {
     pub(crate) args: Vec<IDNode>,
     pub(crate) expr: LangExpr,
@@ -350,28 +351,28 @@ pub(crate) struct Lambda {
     ty: Option<Type>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct NumNode {
     pub(crate) num: i64,
     pub(crate) pos: Pos,
     ty: Option<Type>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct BoolNode {
     pub(crate) val: bool,
     pub(crate) pos: Pos,
     ty: Option<Type>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct IDNode {
     pub(crate) id: String,
     pub(crate) pos: Pos,
     ty: Option<Type>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct IfNode {
     pub(crate) cond_expr: LangExpr,
     pub(crate) then_expr: LangExpr,
@@ -380,7 +381,7 @@ pub(crate) struct IfNode {
     ty: Option<Type>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct LetNode {
     pub(crate) def_vars: Vec<DefVar>,
     pub(crate) expr: LangExpr,
@@ -388,7 +389,7 @@ pub(crate) struct LetNode {
     ty: Option<Type>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct DefVar {
     pub(crate) pattern: Pattern,
     pub(crate) expr: LangExpr,
@@ -396,7 +397,7 @@ pub(crate) struct DefVar {
     ty: Option<Type>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct MatchNode {
     pub(crate) expr: LangExpr,
     pub(crate) cases: Vec<MatchCase>,
@@ -404,7 +405,7 @@ pub(crate) struct MatchNode {
     ty: Option<Type>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct DataNode {
     pub(crate) label: TIDNode,
     pub(crate) exprs: Vec<LangExpr>,
@@ -412,7 +413,7 @@ pub(crate) struct DataNode {
     ty: Option<Type>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) enum Pattern {
     PatNum(NumNode),
     PatBool(BoolNode),
@@ -475,14 +476,14 @@ impl Pattern {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct PatTupleNode {
     pub(crate) pattern: Vec<Pattern>,
     pub(crate) pos: Pos,
     ty: Option<Type>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct PatDataNode {
     pub(crate) label: TIDNode,
     pub(crate) pattern: Vec<Pattern>,
@@ -490,13 +491,13 @@ pub(crate) struct PatDataNode {
     ty: Option<Type>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct PatNilNode {
     pub(crate) pos: Pos,
     ty: Option<Type>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct MatchCase {
     pub(crate) pattern: Pattern,
     pub(crate) expr: LangExpr,
@@ -504,7 +505,7 @@ pub(crate) struct MatchCase {
     ty: Option<Type>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct Apply {
     pub(crate) exprs: Vec<LangExpr>,
     pub(crate) pos: Pos,
@@ -512,52 +513,52 @@ pub(crate) struct Apply {
     ty: Option<Type>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct Exprs {
     pub(crate) exprs: Vec<LangExpr>,
     pub(crate) pos: Pos,
     ty: Option<Type>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct TIDNode {
     pub(crate) id: String,
     pub(crate) pos: Pos,
     ty: Option<Type>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct TEBoolNode {
     pub(crate) pos: Pos,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct TEIntNode {
     pub(crate) pos: Pos,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct DataType {
     name: DataTypeName,
     members: Vec<DataTypeMem>,
     pub(crate) pos: Pos,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct DataTypeName {
     id: TIDNode,
     type_args: Vec<IDNode>,
     pub(crate) pos: Pos,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct DataTypeMem {
     id: TIDNode,
     types: Vec<TypeExpr>,
     pub(crate) pos: Pos,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum TypeExpr {
     TEBool(TEBoolNode),
     TEInt(TEIntNode),
@@ -568,25 +569,25 @@ enum TypeExpr {
     TEID(IDNode),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct TEListNode {
     ty: Box<TypeExpr>,
     pub(crate) pos: Pos,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct TETupleNode {
     ty: Vec<TypeExpr>,
     pub(crate) pos: Pos,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum Effect {
     IO,
     Pure,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct TEFunNode {
     effect: Effect,
     args: Vec<TypeExpr>,
@@ -594,14 +595,14 @@ struct TEFunNode {
     pub(crate) pos: Pos,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct TEDataNode {
     id: TIDNode,
     type_args: Vec<TypeExpr>,
     pub(crate) pos: Pos,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct Defun {
     exported: bool,
     id: IDNode,

@@ -75,4 +75,20 @@ mod tests {
         let e = "(lambda-test (lambda (x y) (* x y)))";
         eval(e, &ctx).unwrap();
     }
+
+    #[test]
+    fn list() {
+        let expr = "(data (Maybe t)
+    (Just t)
+    Nothing)
+
+(export head (x) (Pure (-> ('(Int)) (Maybe Int)))
+    (match x
+        ((Cons n _) (Just n))
+        (_ Nothing)))";
+        let exprs = init(expr).unwrap();
+        let ctx = typing(&exprs).unwrap();
+        let e = "(head '(30 40 50))";
+        eval(e, &ctx).unwrap();
+    }
 }
