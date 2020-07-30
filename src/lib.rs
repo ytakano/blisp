@@ -85,10 +85,21 @@ mod tests {
 (export head (x) (Pure (-> ('(Int)) (Maybe Int)))
     (match x
         ((Cons n _) (Just n))
-        (_ Nothing)))";
+        (_ Nothing)))
+
+(export tail (x) (Pure (-> ('(Int)) (Maybe Int)))
+    (match x
+        (Nil Nothing)
+        ((Cons n Nil) (Just n))
+        ((Cons _ l) (tail l))))
+";
         let exprs = init(expr).unwrap();
         let ctx = typing(&exprs).unwrap();
+
         let e = "(head '(30 40 50))";
+        eval(e, &ctx).unwrap();
+
+        let e = "(tail '(30 40 50))";
         eval(e, &ctx).unwrap();
     }
 }

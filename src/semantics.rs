@@ -1220,7 +1220,7 @@ impl Context {
                         }
                     }
 
-                    sbst = compose(&s1, &sbst);
+                    sbst = compose(&sbst, &s1);
                 }
                 None => (),
             }
