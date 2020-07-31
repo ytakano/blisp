@@ -482,6 +482,10 @@ fn eval_built_in(
             let (n1, n2) = get_int_int(args, pos)?;
             Ok(RTData::Int(n1 / n2))
         }
+        "%" => {
+            let (n1, n2) = get_int_int(args, pos)?;
+            Ok(RTData::Int(n1 % n2))
+        }
         "<" => {
             let (n1, n2) = get_int_int(args, pos)?;
             Ok(RTData::Bool(n1 < n2))

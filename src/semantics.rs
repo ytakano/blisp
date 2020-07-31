@@ -1258,7 +1258,7 @@ impl Context {
                     None => {
                         match expr.id.as_ref() {
                             // built-in functions
-                            "+" | "-" | "*" | "/" => {
+                            "+" | "-" | "*" | "/" | "%" => {
                                 ty = ty_fun(&Effect::Pure, vec![ty_int(), ty_int()], ty_int());
                             }
                             "<" | ">" | "=" | "<=" | ">=" => {
