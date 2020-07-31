@@ -736,6 +736,7 @@ impl Context {
         built_in.insert("-".to_string());
         built_in.insert("*".to_string());
         built_in.insert("/".to_string());
+        built_in.insert("%".to_string());
         built_in.insert("<".to_string());
         built_in.insert(">".to_string());
         built_in.insert("=".to_string());
