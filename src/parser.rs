@@ -73,7 +73,7 @@ impl<'a> Parser<'a> {
         let mut i = 0;
 
         for s in self.remain.chars() {
-            if is_paren(s) || is_space(s) {
+            if is_paren(s) || is_space(s) || s == ';' {
                 break;
             }
             i += 1;
@@ -160,19 +160,34 @@ impl<'a> Parser<'a> {
     fn skip_spaces(&mut self) {
         let mut i = 0;
         let mut prev = ' ';
+        let mut is_comment = false;
         for s in self.remain.chars() {
-            if is_space(s) {
+            if is_comment {
+                if s == '\r' || s == '\n' {
+                    is_comment = false;
+                } else {
+                    self.pos.column += 1;
+                    i += 1;
+                    prev = s;
+                    continue;
+                }
+            }
+
+            if s == ';' {
+                is_comment = true;
+            } else if is_space(s) {
                 if s == '\r' || (s == '\n' && prev != '\r') {
                     self.pos.line += 1;
                     self.pos.column = 0;
                 } else {
                     self.pos.column += 1;
                 }
-                i += 1;
-                prev = s;
             } else {
                 break;
             }
+            self.pos.column += 1;
+            i += 1;
+            prev = s;
         }
         self.remain = &self.remain[i..]
     }

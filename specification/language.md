@@ -111,6 +111,7 @@ example:
 
 ## Built-in Functions
 
-- nth: (Pure (-> (Int \[T\]) (Maybe T)))
-- nth: (Pure (-> (Int '(T)) (Maybe T)))
 - +, -, *, /, %: (Pure (-> (Int Int) Int))
+- <, >, <=, >=, =: (Pure (-> (Int Int) Bool))
+- and, or, xor: (Pure (-> (Bool BOol) Bool))
+- not: (Pure (-> (Bool) Bool))

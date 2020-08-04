@@ -1,4 +1,4 @@
-#![no_std]
+//#![no_std]
 
 #[macro_use]
 extern crate alloc;
@@ -87,7 +87,9 @@ mod tests {
         ((Cons n _) (Just n))
         (_ Nothing)))
 
+; tail call optimization
 (export tail (x) (Pure (-> ('(Int)) (Maybe Int)))
+    ; match expression
     (match x
         (Nil Nothing)
         ((Cons n Nil) (Just n))
