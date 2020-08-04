@@ -87,7 +87,6 @@ mod tests {
         ((Cons n _) (Just n))
         (_ Nothing)))
 
-; tail call optimization
 (export tail (x) (Pure (-> ('(Int)) (Maybe Int)))
     ; match expression
     (match x
