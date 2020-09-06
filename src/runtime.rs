@@ -70,15 +70,16 @@ impl RTData {
             RTData::Defun(n) => format!("{}", n),
             RTData::Lambda(n) => format!("(Lambda {})", unsafe { &(*(*n)).ident }),
             RTData::LData(n) => {
-                let mut msg = format!("({}", unsafe { &(*(*n)).label });
+                let label = unsafe { &(*(*n)).label };
                 match unsafe { (*(*n)).data.as_ref() } {
                     Some(ld) => {
+                        let mut msg = format!("({}", label);
                         for d in ld.iter() {
                             msg = format!("{} {}", msg, d.get_in_lisp());
                         }
                         format!("{})", msg)
                     }
-                    None => format!("{})", msg),
+                    None => format!("{}", label),
                 }
             }
             RTData::TailCall(TCall::Defun(f), _) => format!("(TailCall (Defun {}))", f),
