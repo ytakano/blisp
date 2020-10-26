@@ -209,9 +209,9 @@ and $Size(\mathrm{Dim2}) = 1$ because Dim2 type has 1 label in listings~\ref{src
         \multicolumn{3}{r}{
         $\dfrac{
             \begin{aligned}
-                &\Gamma \vdash \mathcal{P}_{let} : \mathcal{T}_0\ |_{\mathcal{X}_0}\ C_0 \hspace{5mm}
+                &\Gamma_0 \vdash \mathcal{P}_{let} : \mathcal{T}_0\ |_{\mathcal{X}_0}\ C_0 \hspace{5mm}
                     \Gamma \vdash e_1 : \mathcal{T}_1\ |_{\mathcal{X}_1}\ C_1 \hspace{5mm}
-                    \Gamma \vdash e_2 : \mathcal{T}_2\ |_{\mathcal{X}_2}\ C_2\\
+                    \Gamma, \Gamma_0 \vdash e_2 : \mathcal{T}_2\ |_{\mathcal{X}_2}\ C_2\\
                 &\mathcal{X}_0 \cap \mathcal{X}_1 \cap \mathcal{X}_2 = \varnothing \hspace{5mm}
                     C = C_0 \cup C_1 \cup C_2 \cup \{ \mathcal{T}_0 = \mathcal{T}_1 \}
             \end{aligned}
@@ -246,8 +246,8 @@ and $Size(\mathrm{Dim2}) = 1$ because Dim2 type has 1 label in listings~\ref{src
         $\dfrac{
             \begin{aligned}
                 &\Gamma \vdash e_0 : \mathcal{T}_0\ |_{\mathcal{X}_0}\ C_0 \\
-                &\Gamma \vdash e_1 : \mathcal{T}_{e1}\ |_{\mathcal{X}_{e1}}\ C_{e1} \land \cdots \land \Gamma \vdash e_n : \mathcal{T}_{en}\ |_{\mathcal{X}_{en}}\ C_{en} \\
-                &\Gamma \vdash \mathcal{P}_1 : \mathcal{T}_{p1}\ |_{\mathcal{X}_{p1}}\ C_{p1} \land \cdots \land \Gamma \vdash \mathcal{P}_{pn} : \mathcal{T}_{pn}\ |_{\mathcal{X}_{pn}}\ C_{pn} \\
+                &\Gamma, \Gamma_1 \vdash e_1 : \mathcal{T}_{e1}\ |_{\mathcal{X}_{e1}}\ C_{e1} \land \cdots \land \Gamma, \Gamma_n \vdash e_n : \mathcal{T}_{en}\ |_{\mathcal{X}_{en}}\ C_{en} \\
+                &\Gamma_1 \vdash \mathcal{P}_1 : \mathcal{T}_{p1}\ |_{\mathcal{X}_{p1}}\ C_{p1} \land \cdots \land \Gamma_n \vdash \mathcal{P}_{pn} : \mathcal{T}_{pn}\ |_{\mathcal{X}_{pn}}\ C_{pn} \\
                 &\mathcal{X}_0 \cap \mathcal{X}_{e1} \cap \cdots \cap \mathcal{X}_{en} \cap \mathcal{X}_{p1} \cap \cdots \cap \mathcal{X}_{pn} = \varnothing \\
                 &\mathcal{X} = \mathcal{X}_0 \cup \mathcal{X}_{e1} \cup \cdots \cup \mathcal{X}_{en} \cup \mathcal{X}_{p1} \cup \cdots \cup \mathcal{X}_{pn} \\
                 &\begin{aligned}
@@ -310,8 +310,7 @@ and $Size(\mathrm{Dim2}) = 1$ because Dim2 type has 1 label in listings~\ref{src
         \multicolumn{3}{r}{
             $\dfrac{
                 \begin{aligned}
-                    &\Gamma \vdash x_1 : t_1\ |_\varnothing\ \varnothing \land \cdots \land \Gamma \vdash x_n : t_n\ |_\varnothing\ \varnothing \\
-                    &\Gamma \vdash e : \mathcal{T}_0\ |_{\mathcal{X}}\ C_0 \hspace{5mm} \neg io(C)\\
+                    &\Gamma, x_1 : t_1, \cdots, x_n : t_n \vdash e : \mathcal{T}_0\ |_{\mathcal{X}}\ C_0 \hspace{5mm} \neg io(C)\\
                     &C = \{\mathcal{T} = (\mathtt{Pure}\ (\rightarrow\ (t_1\ \cdots\ t_n)\ \mathcal{T}_0))\} \cup C_0
                 \end{aligned}
             }
@@ -323,8 +322,8 @@ and $Size(\mathrm{Dim2}) = 1$ because Dim2 type has 1 label in listings~\ref{src
         \multicolumn{3}{r}{
             $\dfrac{
                 \begin{aligned}
-                    &\Gamma \vdash x_1 : \mathcal{T}_1\ |_\varnothing\ \varnothing \land \cdots \land \Gamma \vdash x_n : \mathcal{T}_n\ |_\varnothing\ \varnothing \\
-                    &\Gamma \vdash e : \mathcal{T}_0\ |_{\mathcal{X}}\ C_0 \hspace{5mm} E = E_\mathcal{T}(\mathcal{T}) \hspace{5mm} (E = \mathtt{Pure}) \Rightarrow \neg io(C)\\
+                    &\Gamma, x_1 : t_1, \cdots, x_n : t_n \vdash e : \mathcal{T}_0\ |_{\mathcal{X}}\ C_0 \hspace{5mm}\\
+                    &E = E_\mathcal{T}(\mathcal{T}) \hspace{5mm} (E = \mathtt{Pure}) \Rightarrow \neg io(C)\\
                     &C = C_0 \cup \{\mathcal{T} = (E\ (\rightarrow (\mathcal{T}_1\ \cdots\ \mathcal{T}_n)\ \mathcal{T}_0)) \}
                 \end{aligned}
             }{
