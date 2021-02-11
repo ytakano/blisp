@@ -1,0 +1,17 @@
+(data (Option t)
+    (Some t)
+    None)
+
+(data (Result t e)
+    (Ok t)
+    (Err e))
+
+(export car (x) (Pure (-> ('(Int)) (Option Int)))
+    (match x
+        ((Cons n _) (Some n))
+        (_ None)))
+
+(export cdr (x) (Pure (-> ('(Int)) '(Int)))
+    (match x
+        ((Cons _ l) l)
+        (_ '())))

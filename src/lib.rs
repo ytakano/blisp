@@ -29,9 +29,22 @@ impl LispErr {
 }
 
 pub fn init(code: &str) -> Result<LinkedList<parser::Expr>, LispErr> {
+    let prelude = include_str!("prelude.blisp");
+    let mut ps = parser::Parser::new(prelude);
+    let mut exprs = match ps.parse() {
+        Ok(e) => e,
+        Err(e) => {
+            let msg = format!("Syntax Error: {}", e.msg);
+            return Err(LispErr::new(msg, e.pos));
+        }
+    };
+
     let mut ps = parser::Parser::new(code);
     match ps.parse() {
-        Ok(e) => Ok(e),
+        Ok(mut e) => {
+            exprs.append(&mut e);
+            Ok(exprs)
+        }
         Err(e) => {
             let msg = format!("Syntax Error: {}", e.msg);
             Err(LispErr::new(msg, e.pos))
@@ -78,20 +91,17 @@ mod tests {
 
     #[test]
     fn list() {
-        let expr = "(data (Maybe t)
-    (Just t)
-    Nothing)
-
-(export head (x) (Pure (-> ('(Int)) (Maybe Int)))
+        let expr = "
+(export head (x) (Pure (-> ('(Int)) (Option Int)))
     (match x
-        ((Cons n _) (Just n))
-        (_ Nothing)))
+        ((Cons n _) (Some n))
+        (_ None)))
 
-(export tail (x) (Pure (-> ('(Int)) (Maybe Int)))
+(export tail (x) (Pure (-> ('(Int)) (Option Int)))
     ; match expression
     (match x
-        (Nil Nothing)
-        ((Cons n Nil) (Just n))
+        (Nil None)
+        ((Cons n Nil) (Some n))
         ((Cons _ l) (tail l))))
 ";
         let exprs = init(expr).unwrap();
@@ -113,6 +123,15 @@ mod tests {
         let exprs = init(expr).unwrap();
         let ctx = typing(&exprs).unwrap();
         let e = "(first [10 false])";
+        eval(e, &ctx).unwrap();
+    }
+
+    #[test]
+    fn prelude() {
+        let expr = "";
+        let exprs = init(expr).unwrap();
+        let ctx = typing(&exprs).unwrap();
+        let e = "(Some 10)";
         eval(e, &ctx).unwrap();
     }
 }
