@@ -1986,14 +1986,7 @@ impl Context {
 
     fn check_defun_type(&self) -> Result<(), TypingErr> {
         for (_, fun) in self.funs.iter() {
-            let set;
-            let m = if fun.exported {
-                set = BTreeSet::new();
-                Some(&set)
-            } else {
-                None
-            };
-            self.check_def_type(&fun.fun_type, m)?;
+            self.check_def_type(&fun.fun_type, None)?;
         }
 
         Ok(())

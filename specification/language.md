@@ -11,13 +11,13 @@
 ## Identifier
 
 - $ID
-  - a string whose first character is not captal (not 'A' to 'Z')
+  - a string whose first character is not capital (not 'A' to 'Z')
   - excludes "true" and "false"
 
 ## Type Identifier
 
 - $TID
-  - a string whose first character is captal ('A' to 'Z')
+  - a string whose first character is capital ('A' to 'Z')
 
 ## Type
 
@@ -30,6 +30,7 @@
 - $EFFECT := Pure | IO
 
 examples:
+
 ```common-lisp
 '(Int)
 [Int Bool]
@@ -45,6 +46,7 @@ examples:
 - $MEMBER := $TID | ( $TID $TYPE* )
 
 examples:
+
 ```common-lisp
 (data Dim2
   (Dim2 Int Int))
@@ -64,7 +66,8 @@ examples:
 - $HEAD_DEFUN := export | defun
 
 example:
-```
+
+```common-lisp
 (defun add (x y) (Pure (-> (Int Int) Int))
   (+ x y))
 ```

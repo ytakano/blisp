@@ -131,7 +131,20 @@ mod tests {
         let expr = "";
         let exprs = init(expr).unwrap();
         let ctx = typing(&exprs).unwrap();
+
         let e = "(Some 10)";
+        eval(e, &ctx).unwrap();
+
+        let e = "(car '(1 2 3))";
+        eval(e, &ctx).unwrap();
+
+        let e = "(cdr '(1 2 3))";
+        eval(e, &ctx).unwrap();
+
+        let e = "(map (lambda (x) (* x 2)) '(1 2 3))";
+        eval(e, &ctx).unwrap();
+
+        let e = "(fold (lambda (x y) (+ x y)) 0 '(1 2 3))";
         eval(e, &ctx).unwrap();
     }
 }
