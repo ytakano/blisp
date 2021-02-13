@@ -9,8 +9,12 @@
  * $EXPRS := $EXP $EXPRS | ∅
  */
 
+use core::usize;
+
 use alloc::collections::linked_list::LinkedList;
 use alloc::string::{String, ToString};
+use num_bigint::BigInt;
+use num_traits::Zero;
 
 use super::Pos;
 
@@ -27,7 +31,7 @@ pub struct Parser<'a> {
 
 #[derive(Debug)]
 pub enum Expr {
-    Num(i64, Pos),
+    Num(BigInt, Pos),
     ID(String, Pos),
     Bool(bool, Pos),
     List(LinkedList<Expr>, Pos),
@@ -102,35 +106,34 @@ impl<'a> Parser<'a> {
 
     fn parse_num(&mut self) -> Result<Expr, SyntaxErr> {
         let mut i = 0;
+        let is_minus;
 
         let c = if self.remain.chars().nth(0) == Some('-') {
+            is_minus = true;
             i += 1;
             &self.remain[1..]
         } else {
+            is_minus = false;
             self.remain
         };
 
+        let mut n = Zero::zero();
+
         for a in c.chars() {
             if '0' <= a && a <= '9' {
+                n *= 10;
+                n += a as usize - '0' as usize;
                 i += 1;
             } else {
                 break;
             }
         }
 
-        let expr;
+        if is_minus {
+            n *= -1;
+        }
 
-        match self.remain[0..i].parse::<i64>() {
-            Ok(num) => {
-                expr = Ok(Expr::Num(num, self.pos));
-            }
-            Err(_msg) => {
-                return Err(SyntaxErr {
-                    pos: self.pos,
-                    msg: "failed to parse number",
-                })
-            }
-        };
+        let expr = Ok(Expr::Num(n, self.pos));
 
         self.pos.column += i;
         self.remain = &self.remain[i..];

@@ -8,6 +8,8 @@ use alloc::collections::linked_list::LinkedList;
 use alloc::fmt;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+use num_bigint::BigInt;
+use num_traits::Zero;
 
 type ID = u64;
 type Sbst = BTreeMap<ID, Type>;
@@ -353,7 +355,7 @@ pub(crate) struct Lambda {
 
 #[derive(Clone, Debug)]
 pub(crate) struct NumNode {
-    pub(crate) num: i64,
+    pub(crate) num: BigInt,
     pub(crate) pos: Pos,
     ty: Option<Type>,
 }
@@ -725,7 +727,7 @@ pub struct Context {
     data: BTreeMap<String, DataType>,
     pub(crate) built_in: BTreeSet<String>,
     label2data: BTreeMap<String, String>,
-    pub callback: Box<dyn Fn(i64, i64, i64) -> i64>,
+    pub callback: Box<dyn Fn(BigInt, BigInt, BigInt) -> BigInt>,
 }
 
 impl Context {
@@ -755,11 +757,11 @@ impl Context {
             label2data: BTreeMap::new(),
             lambda: BTreeMap::new(),
             lambda_ident: 0,
-            callback: Box::new(|_, _, _| 0),
+            callback: Box::new(|_, _, _| Zero::zero()),
         }
     }
 
-    pub fn set_callback(&mut self, func: Box<dyn Fn(i64, i64, i64) -> i64>) {
+    pub fn set_callback(&mut self, func: Box<dyn Fn(BigInt, BigInt, BigInt) -> BigInt>) {
         self.callback = func;
     }
 
@@ -3282,7 +3284,7 @@ fn list_types2vec_types(exprs: &LinkedList<parser::Expr>) -> Result<Vec<TypeExpr
 fn expr2typed_expr(expr: &parser::Expr) -> Result<LangExpr, TypingErr> {
     match expr {
         parser::Expr::Num(num, pos) => Ok(LangExpr::LitNum(NumNode {
-            num: *num,
+            num: num.clone(),
             pos: *pos,
             ty: Some(ty_int()),
         })),
@@ -3609,7 +3611,7 @@ fn expr2mpat(expr: &parser::Expr) -> Result<Pattern, TypingErr> {
         parser::Expr::Num(num, pos) => {
             // $LITERAL
             Ok(Pattern::PatNum(NumNode {
-                num: *num,
+                num: num.clone(),
                 pos: *pos,
                 ty: Some(ty_int()),
             }))

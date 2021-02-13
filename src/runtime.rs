@@ -6,6 +6,7 @@ use alloc::collections::btree_map::BTreeMap;
 use alloc::collections::linked_list::LinkedList;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+use num_bigint::{BigInt, ToBigInt};
 
 type Expr = semantics::LangExpr;
 type Pattern = semantics::Pattern;
@@ -54,7 +55,7 @@ enum TCall {
 
 #[derive(Debug, Clone)]
 enum RTData {
-    Int(i64),
+    Int(BigInt),
     Bool(bool),
     Defun(String),
     Lambda(*const Clojure),
@@ -205,7 +206,7 @@ fn eval_expr(
     vars: &mut Variables,
 ) -> Result<RTData, RuntimeErr> {
     match expr {
-        Expr::LitNum(e) => Ok(RTData::Int(e.num)),
+        Expr::LitNum(e) => Ok(RTData::Int(e.num.clone())),
         Expr::LitBool(e) => Ok(RTData::Bool(e.val)),
         Expr::IfExpr(e) => eval_if(&e, lambda, ctx, root, vars),
         Expr::DataExpr(e) => eval_data(&e, lambda, ctx, root, vars),
@@ -420,7 +421,7 @@ fn eval_tail_call<'a>(
     }
 }
 
-fn get_int_int(args: Vec<RTData>, pos: Pos) -> Result<(i64, i64), RuntimeErr> {
+fn get_int_int(args: Vec<RTData>, pos: Pos) -> Result<(BigInt, BigInt), RuntimeErr> {
     match (args[0].clone(), args[1].clone()) {
         (RTData::Int(n1), RTData::Int(n2)) => Ok((n1, n2)),
         _ => Err(RuntimeErr {
@@ -430,11 +431,11 @@ fn get_int_int(args: Vec<RTData>, pos: Pos) -> Result<(i64, i64), RuntimeErr> {
     }
 }
 
-fn get_int_int_int(args: Vec<RTData>, pos: Pos) -> Result<(i64, i64, i64), RuntimeErr> {
+fn get_int_int_int(args: Vec<RTData>, pos: Pos) -> Result<(BigInt, BigInt, BigInt), RuntimeErr> {
     match (args[0].clone(), args[1].clone(), args[2].clone()) {
         (RTData::Int(n1), RTData::Int(n2), RTData::Int(n3)) => Ok((n1, n2, n3)),
         _ => Err(RuntimeErr {
-            msg: "there must be exactly 2 integers".to_string(),
+            msg: "there must be exactly 3 integers".to_string(),
             pos: pos,
         }),
     }
@@ -454,7 +455,7 @@ fn get_bool(args: Vec<RTData>, pos: Pos) -> Result<bool, RuntimeErr> {
     match args[0].clone() {
         RTData::Bool(n) => Ok(n),
         _ => Err(RuntimeErr {
-            msg: "there must be exactly 2 boolean values".to_string(),
+            msg: "there must be exactly 1 boolean value".to_string(),
             pos: pos,
         }),
     }
@@ -525,7 +526,13 @@ fn eval_built_in(
         }
         "call-rust" => {
             let (n1, n2, n3) = get_int_int_int(args, pos)?;
-            Ok(RTData::Int((ctx.callback)(n1, n2, n3)))
+            match (ctx.callback)(n1, n2, n3).to_bigint() {
+                Some(n) => Ok(RTData::Int(n)),
+                None => Err(RuntimeErr {
+                    msg: "call-rust returned invalid value".to_string(),
+                    pos: pos,
+                }),
+            }
         }
         _ => Err(RuntimeErr {
             msg: "unknown built-in function".to_string(),
