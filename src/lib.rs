@@ -62,19 +62,32 @@ pub fn typing(exprs: &LinkedList<parser::Expr>) -> Result<semantics::Context, Li
     }
 }
 
-pub fn eval(code: &str, ctx: &semantics::Context) -> Result<LinkedList<String>, LispErr> {
+pub fn eval(
+    code: &str,
+    ctx: &semantics::Context,
+) -> Result<LinkedList<Result<String, String>>, LispErr> {
     runtime::eval(code, ctx)
 }
 
 #[cfg(test)]
+#[macro_use]
+extern crate std;
+
+#[cfg(test)]
 mod tests {
-    use crate::{eval, init, typing};
+    use crate::{eval, init, semantics, typing};
+
+    fn eval_result(code: &str, ctx: &semantics::Context) {
+        for r in eval(code, &ctx).unwrap() {
+            r.unwrap();
+        }
+    }
 
     #[test]
     fn add() {
         let exprs = init("").unwrap();
         let ctx = typing(&exprs).unwrap();
-        eval("(+ 10 20)", &ctx).unwrap();
+        eval_result("(+ 10 20)", &ctx);
     }
 
     #[test]
@@ -86,7 +99,7 @@ mod tests {
         let exprs = init(expr).unwrap();
         let ctx = typing(&exprs).unwrap();
         let e = "(lambda-test (lambda (x y) (* x y)))";
-        eval(e, &ctx).unwrap();
+        eval_result(e, &ctx);
     }
 
     #[test]
@@ -108,10 +121,10 @@ mod tests {
         let ctx = typing(&exprs).unwrap();
 
         let e = "(head '(30 40 50))";
-        eval(e, &ctx).unwrap();
+        eval_result(e, &ctx);
 
         let e = "(tail '(30 40 50))";
-        eval(e, &ctx).unwrap();
+        eval_result(e, &ctx);
     }
 
     #[test]
@@ -123,7 +136,7 @@ mod tests {
         let exprs = init(expr).unwrap();
         let ctx = typing(&exprs).unwrap();
         let e = "(first [10 false])";
-        eval(e, &ctx).unwrap();
+        eval_result(e, &ctx);
     }
 
     #[test]
@@ -133,18 +146,18 @@ mod tests {
         let ctx = typing(&exprs).unwrap();
 
         let e = "(Some 10)";
-        eval(e, &ctx).unwrap();
+        eval_result(e, &ctx);
 
         let e = "(car '(1 2 3))";
-        eval(e, &ctx).unwrap();
+        eval_result(e, &ctx);
 
         let e = "(cdr '(1 2 3))";
-        eval(e, &ctx).unwrap();
+        eval_result(e, &ctx);
 
         let e = "(map (lambda (x) (* x 2)) '(1 2 3))";
-        eval(e, &ctx).unwrap();
+        eval_result(e, &ctx);
 
         let e = "(fold (lambda (x y) (+ x y)) 0 '(1 2 3))";
-        eval(e, &ctx).unwrap();
+        eval_result(e, &ctx);
     }
 }

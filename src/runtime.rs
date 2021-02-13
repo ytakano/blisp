@@ -42,8 +42,12 @@ impl Variables {
     }
 
     fn get(&mut self, id: &String) -> Option<&RTData> {
-        let m = self.vars.back_mut().unwrap();
-        m.get(id)
+        for m in self.vars.iter().rev() {
+            if let Some(val) = m.get(id) {
+                return Some(val);
+            }
+        }
+        None
     }
 }
 
@@ -186,7 +190,10 @@ impl RootObject {
     }
 }
 
-pub(crate) fn eval(code: &str, ctx: &semantics::Context) -> Result<LinkedList<String>, LispErr> {
+pub(crate) fn eval(
+    code: &str,
+    ctx: &semantics::Context,
+) -> Result<LinkedList<Result<String, String>>, LispErr> {
     let mut ps = parser::Parser::new(code);
     let exprs;
     match ps.parse() {
@@ -224,14 +231,14 @@ pub(crate) fn eval(code: &str, ctx: &semantics::Context) -> Result<LinkedList<St
         let mut vars = Variables::new();
         match eval_expr(expr, lambda, ctx, &mut root, &mut vars) {
             Ok(val) => {
-                result.push_back(val.get_in_lisp(true));
+                result.push_back(Ok(val.get_in_lisp(true)));
             }
             Err(e) => {
                 let msg = format!(
                     "(RuntimeErr [{} (Pos {} {})])",
                     e.msg, e.pos.line, e.pos.column
                 );
-                result.push_back(msg);
+                result.push_back(Err(msg));
                 return Ok(result);
             }
         }
@@ -350,6 +357,45 @@ fn get_lambda<'a>(
     Ok(fun)
 }
 
+fn call_lambda(
+    expr: &semantics::Apply,
+    lambda: &BTreeMap<u64, semantics::Lambda>,
+    ctx: &semantics::Context,
+    root: &mut RootObject,
+    vars: &mut Variables,
+    cloj: *const Clojure,
+    iter: core::slice::Iter<semantics::LangExpr>,
+    fun_expr: &semantics::LangExpr,
+) -> Result<RTData, RuntimeErr> {
+    // look up lambda
+    let ident = unsafe { (*cloj).ident };
+    let fun = get_lambda(ctx, lambda, ident, fun_expr)?;
+
+    // set up arguments
+    let mut vars_fun = Variables::new();
+    for (e, arg) in iter.zip(fun.args.iter()) {
+        let data = eval_expr(&e, lambda, ctx, root, vars)?;
+        vars_fun.insert(arg.id.to_string(), data);
+    }
+
+    // set up free variables
+    match unsafe { &(*cloj).data } {
+        Some(d) => {
+            for (key, val) in d {
+                vars_fun.insert(key.to_string(), val.clone());
+            }
+        }
+        None => (),
+    }
+
+    // tail call optimization
+    if expr.is_tail {
+        Ok(RTData::TailCall(TCall::Lambda(ident), vars_fun))
+    } else {
+        eval_tail_call(&fun.expr, lambda, ctx, root, &mut vars_fun)
+    }
+}
+
 fn eval_apply(
     expr: &semantics::Apply,
     lambda: &BTreeMap<u64, semantics::Lambda>,
@@ -385,51 +431,36 @@ fn eval_apply(
             }
 
             // look up defun
-            let fun = get_fun(ctx, &fun_name, fun_expr)?;
+            if let Ok(fun) = get_fun(ctx, &fun_name, fun_expr) {
+                // set up arguments
+                let mut vars_fun = Variables::new();
+                for (e, arg) in iter.zip(fun.args.iter()) {
+                    let data = eval_expr(&e, lambda, ctx, root, vars)?;
+                    vars_fun.insert(arg.id.to_string(), data);
+                }
 
-            // set up arguments
-            let mut vars_fun = Variables::new();
-            for (e, arg) in iter.zip(fun.args.iter()) {
-                let data = eval_expr(&e, lambda, ctx, root, vars)?;
-                vars_fun.insert(arg.id.to_string(), data);
-            }
-
-            // tail call optimization
-            if expr.is_tail {
-                Ok(RTData::TailCall(TCall::Defun(fun_name), vars_fun))
+                // tail call optimization
+                if expr.is_tail {
+                    Ok(RTData::TailCall(TCall::Defun(fun_name), vars_fun))
+                } else {
+                    eval_tail_call(&fun.expr, lambda, ctx, root, &mut vars_fun)
+                }
             } else {
-                eval_tail_call(&fun.expr, lambda, ctx, root, &mut vars_fun)
-            }
-        }
-        RTData::Lambda(f) => {
-            // look up lambda
-            let ident = unsafe { (*f).ident };
-            let fun = get_lambda(ctx, lambda, ident, fun_expr)?;
-
-            // set up arguments
-            let mut vars_fun = Variables::new();
-            for (e, arg) in iter.zip(fun.args.iter()) {
-                let data = eval_expr(&e, lambda, ctx, root, vars)?;
-                vars_fun.insert(arg.id.to_string(), data);
-            }
-
-            // set up free variables
-            match unsafe { &(*f).data } {
-                Some(d) => {
-                    for (key, val) in d {
-                        vars_fun.insert(key.to_string(), val.clone());
+                // call clojure
+                if let Some(f) = vars.get(&fun_name) {
+                    if let RTData::Lambda(cloj) = f {
+                        let cloj = *cloj;
+                        return call_lambda(expr, lambda, ctx, root, vars, cloj, iter, fun_expr);
                     }
                 }
-                None => (),
-            }
 
-            // tail call optimization
-            if expr.is_tail {
-                Ok(RTData::TailCall(TCall::Lambda(ident), vars_fun))
-            } else {
-                eval_tail_call(&fun.expr, lambda, ctx, root, &mut vars_fun)
+                // could not find such function
+                let pos = fun_expr.get_pos();
+                let msg = format!("{} is not defined", fun_name);
+                Err(RuntimeErr { msg: msg, pos: pos })
             }
         }
+        RTData::Lambda(f) => call_lambda(expr, lambda, ctx, root, vars, f, iter, fun_expr),
         _ => {
             let pos = fun_expr.get_pos();
             return Err(RuntimeErr {
