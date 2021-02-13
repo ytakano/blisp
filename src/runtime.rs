@@ -64,7 +64,7 @@ enum RTData {
 }
 
 impl RTData {
-    fn get_in_lisp(&self) -> String {
+    fn get_in_lisp(&self, list_head: bool) -> String {
         match self {
             RTData::Int(n) => format!("{}", n),
             RTData::Bool(n) => format!("{}", n),
@@ -72,15 +72,42 @@ impl RTData {
             RTData::Lambda(n) => format!("(Lambda {})", unsafe { &(*(*n)).ident }),
             RTData::LData(n) => {
                 let label = unsafe { &(*(*n)).label };
-                match unsafe { (*(*n)).data.as_ref() } {
-                    Some(ld) => {
-                        let mut msg = format!("({}", label);
-                        for d in ld.iter() {
-                            msg = format!("{} {}", msg, d.get_in_lisp());
+                if label == "Cons" {
+                    let e1;
+                    let e2;
+                    match unsafe { (*(*n)).data.as_ref() } {
+                        Some(ld) => {
+                            e1 = ld[0].get_in_lisp(true);
+                            e2 = ld[1].get_in_lisp(false);
                         }
-                        format!("{})", msg)
+                        None => panic!("invalid list"),
                     }
-                    None => format!("{}", label),
+                    if list_head {
+                        format!("'({} {})", e1, e2)
+                    } else {
+                        if e2 == "" {
+                            format!("{} {}", e1, e2)
+                        } else {
+                            e1
+                        }
+                    }
+                } else if label == "Nil" {
+                    if list_head {
+                        "'()".to_string()
+                    } else {
+                        "".to_string()
+                    }
+                } else {
+                    match unsafe { (*(*n)).data.as_ref() } {
+                        Some(ld) => {
+                            let mut msg = format!("({}", label);
+                            for d in ld.iter() {
+                                msg = format!("{} {}", msg, d.get_in_lisp(true));
+                            }
+                            format!("{})", msg)
+                        }
+                        None => format!("{}", label),
+                    }
                 }
             }
             RTData::TailCall(TCall::Defun(f), _) => format!("(TailCall (Defun {}))", f),
@@ -175,7 +202,7 @@ pub(crate) fn eval(code: &str, ctx: &semantics::Context) -> Result<LinkedList<St
         let mut vars = Variables::new();
         match eval_expr(expr, lambda, ctx, &mut root, &mut vars) {
             Ok(val) => {
-                result.push_back(val.get_in_lisp());
+                result.push_back(val.get_in_lisp(true));
             }
             Err(e) => {
                 let msg = format!(
