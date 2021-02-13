@@ -175,6 +175,7 @@ impl<'a> Parser<'a> {
 
             if s == ';' {
                 is_comment = true;
+                self.pos.column += 1;
             } else if is_space(s) {
                 if s == '\r' || (s == '\n' && prev != '\r') {
                     self.pos.line += 1;
@@ -185,7 +186,6 @@ impl<'a> Parser<'a> {
             } else {
                 break;
             }
-            self.pos.column += 1;
             i += 1;
             prev = s;
         }
@@ -215,7 +215,12 @@ impl<'a> Parser<'a> {
             Some('\'') => self.parse_list(),
             Some('[') => self.parse_tuple(),
             Some(a) => {
-                if '0' <= a && a <= '9' {
+                if a == ')' {
+                    Err(SyntaxErr {
+                        pos: self.pos,
+                        msg: "invalid )",
+                    })
+                } else if '0' <= a && a <= '9' {
                     self.parse_num()
                 } else if a == '-' {
                     match self.remain.chars().nth(1) {
