@@ -101,6 +101,24 @@ impl RTData {
                     } else {
                         "".to_string()
                     }
+                } else if label == "Tuple" {
+                    match unsafe { (*(*n)).data.as_ref() } {
+                        Some(ld) => {
+                            let mut msg = "".to_string();
+                            let len = (*ld).len();
+                            let mut i = 1;
+                            for d in ld.iter() {
+                                if i == len {
+                                    msg = format!("{}{}", msg, d.get_in_lisp(true));
+                                } else {
+                                    msg = format!("{}{} ", msg, d.get_in_lisp(true));
+                                }
+                                i += 1;
+                            }
+                            format!("[{}]", msg)
+                        }
+                        None => "[]".to_string(),
+                    }
                 } else {
                     match unsafe { (*(*n)).data.as_ref() } {
                         Some(ld) => {
