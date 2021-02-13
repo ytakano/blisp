@@ -799,7 +799,7 @@ impl Context {
         for (_, dt) in &self.data {
             for mem in &dt.members {
                 if self.label2data.contains_key(&mem.id.id) {
-                    let msg = format!("{:?} is multiply defined", mem.id.id);
+                    let msg = format!("{} is multiply defined", mem.id.id);
                     return Err(TypingErr {
                         msg: msg,
                         pos: mem.id.pos,
@@ -978,7 +978,7 @@ impl Context {
         // check the number of elements
         if label_types.len() != expr.exprs.len() {
             let msg = format!(
-                "{:?} requires exactly {:?} arguments but actually passed {:?}",
+                "{} requires exactly {} arguments but actually passed {}",
                 expr.label.id,
                 label_types.len(),
                 expr.exprs.len()
@@ -1281,7 +1281,7 @@ impl Context {
                                 );
                             }
                             _ => {
-                                let msg = format!("{:?} is not defined", expr.id);
+                                let msg = format!("{} is not defined", expr.id);
                                 return Err(TypingErr {
                                     msg: msg,
                                     pos: expr.pos,
@@ -1479,7 +1479,7 @@ impl Context {
         // check the number of arguments
         if label_types.len() != expr.pattern.len() {
             let msg = format!(
-                "{:?} requires exactly {:?} arguments but actually passed {:?}",
+                "{} requires exactly {} arguments but actually passed {}",
                 expr.label.id,
                 label_types.len(),
                 expr.pattern.len()
@@ -1608,7 +1608,7 @@ impl Context {
                         return Ok((ty.clone(), vec![]));
                     }
                     _ => {
-                        let msg = format!("{:?} is not defined", label);
+                        let msg = format!("{} is not defined", label);
                         return Err(msg);
                     }
                 }
@@ -1622,7 +1622,7 @@ impl Context {
                 data_node = n;
             }
             None => {
-                let msg = format!("could not find data of label {:?}", label);
+                let msg = format!("could not find data of label {}", label);
                 return Err(msg);
             }
         }
@@ -1666,7 +1666,7 @@ impl Context {
                 Ok((data_type, label_types))
             }
             None => {
-                let msg = format!("could not find label {:?}", label);
+                let msg = format!("could not find label {}", label);
                 Err(msg)
             }
         }
@@ -1721,7 +1721,7 @@ impl Context {
             TypeExpr::TEID(id) => match tv2type.get(&id.id) {
                 Some(t) => Ok(t.clone()),
                 None => {
-                    let msg = format!("type variable {:?} is undefined", id.id);
+                    let msg = format!("type variable {} is undefined", id.id);
                     Err(msg)
                 }
             },
@@ -1740,7 +1740,7 @@ impl Context {
         let mut args = BTreeSet::new();
         for arg in data.name.type_args.iter() {
             if args.contains(&arg.id) {
-                let msg = format!("{:?} is multiply used", arg.id);
+                let msg = format!("{} is multiply used", arg.id);
                 return Err(TypingErr {
                     msg: msg,
                     pos: arg.pos,
@@ -1778,7 +1778,7 @@ impl Context {
             TypeExpr::TEID(id) => match args {
                 Some(m) => {
                     if !m.contains(&id.id) {
-                        let msg = format!("{:?} is undefined", id.id);
+                        let msg = format!("{} is undefined", id.id);
                         return Err(TypingErr {
                             msg: msg,
                             pos: id.pos,
@@ -1800,7 +1800,7 @@ impl Context {
                     Some(dt) => {
                         if dt.name.type_args.len() != data.type_args.len() {
                             let msg = format!(
-                                "{:?} takes {:?} type arguments but actually passed {:?}",
+                                "{} takes {} type arguments but actually passed {}",
                                 data.id.id,
                                 dt.name.type_args.len(),
                                 data.type_args.len()
@@ -1812,7 +1812,7 @@ impl Context {
                         }
                     }
                     None => {
-                        let msg = format!("{:?} is unkown type", data.id.id);
+                        let msg = format!("{} is unkown type", data.id.id);
                         return Err(TypingErr {
                             msg: msg,
                             pos: data.id.pos,
@@ -1845,7 +1845,7 @@ impl Context {
             let mut inst = LinkedList::new();
             inst.push_back(d.pos);
             if self.check_data_rec_data(d, &mut visited, &mut checked, &mut inst)? {
-                let msg = format!("{:?}'s definition is infinitely recursive", d.name.id.id);
+                let msg = format!("{}'s definition is infinitely recursive", d.name.id.id);
                 return Err(TypingErr {
                     msg: msg,
                     pos: d.name.id.pos,
@@ -1967,7 +1967,7 @@ impl Context {
 
         if data.type_args.len() != dt.name.type_args.len() {
             let msg = format!(
-                "{:?} takes {:?} type arguments but actually passed {:?}",
+                "{} takes {} type arguments but actually passed {}",
                 data.id.id,
                 dt.name.type_args.len(),
                 data.type_args.len()
@@ -2205,7 +2205,7 @@ impl Context {
                 match self.funs.get(&expr.id.to_string()) {
                     Some(defun) => {
                         if !chk_rec && !defun.exported {
-                            let msg = format!("{:?} is not defined", expr.id);
+                            let msg = format!("{} is not defined", expr.id);
                             return Err(TypingErr {
                                 msg: msg,
                                 pos: expr.pos,
@@ -2222,14 +2222,14 @@ impl Context {
                     None => {
                         if self.built_in.contains(&expr.id) {
                             if !chk_rec && expr.id == "call-rust" {
-                                let msg = format!("{:?} is not defined", expr.id);
+                                let msg = format!("{} is not defined", expr.id);
                                 return Err(TypingErr {
                                     msg: msg,
                                     pos: expr.pos,
                                 });
                             }
                         } else {
-                            let msg = format!("{:?} is not defined", expr.id);
+                            let msg = format!("{} is not defined", expr.id);
                             return Err(TypingErr {
                                 msg: msg,
                                 pos: expr.pos,
@@ -2792,7 +2792,7 @@ pub fn exprs2context(exprs: &LinkedList<parser::Expr>) -> Result<Context, Typing
                             let f = expr2defun(e)?;
 
                             if funs.contains_key(&f.id.id.to_string()) {
-                                let msg = format!("function {:?} is multiply defined", f.id.id);
+                                let msg = format!("function {} is multiply defined", f.id.id);
                                 return Err(TypingErr {
                                     msg: msg,
                                     pos: f.id.pos,
@@ -2803,8 +2803,7 @@ pub fn exprs2context(exprs: &LinkedList<parser::Expr>) -> Result<Context, Typing
                         } else if id == "data" {
                             let d = expr2data(e)?;
                             if data.contains_key(&d.name.id.id) {
-                                let msg =
-                                    format!("data type {:?} is multiply defined", d.name.id.id);
+                                let msg = format!("data type {} is multiply defined", d.name.id.id);
                                 return Err(TypingErr {
                                     msg: msg,
                                     pos: d.name.pos,

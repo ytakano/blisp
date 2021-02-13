@@ -66,8 +66,8 @@ enum RTData {
 impl RTData {
     fn get_in_lisp(&self) -> String {
         match self {
-            RTData::Int(n) => format!("{:?}", n),
-            RTData::Bool(n) => format!("{:?}", n),
+            RTData::Int(n) => format!("{}", n),
+            RTData::Bool(n) => format!("{}", n),
             RTData::Defun(n) => format!("{}", n),
             RTData::Lambda(n) => format!("(Lambda {})", unsafe { &(*(*n)).ident }),
             RTData::LData(n) => {
@@ -179,7 +179,7 @@ pub(crate) fn eval(code: &str, ctx: &semantics::Context) -> Result<LinkedList<St
             }
             Err(e) => {
                 let msg = format!(
-                    "(RuntimeErr [{:?} (Pos {:?} {:?})])",
+                    "(RuntimeErr [{} (Pos {} {})])",
                     e.msg, e.pos.line, e.pos.column
                 );
                 result.push_back(msg);
@@ -267,7 +267,7 @@ fn get_fun<'a>(
         }
         None => {
             let pos = expr.get_pos();
-            let msg = format!("{:?} is not defined", fun_name);
+            let msg = format!("{} is not defined", fun_name);
             return Err(RuntimeErr { msg: msg, pos: pos });
         }
     }
