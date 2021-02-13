@@ -83,12 +83,16 @@ impl RTData {
                         None => panic!("invalid list"),
                     }
                     if list_head {
-                        format!("'({} {})", e1, e2)
+                        if e2 == "" {
+                            format!("'({})", e1)
+                        } else {
+                            format!("'({} {})", e1, e2)
+                        }
                     } else {
                         if e2 == "" {
-                            format!("{} {}", e1, e2)
-                        } else {
                             e1
+                        } else {
+                            format!("{} {}", e1, e2)
                         }
                     }
                 } else if label == "Nil" {
