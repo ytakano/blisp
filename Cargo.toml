@@ -8,7 +8,11 @@ edition = "2018"
 
 [dependencies]
 num-bigint = { version = "0.3.1", default-features = false }
-num-traits = { version = "0.2.14", default-features = false}
+
+[dependencies.num-traits]
+version = "0.2.14"
+default-features = false
+features = ["libm"]
 
 [profile.dev]
 opt-level = 2
