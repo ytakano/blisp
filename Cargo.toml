@@ -3,6 +3,13 @@ name = "blisp"
 version = "0.2.0"
 authors = ["Yuuki Takano <ytakanoster@gmail.com>"]
 edition = "2018"
+description = "A lisp like statically typed programing language for no_std."
+license = "MIT"
+repository = "https://github.com/ytakano/blisp"
+keywords = ["no_std", "scripting", "scripting-engine", "scripting-language", "embedded" ]
+categories = [ "no-std", "embedded" ]
+license-file = "LICENSE"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -16,16 +23,6 @@ default-features = false
 version = "0.2.14"
 default-features = false
 features = ["libm"]
-
-[profile.dev]
-opt-level = 2
-lto = true
-panic = "abort"
-
-[profile.release]
-opt-level = 2
-lto = true
-panic = "abort"
 
 [lib]
 crate-type = ["rlib"]

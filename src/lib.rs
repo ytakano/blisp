@@ -1,3 +1,39 @@
+//! # BLisp
+//!
+//! BLisp is a well typed Lisp like programming language which adopts effect
+//! system for no_std environments.
+//! BLisp supports higher order RPCs like higher order functions
+//! of functional programing languages.
+//!
+//! This repository provides only a library crate.
+//! Please see [blisp-repl](https://github.com/ytakano/blisp-repl) to use BLisp,
+//! or [baremetalisp](https://github.com/ytakano/baremetalisp) which is a toy OS.
+//!
+//! ## Example
+//!
+//! ```
+//! let code = "(export factorial (n) (Pure (-> (Int) Int))
+//!    (if (<= n 0)
+//!        1
+//!        (* n (factorial (- n 1)))))";
+//!
+//! let exprs = blisp::init(code).unwrap();
+//! let ctx = blisp::typing(&exprs).unwrap();
+//! let expr = "(factorial 30)";
+//! for result in blisp::eval(expr, &ctx).unwrap() {
+//!    println!("{}", result.unwrap());
+//! }
+//! ```
+//!
+//! ## Features
+//!
+//! - Algebraic data type
+//! - Generics
+//! - Hindley–Milner based type inference
+//! - Effect system to separate side effects from pure functions
+//! - Big integer
+//! - Supporting no_std environments
+
 #![no_std]
 
 #[macro_use]
@@ -10,12 +46,19 @@ pub mod parser;
 pub mod runtime;
 pub mod semantics;
 
+const FILE_ID_PRELUD: usize = 0;
+const FILE_ID_USER: usize = 1;
+pub(crate) const FILE_ID_EVAL: usize = 2;
+
+/// indicate a position of file
 #[derive(Debug, Clone, Copy)]
 pub struct Pos {
-    pub line: usize,
-    pub column: usize,
+    pub file_id: usize, // file identifier, 0 is prelude.lisp
+    pub line: usize,    // line number, 0 origin
+    pub column: usize,  // column number, 0 origin
 }
 
+/// error message
 #[derive(Debug)]
 pub struct LispErr {
     pub msg: String,
@@ -28,9 +71,21 @@ impl LispErr {
     }
 }
 
+/// initialize BLisp with code
+///
+/// # Example
+///
+/// ```
+/// let code = "(export factorial (n) (Pure (-> (Int) Int))
+///    (if (<= n 0)
+///        1
+///        (* n (factorial (- n 1)))))";
+///
+/// blisp::init(code).unwrap();
+/// ```
 pub fn init(code: &str) -> Result<LinkedList<parser::Expr>, LispErr> {
     let prelude = include_str!("prelude.lisp");
-    let mut ps = parser::Parser::new(prelude);
+    let mut ps = parser::Parser::new(prelude, FILE_ID_PRELUD);
     let mut exprs = match ps.parse() {
         Ok(e) => e,
         Err(e) => {
@@ -39,7 +94,7 @@ pub fn init(code: &str) -> Result<LinkedList<parser::Expr>, LispErr> {
         }
     };
 
-    let mut ps = parser::Parser::new(code);
+    let mut ps = parser::Parser::new(code, FILE_ID_USER);
     match ps.parse() {
         Ok(mut e) => {
             exprs.append(&mut e);
@@ -52,6 +107,19 @@ pub fn init(code: &str) -> Result<LinkedList<parser::Expr>, LispErr> {
     }
 }
 
+/// perform type checking and inference
+///
+/// # Example
+///
+/// ```
+/// let code = "(export factorial (n) (Pure (-> (Int) Int))
+///    (if (<= n 0)
+///        1
+///        (* n (factorial (- n 1)))))";
+///
+/// let exprs = blisp::init(code).unwrap();
+/// blisp::typing(&exprs).unwrap();
+/// ```
 pub fn typing(exprs: &LinkedList<parser::Expr>) -> Result<semantics::Context, LispErr> {
     match semantics::exprs2context(exprs) {
         Ok(c) => Ok(c),
@@ -62,6 +130,23 @@ pub fn typing(exprs: &LinkedList<parser::Expr>) -> Result<semantics::Context, Li
     }
 }
 
+/// evaluate an expression
+///
+/// # Example
+///
+/// ```
+/// let code = "(export factorial (n) (Pure (-> (Int) Int))
+///    (if (<= n 0)
+///        1
+///        (* n (factorial (- n 1)))))";
+///
+/// let exprs = blisp::init(code).unwrap();
+/// let ctx = blisp::typing(&exprs).unwrap();
+/// let expr = "(factorial 30)";
+/// for result in blisp::eval(expr, &ctx).unwrap() {
+///    println!("{}", result.unwrap());
+/// }
+/// ```
 pub fn eval(
     code: &str,
     ctx: &semantics::Context,

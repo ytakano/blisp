@@ -1,6 +1,6 @@
 # BLisp
 
-BLisp is a well typed Lisp like language which adopts effect system for a shell of no_std.
+BLisp is a well typed Lisp like programming language which adopts effect system for no_std environments.
 BLisp supports higher order RPC like higher order functions of functional programing languages.
 
 This repository provides only a library crate.
@@ -10,10 +10,11 @@ and [baremetalisp](https://github.com/ytakano/baremetalisp) which is a toy OS.
 ## Features
 
 - Algebraic data type
+- Generics
 - Hindley–Milner based type inference
 - Effect system to separate side effects from pure functions
 - Big integer
-- Supporting no_std environment
+- Supporting no_std environments
 
 ## How to Use
 
@@ -46,8 +47,8 @@ extern "C" fn fmod(x: f64, y: f64) -> f64 {
 Cargo.toml
 
 ```toml
-[dependencies]
-blisp = { git = "https://github.com/ytakano/blisp.git" }
+[dependencies.blisp]
+version = "0.2"
 ```
 
 ## Internally Defined Types and Functions

@@ -194,7 +194,7 @@ pub(crate) fn eval(
     code: &str,
     ctx: &semantics::Context,
 ) -> Result<LinkedList<Result<String, String>>, LispErr> {
-    let mut ps = parser::Parser::new(code);
+    let mut ps = parser::Parser::new(code, crate::FILE_ID_EVAL);
     let exprs;
     match ps.parse() {
         Ok(e) => {
