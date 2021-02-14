@@ -1,7 +1,19 @@
 # BLisp
 
+BLisp is a well typed Lisp like language which adopts effect system for a shell of no_std.
+BLisp supports higher order RPC like higher order functions of functional programing languages.
+
 This repository provides only a library crate.
-Please see [blisp-repl](https://github.com/ytakano/blisp-repl) to use BLisp.
+Please see [blisp-repl](https://github.com/ytakano/blisp-repl) to use BLisp,
+and [baremetalisp](https://github.com/ytakano/baremetalisp) which is a toy OS.
+
+## Features
+
+- Algebraic data type
+- Hindley–Milner based type inference
+- Effect system to separate side effects from pure functions
+- Big integer
+- Supporting no_std environment
 
 ## How to Use
 
@@ -18,6 +30,16 @@ fn main() {
 
     let e = "(factorial 10)";
     blisp::eval(e, &ctx).unwrap();
+}
+```
+
+If Rust compiler or linker says warning of fmod,
+please add fmod manually as follows.
+
+```rust
+#[no_mangle]
+extern "C" fn fmod(x: f64, y: f64) -> f64 {
+    libm::fmod(x, y)
 }
 ```
 

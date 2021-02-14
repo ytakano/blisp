@@ -7,7 +7,10 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-num-bigint = { git = "https://github.com/ytakano/num-bigint.git", default-features = false, features = ["libm"] }
+
+[dependencies.num-bigint]
+version = "0.3"
+default-features = false
 
 [dependencies.num-traits]
 version = "0.2.14"

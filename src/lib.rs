@@ -29,7 +29,7 @@ impl LispErr {
 }
 
 pub fn init(code: &str) -> Result<LinkedList<parser::Expr>, LispErr> {
-    let prelude = include_str!("prelude.blisp");
+    let prelude = include_str!("prelude.lisp");
     let mut ps = parser::Parser::new(prelude);
     let mut exprs = match ps.parse() {
         Ok(e) => e,
