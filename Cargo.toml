@@ -4,7 +4,6 @@ version = "0.2.0"
 authors = ["Yuuki Takano <ytakanoster@gmail.com>"]
 edition = "2018"
 description = "A lisp like statically typed programing language for no_std."
-license = "MIT"
 repository = "https://github.com/ytakano/blisp"
 keywords = ["no_std", "scripting", "scripting-engine", "scripting-language", "embedded" ]
 categories = [ "no-std", "embedded" ]
