@@ -533,6 +533,8 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <li><a href="#_function_definition">Function Definition</a></li>
 <li><a href="#_arithmetic_operations">Arithmetic Operations</a></li>
 <li><a href="#_boolean_operations">Boolean Operations</a></li>
+<li><a href="#_algebraic_data_type">Algebraic Data Type</a></li>
+<li><a href="#_generics">Generics</a></li>
 </ul>
 </div>
 </div>
@@ -756,11 +758,115 @@ qued can be called from Rust&#8217;s eval, and it calls double internally.</p>
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="_algebraic_data_type">Algebraic Data Type</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Algebraic data type can be defined as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; in BLisp</span>
+<span class="tok-p">(</span><span class="tok-nv">data</span> <span class="tok-nv">Gender</span> <span class="tok-c1">; type name</span>
+    <span class="tok-nv">Male</span>     <span class="tok-c1">; value</span>
+    <span class="tok-nv">Female</span><span class="tok-p">)</span>  <span class="tok-c1">; value</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This is equivalent to Rust&#8217;s following code.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="rust"><span></span><span class="tok-c1">// in Rust</span>
+<span class="tok-k">enum</span> <span class="tok-nc">Gender</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-n">Male</span><span class="tok-p">,</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-n">Female</span><span class="tok-w"></span>
+<span class="tok-p">}</span><span class="tok-w"></span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Each elements can have values as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; in BLisp</span>
+<span class="tok-p">(</span><span class="tok-nv">data</span> <span class="tok-nv">Dim2</span>
+    <span class="tok-p">(</span><span class="tok-nv">Dim2</span> <span class="tok-nv">Int</span> <span class="tok-nv">Int</span><span class="tok-p">))</span> <span class="tok-c1">; Dim2 has integers</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Dim2 can be instantiated as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">Dim2</span> <span class="tok-mi">10</span> <span class="tok-mi">20</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This type is equivalent to as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="rust"><span></span><span class="tok-c1">// in Rust</span>
+<span class="tok-k">enum</span> <span class="tok-nc">Dim2</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-n">Dim2</span><span class="tok-p">(</span><span class="tok-kt">usize</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kt">usize</span><span class="tok-p">)</span><span class="tok-w"></span>
+<span class="tok-p">}</span><span class="tok-w"></span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_generics">Generics</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Option and Result types are defined internally.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">data</span> <span class="tok-p">(</span><span class="tok-nv">Option</span> <span class="tok-no">t</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-no">t</span><span class="tok-p">)</span>
+    <span class="tok-nv">None</span><span class="tok-p">)</span>
+
+<span class="tok-p">(</span><span class="tok-nv">data</span> <span class="tok-p">(</span><span class="tok-nv">Result</span> <span class="tok-no">t</span> <span class="tok-nv">e</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-nv">Ok</span> <span class="tok-no">t</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-nv">Err</span> <span class="tok-nv">e</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>t and e are type variables.
+This code is equivalent to following Rust&#8217;s code.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="rust"><span></span><span class="tok-c1">// in Rust</span>
+<span class="tok-k">enum</span> <span class="tok-nb">Option</span><span class="tok-o">&lt;</span><span class="tok-n">t</span><span class="tok-o">&gt;</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-nb">Some</span><span class="tok-p">(</span><span class="tok-n">t</span><span class="tok-p">),</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-nb">None</span><span class="tok-p">,</span><span class="tok-w"></span>
+<span class="tok-p">}</span><span class="tok-w"></span>
+
+<span class="tok-k">enum</span> <span class="tok-nb">Result</span><span class="tok-o">&lt;</span><span class="tok-n">t</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">e</span><span class="tok-o">&gt;</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-nb">Ok</span><span class="tok-p">(</span><span class="tok-n">t</span><span class="tok-p">),</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-nb">Err</span><span class="tok-p">(</span><span class="tok-n">e</span><span class="tok-p">),</span><span class="tok-w"></span>
+<span class="tok-p">}</span><span class="tok-w"></span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>List type is a built-in type as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">data</span> <span class="tok-p">(</span><span class="tok-nv">List</span> <span class="tok-no">t</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-nv">Cons</span> <span class="tok-no">t</span> <span class="tok-p">(</span><span class="tok-nv">List</span> <span class="tok-no">t</span><span class="tok-p">))</span>
+    <span class="tok-no">Nil</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
 </div>
 <div id="footer">
 <div id="footer-text">
 Version 0.1<br>
-Last updated 2021-02-15 17:37:48 +0900
+Last updated 2021-02-15 18:07:03 +0900
 </div>
 </div>
 <script type="text/x-mathjax-config">

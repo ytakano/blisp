@@ -178,3 +178,85 @@ This code output as follows.
 ; (Pure (-> (Bool) Bool))
 (not true)
 ----
+
+## Algebraic Data Type
+
+Algebraic data type can be defined as follows.
+
+```lisp
+; in BLisp
+(data Gender ; type name
+    Male     ; value
+    Female)  ; value
+```
+
+This is equivalent to Rust's following code.
+
+```rust
+// in Rust
+enum Gender {
+    Male,
+    Female
+}
+```
+
+Each elements can have values as follows.
+
+```lisp
+; in BLisp
+(data Dim2
+    (Dim2 Int Int)) ; Dim2 has integers
+```
+
+Dim2 can be instantiated as follows.
+
+```lisp
+(Dim2 10 20)
+```
+
+This type is equivalent to as follows.
+
+```rust
+// in Rust
+enum Dim2 {
+    Dim2(usize, usize)
+}
+```
+
+## Generics
+
+Option and Result types are defined internally.
+
+```lisp
+(data (Option t)
+    (Some t)
+    None)
+
+(data (Result t e)
+    (Ok t)
+    (Err e))
+```
+
+t and e are type variables.
+This code is equivalent to following Rust's code.
+
+```rust
+// in Rust
+enum Option<t> {
+    Some(t),
+    None,
+}
+
+enum Result<t, e> {
+    Ok(t),
+    Err(e),
+}
+```
+
+List type is a built-in type as follows.
+
+```lisp
+(data (List t)
+    (Cons t (List t))
+    Nil)
+```
