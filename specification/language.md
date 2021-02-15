@@ -116,5 +116,5 @@ example:
 
 - +, -, *, /, %: (Pure (-> (Int Int) Int))
 - <, >, <=, >=, =: (Pure (-> (Int Int) Bool))
-- and, or, xor: (Pure (-> (Bool BOol) Bool))
+- and, or, xor: (Pure (-> (Bool Bool) Bool))
 - not: (Pure (-> (Bool) Bool))
