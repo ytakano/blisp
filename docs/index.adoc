@@ -154,6 +154,7 @@ This code output as follows.
 [source, lisp]
 ----
 ; (Pure (-> (Int Int) Bool))
+(= 4 4)
 (< 6 7)
 (> 6 7)
 (<= 30 40)
