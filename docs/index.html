@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 2.0.12">
 <meta name="author" content="Yuuki Takano">
-<title>BLisp: Statically Typed Lisp Like Language</title>
+<title>BLisp: A Statically Typed Lisp Like Language</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | https://asciidoctor.org */
@@ -517,7 +517,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 </head>
 <body class="article">
 <div id="header">
-<h1>BLisp: Statically Typed Lisp Like Language</h1>
+<h1>BLisp: A Statically Typed Lisp Like Language</h1>
 <div class="details">
 <span id="author" class="author">Yuuki Takano</span><br>
 <span id="email" class="email"><a href="mailto:ytakano@wide.ad.jp">ytakano@wide.ad.jp</a></span><br>
@@ -527,14 +527,19 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <div id="toc" class="toc">
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
-<li><a href="#_features">Features</a></li>
-<li><a href="#_values">Values</a></li>
-<li><a href="#_basic_types">Basic Types</a></li>
-<li><a href="#_function_definition">Function Definition</a></li>
-<li><a href="#_arithmetic_operations">Arithmetic Operations</a></li>
-<li><a href="#_boolean_operations">Boolean Operations</a></li>
-<li><a href="#_algebraic_data_type">Algebraic Data Type</a></li>
-<li><a href="#_generics">Generics</a></li>
+<li><a href="#_features">1. Features</a></li>
+<li><a href="#_values">2. Values</a></li>
+<li><a href="#_basic_types">3. Basic Types</a></li>
+<li><a href="#_function_definition">4. Function Definition</a></li>
+<li><a href="#_arithmetic_operations">5. Arithmetic Operations</a></li>
+<li><a href="#_boolean_operations">6. Boolean Operations</a></li>
+<li><a href="#_algebraic_data_type">7. Algebraic Data Type</a></li>
+<li><a href="#_generics">8. Generics</a></li>
+<li><a href="#_generic_function">9. Generic Function</a></li>
+<li><a href="#_if_expression">10. If Expression</a></li>
+<li><a href="#_match_expression">11. Match Expression</a></li>
+<li><a href="#_let_expression">12. Let Expression</a></li>
+<li><a href="#_lambda_expression">13. Lambda Expression</a></li>
 </ul>
 </div>
 </div>
@@ -553,7 +558,7 @@ and <a href="https://github.com/ytakano/baremetalisp">baremetalisp</a> which is 
 </div>
 </div>
 <div class="sect1">
-<h2 id="_features">Features</h2>
+<h2 id="_features">1. Features</h2>
 <div class="sectionbody">
 <div class="ulist">
 <ul>
@@ -580,7 +585,7 @@ and <a href="https://github.com/ytakano/baremetalisp">baremetalisp</a> which is 
 </div>
 </div>
 <div class="sect1">
-<h2 id="_values">Values</h2>
+<h2 id="_values">2. Values</h2>
 <div class="sectionbody">
 <div class="listingblock">
 <div class="title">values</div>
@@ -597,7 +602,7 @@ and <a href="https://github.com/ytakano/baremetalisp">baremetalisp</a> which is 
 </div>
 </div>
 <div class="sect1">
-<h2 id="_basic_types">Basic Types</h2>
+<h2 id="_basic_types">3. Basic Types</h2>
 <div class="sectionbody">
 <div class="listingblock">
 <div class="title">types</div>
@@ -618,7 +623,7 @@ However, in Pure functions, calling only Pure functions is permitted.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_function_definition">Function Definition</h2>
+<h2 id="_function_definition">4. Function Definition</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Functions can be defined by defun or export.
@@ -711,7 +716,7 @@ qued can be called from Rust&#8217;s eval, and it calls double internally.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_arithmetic_operations">Arithmetic Operations</h2>
+<h2 id="_arithmetic_operations">5. Arithmetic Operations</h2>
 <div class="sectionbody">
 <div class="listingblock">
 <div class="title">basic</div>
@@ -738,7 +743,7 @@ qued can be called from Rust&#8217;s eval, and it calls double internally.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_boolean_operations">Boolean Operations</h2>
+<h2 id="_boolean_operations">6. Boolean Operations</h2>
 <div class="sectionbody">
 <div class="listingblock">
 <div class="title">logical</div>
@@ -759,7 +764,7 @@ qued can be called from Rust&#8217;s eval, and it calls double internally.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_algebraic_data_type">Algebraic Data Type</h2>
+<h2 id="_algebraic_data_type">7. Algebraic Data Type</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Algebraic data type can be defined as follows.</p>
@@ -773,7 +778,8 @@ qued can be called from Rust&#8217;s eval, and it calls double internally.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>This is equivalent to Rust&#8217;s following code.</p>
+<p>Type name&#8217;s and its value&#8217;s first character must be uppercase.
+This is equivalent to Rust&#8217;s following code.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -785,7 +791,7 @@ qued can be called from Rust&#8217;s eval, and it calls double internally.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Each elements can have values as follows.</p>
+<p>Each element can have values as follows.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -808,15 +814,16 @@ qued can be called from Rust&#8217;s eval, and it calls double internally.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="rust"><span></span><span class="tok-c1">// in Rust</span>
+<span class="tok-k">use</span><span class="tok-w"> </span><span class="tok-n">num_bigint</span>::<span class="tok-n">BigInt</span><span class="tok-p">;</span><span class="tok-w"></span>
 <span class="tok-k">enum</span> <span class="tok-nc">Dim2</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
-<span class="tok-w">    </span><span class="tok-n">Dim2</span><span class="tok-p">(</span><span class="tok-kt">usize</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-kt">usize</span><span class="tok-p">)</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-n">Dim2</span><span class="tok-p">(</span><span class="tok-n">BigInt</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">BigInt</span><span class="tok-p">)</span><span class="tok-w"></span>
 <span class="tok-p">}</span><span class="tok-w"></span></code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_generics">Generics</h2>
+<h2 id="_generics">8. Generics</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Option and Result types are defined internally.</p>
@@ -833,7 +840,7 @@ qued can be called from Rust&#8217;s eval, and it calls double internally.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>t and e are type variables.
+<p><em>t</em> and <em>e</em> are type variables.
 This code is equivalent to following Rust&#8217;s code.</p>
 </div>
 <div class="listingblock">
@@ -844,9 +851,9 @@ This code is equivalent to following Rust&#8217;s code.</p>
 <span class="tok-w">    </span><span class="tok-nb">None</span><span class="tok-p">,</span><span class="tok-w"></span>
 <span class="tok-p">}</span><span class="tok-w"></span>
 
-<span class="tok-k">enum</span> <span class="tok-nb">Result</span><span class="tok-o">&lt;</span><span class="tok-n">t</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">e</span><span class="tok-o">&gt;</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
-<span class="tok-w">    </span><span class="tok-nb">Ok</span><span class="tok-p">(</span><span class="tok-n">t</span><span class="tok-p">),</span><span class="tok-w"></span>
-<span class="tok-w">    </span><span class="tok-nb">Err</span><span class="tok-p">(</span><span class="tok-n">e</span><span class="tok-p">),</span><span class="tok-w"></span>
+<span class="tok-k">enum</span> <span class="tok-nb">Result</span><span class="tok-o">&lt;</span><span class="tok-n">T</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">E</span><span class="tok-o">&gt;</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-nb">Ok</span><span class="tok-p">(</span><span class="tok-n">T</span><span class="tok-p">),</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-nb">Err</span><span class="tok-p">(</span><span class="tok-n">E</span><span class="tok-p">),</span><span class="tok-w"></span>
 <span class="tok-p">}</span><span class="tok-w"></span></code></pre>
 </div>
 </div>
@@ -860,13 +867,235 @@ This code is equivalent to following Rust&#8217;s code.</p>
     <span class="tok-no">Nil</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>So, following 2 lists are equivalent.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">Cons</span> <span class="tok-mi">1</span> <span class="tok-p">(</span><span class="tok-nv">Cons</span> <span class="tok-mi">2</span> <span class="tok-p">(</span><span class="tok-nv">Cons</span> <span class="tok-mi">3</span> <span class="tok-no">Nil</span><span class="tok-p">)))</span>
+<span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span> <span class="tok-mi">3</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_generic_function">9. Generic Function</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><em>car</em> and <em>cdr</em> are internally defined generic functions.
+These definitions are as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nb">export</span> <span class="tok-nb">car</span> <span class="tok-p">(</span><span class="tok-nv">x</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-no">t</span><span class="tok-p">))</span> <span class="tok-p">(</span><span class="tok-nv">Option</span> <span class="tok-no">t</span><span class="tok-p">)))</span>
+    <span class="tok-p">(</span><span class="tok-nv">match</span> <span class="tok-nv">x</span>
+        <span class="tok-p">((</span><span class="tok-nv">Cons</span> <span class="tok-nv">n</span> <span class="tok-nv">_</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-nv">n</span><span class="tok-p">))</span>
+        <span class="tok-p">(</span><span class="tok-nv">_</span> <span class="tok-nv">None</span><span class="tok-p">)))</span>
+
+<span class="tok-p">(</span><span class="tok-nb">export</span> <span class="tok-nb">cdr</span> <span class="tok-p">(</span><span class="tok-nv">x</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-no">t</span><span class="tok-p">))</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-no">t</span><span class="tok-p">)))</span>
+    <span class="tok-p">(</span><span class="tok-nv">match</span> <span class="tok-nv">x</span>
+        <span class="tok-p">((</span><span class="tok-nv">Cons</span> <span class="tok-nv">_</span> <span class="tok-nv">l</span><span class="tok-p">)</span> <span class="tok-nv">l</span><span class="tok-p">)</span>
+        <span class="tok-p">(</span><span class="tok-nv">_</span> <span class="tok-o">&#39;</span><span class="tok-p">())))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>t</em> is a type variable. These functions can be used as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nb">car</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">3</span> <span class="tok-mi">8</span> <span class="tok-mi">9</span><span class="tok-p">))</span>  <span class="tok-c1">; returns (Some 3)</span>
+<span class="tok-p">(</span><span class="tok-nb">cdr</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">8</span> <span class="tok-mi">10</span> <span class="tok-mi">4</span><span class="tok-p">))</span> <span class="tok-c1">; returns &#39;(10 4)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Normal and type variables' first character must be lowercase.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_if_expression">10. If Expression</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Straightforward.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-k">if</span> <span class="tok-p">(</span><span class="tok-nb">&lt;</span> <span class="tok-mi">10</span> <span class="tok-mi">20</span><span class="tok-p">)</span>
+    <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span> <span class="tok-mi">3</span><span class="tok-p">)</span>
+    <span class="tok-o">&#39;</span><span class="tok-p">())</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_match_expression">11. Match Expression</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>A list can be matched as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">match</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span> <span class="tok-mi">3</span><span class="tok-p">)</span>
+    <span class="tok-p">((</span><span class="tok-nv">Cons</span> <span class="tok-nv">n</span> <span class="tok-nv">_</span><span class="tok-p">)</span> <span class="tok-nv">n</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-o">&#39;</span><span class="tok-p">()</span> <span class="tok-mi">0</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The expression</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>(Cons n _)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>is a pattern.
+If the pattern is matched to '(1 2 3), 1 is assigned to a varable <em>n</em>. Then, <em>n</em>, namely 1, is returned.</p>
+</div>
+<div class="paragraph">
+<p>This is an example of pattern matching of tuple.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">match</span> <span class="tok-nv">[1</span> <span class="tok-nv">3]</span>
+    <span class="tok-p">(</span><span class="tok-nv">[x</span> <span class="tok-nv">y]</span> <span class="tok-nv">[y</span> <span class="tok-nv">x]</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This code swap 1st and 2nd elements of the tuple.</p>
+</div>
+<div class="paragraph">
+<p>Integer values can be also used for pattern matching.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">match</span> <span class="tok-mi">20</span>
+    <span class="tok-p">(</span><span class="tok-mi">20</span> <span class="tok-nv">true</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-nv">_</span> <span class="tok-nv">false</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>More complex example is a as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">match</span> <span class="tok-nv">[</span><span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">10</span><span class="tok-p">)</span> <span class="tok-nv">true]</span>
+    <span class="tok-p">(</span><span class="tok-nv">[</span><span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">10</span><span class="tok-p">)</span> <span class="tok-nv">false]</span> <span class="tok-mi">1</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-nv">[</span><span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">10</span><span class="tok-p">)</span> <span class="tok-nv">true]</span> <span class="tok-mi">2</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-nv">_</span> <span class="tok-mi">0</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>BLisp checks exhaustively of pattern.
+So, following code will be rejected.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">match</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-o">&#39;</span><span class="tok-p">()</span> <span class="tok-mi">0</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_let_expression">12. Let Expression</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Let expression is used to bind variables as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-k">let</span> <span class="tok-p">((</span><span class="tok-nv">x</span> <span class="tok-mi">10</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">y</span> <span class="tok-mi">20</span><span class="tok-p">))</span> <span class="tok-c1">; x is 10, y is 20</span>
+    <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-nv">x</span> <span class="tok-nv">y</span><span class="tok-p">))</span>
+
+<span class="tok-p">(</span><span class="tok-k">let</span> <span class="tok-p">((</span><span class="tok-nv">x</span> <span class="tok-mi">10</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">x</span> <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-nv">x</span> <span class="tok-nv">x</span><span class="tok-p">))</span> <span class="tok-p">(</span><span class="tok-nv">x</span> <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-nv">x</span> <span class="tok-nv">x</span><span class="tok-p">)))</span> <span class="tok-c1">; x = 10, x = x * x, x = x * x</span>
+    <span class="tok-nv">x</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Destructuring can be also performed as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-k">let</span> <span class="tok-p">(((</span><span class="tok-nv">Some</span> <span class="tok-nv">x</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">10</span><span class="tok-p">)))</span> <span class="tok-c1">; x is 10</span>
+    <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-nv">x</span> <span class="tok-mi">2</span><span class="tok-p">))</span>
+
+<span class="tok-p">(</span><span class="tok-k">let</span> <span class="tok-p">((</span><span class="tok-nv">[x</span> <span class="tok-nv">y]</span> <span class="tok-nv">[10</span> <span class="tok-nv">20]</span><span class="tok-p">))</span> <span class="tok-c1">; x is 10, y is 20</span>
+    <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-nv">x</span> <span class="tok-nv">y</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_lambda_expression">13. Lambda Expression</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Lambda expression is defined as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-k">lambda</span> <span class="tok-p">(</span><span class="tok-nv">x</span> <span class="tok-nv">y</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-nv">x</span> <span class="tok-nv">y</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This lambda takes 2 integers and return the multiplication.
+Applying arguments to this is simple as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">((</span><span class="tok-k">lambda</span> <span class="tok-p">(</span><span class="tok-nv">x</span> <span class="tok-nv">y</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-nv">x</span> <span class="tok-nv">y</span><span class="tok-p">))</span> <span class="tok-mi">10</span> <span class="tok-mi">20</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Every lambda expression is Pure.
+IO functions cannot be called in any lambda expressions.</p>
+</div>
+<div class="paragraph">
+<p><em>map</em> and <em>fold</em> functions are internally defined as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nb">export</span> <span class="tok-nb">map</span> <span class="tok-p">(</span><span class="tok-nv">f</span> <span class="tok-nv">x</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">((</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">a</span><span class="tok-p">)</span> <span class="tok-nv">b</span><span class="tok-p">))</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-nv">a</span><span class="tok-p">))</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-nv">b</span><span class="tok-p">)))</span>
+    <span class="tok-p">(</span><span class="tok-nv">match</span> <span class="tok-nv">x</span>
+        <span class="tok-p">((</span><span class="tok-nv">Cons</span> <span class="tok-nv">h</span> <span class="tok-nv">l</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Cons</span> <span class="tok-p">(</span><span class="tok-nv">f</span> <span class="tok-nv">h</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nb">map</span> <span class="tok-nv">f</span> <span class="tok-nv">l</span><span class="tok-p">)))</span>
+        <span class="tok-p">(</span><span class="tok-nv">_</span> <span class="tok-o">&#39;</span><span class="tok-p">())))</span>
+
+<span class="tok-p">(</span><span class="tok-nb">export</span> <span class="tok-nv">fold</span> <span class="tok-p">(</span><span class="tok-nv">f</span> <span class="tok-nv">init</span> <span class="tok-nv">x</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">((</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">a</span> <span class="tok-nv">b</span><span class="tok-p">)</span> <span class="tok-nv">b</span><span class="tok-p">))</span> <span class="tok-nv">b</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-nv">a</span><span class="tok-p">))</span> <span class="tok-nv">b</span><span class="tok-p">))</span>
+    <span class="tok-p">(</span><span class="tok-nv">match</span> <span class="tok-nv">x</span>
+        <span class="tok-p">((</span><span class="tok-nv">Cons</span> <span class="tok-nv">h</span> <span class="tok-nv">l</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">fold</span> <span class="tok-nv">f</span> <span class="tok-p">(</span><span class="tok-nv">f</span> <span class="tok-nv">h</span> <span class="tok-nv">init</span><span class="tok-p">)</span> <span class="tok-nv">l</span><span class="tok-p">))</span>
+        <span class="tok-p">(</span><span class="tok-nv">_</span> <span class="tok-nv">init</span><span class="tok-p">)))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>map</em> can be used to apply functions to elements of a list as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; square each element</span>
+<span class="tok-p">(</span><span class="tok-k">let</span> <span class="tok-p">((</span><span class="tok-nv">l</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span> <span class="tok-mi">3</span><span class="tok-p">))</span>
+      <span class="tok-p">(</span><span class="tok-nv">f</span> <span class="tok-p">(</span><span class="tok-k">lambda</span> <span class="tok-p">(</span><span class="tok-nv">x</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-nv">x</span> <span class="tok-nv">x</span><span class="tok-p">))))</span>
+        <span class="tok-p">(</span><span class="tok-nb">map</span> <span class="tok-nv">f</span> <span class="tok-nv">l</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>fold</em> can be used to calculate over elements of a list.
+For example, summation can be computed as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; summation</span>
+<span class="tok-p">(</span><span class="tok-k">let</span> <span class="tok-p">((</span><span class="tok-nv">l</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">20</span> <span class="tok-mi">50</span> <span class="tok-mi">60</span><span class="tok-p">))</span>
+      <span class="tok-p">(</span><span class="tok-nv">f</span> <span class="tok-p">(</span><span class="tok-k">lambda</span> <span class="tok-p">(</span><span class="tok-nv">x</span> <span class="tok-nv">y</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nb">+</span> <span class="tok-nv">x</span> <span class="tok-nv">y</span><span class="tok-p">))))</span>
+        <span class="tok-p">(</span><span class="tok-nv">fold</span> <span class="tok-nv">f</span> <span class="tok-mi">0</span> <span class="tok-nv">l</span><span class="tok-p">))</span> <span class="tok-c1">; 0 is an initial value</span></code></pre>
+</div>
+</div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
 Version 0.1<br>
-Last updated 2021-02-15 18:07:03 +0900
+Last updated 2021-02-16 17:19:33 +0900
 </div>
 </div>
 <script type="text/x-mathjax-config">

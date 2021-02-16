@@ -1,8 +1,9 @@
-= BLisp: Statically Typed Lisp Like Language
+= BLisp: A Statically Typed Lisp Like Language
 Yuuki Takano <ytakano@wide.ad.jp>
 v0.1, 2021-02
 :doctype: article
 :toc:
+:sectnums:
 :encoding: utf-8
 :stem: latexmath
 :source-highlighter: pygments
@@ -179,7 +180,7 @@ This code output as follows.
 (not true)
 ----
 
-## Algebraic Data Type
+== Algebraic Data Type
 
 Algebraic data type can be defined as follows.
 
@@ -190,6 +191,7 @@ Algebraic data type can be defined as follows.
     Female)  ; value
 ```
 
+Type name's and its value's first character must be uppercase.
 This is equivalent to Rust's following code.
 
 ```rust
@@ -200,7 +202,7 @@ enum Gender {
 }
 ```
 
-Each elements can have values as follows.
+Each element can have values as follows.
 
 ```lisp
 ; in BLisp
@@ -218,12 +220,13 @@ This type is equivalent to as follows.
 
 ```rust
 // in Rust
+use num_bigint::BigInt;
 enum Dim2 {
-    Dim2(usize, usize)
+    Dim2(BigInt, BigInt)
 }
 ```
 
-## Generics
+== Generics
 
 Option and Result types are defined internally.
 
@@ -237,7 +240,7 @@ Option and Result types are defined internally.
     (Err e))
 ```
 
-t and e are type variables.
+_t_ and _e_ are type variables.
 This code is equivalent to following Rust's code.
 
 ```rust
@@ -247,9 +250,9 @@ enum Option<t> {
     None,
 }
 
-enum Result<t, e> {
-    Ok(t),
-    Err(e),
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
 }
 ```
 
@@ -259,4 +262,171 @@ List type is a built-in type as follows.
 (data (List t)
     (Cons t (List t))
     Nil)
+```
+
+So, following 2 lists are equivalent.
+
+```lisp
+(Cons 1 (Cons 2 (Cons 3 Nil)))
+'(1 2 3)
+```
+
+== Generic Function
+
+_car_ and _cdr_ are internally defined generic functions.
+These definitions are as follows.
+
+```lisp
+(export car (x) (Pure (-> ('(t)) (Option t)))
+    (match x
+        ((Cons n _) (Some n))
+        (_ None)))
+
+(export cdr (x) (Pure (-> ('(t)) '(t)))
+    (match x
+        ((Cons _ l) l)
+        (_ '())))
+```
+
+_t_ is a type variable. These functions can be used as follows.
+
+```lisp
+(car '(3 8 9))  ; returns (Some 3)
+(cdr '(8 10 4)) ; returns '(10 4)
+```
+
+Normal and type variables' first character must be lowercase.
+
+== If Expression
+
+Straightforward.
+
+```lisp
+(if (< 10 20)
+    '(1 2 3)
+    '())
+```
+
+== Match Expression
+
+A list can be matched as follows.
+
+```lisp
+(match '(1 2 3)
+    ((Cons n _) n)
+    ('() 0))
+```
+
+The expression
+
+ (Cons n _)
+
+is a pattern.
+If the pattern is matched to '(1 2 3), 1 is assigned to a varable _n_. Then, _n_, namely 1, is returned.
+
+This is an example of pattern matching of tuple.
+
+```lisp
+(match [1 3]
+    ([x y] [y x]))
+```
+
+This code swap 1st and 2nd elements of the tuple.
+
+Integer values can be also used for pattern matching.
+
+```lisp
+(match 20
+    (20 true)
+    (_ false))
+```
+
+More complex example is a as follows.
+
+```lisp
+(match [(Some 10) true]
+    ([(Some 10) false] 1)
+    ([(Some 10) true] 2)
+    (_ 0))
+```
+
+BLisp checks exhaustively of pattern.
+So, following code will be rejected.
+
+```lisp
+(match '(1 2)
+    ('() 0))
+```
+
+== Let Expression
+
+Let expression is used to bind variables as follows.
+
+```lisp
+(let ((x 10) (y 20)) ; x is 10, y is 20
+    (* x y))
+
+(let ((x 10) (x (* x x)) (x (* x x))) ; x = 10, x = x * x, x = x * x
+    x)
+```
+
+Destructuring can be also performed as follows.
+
+```lisp
+(let (((Some x) (Some 10))) ; x is 10
+    (* x 2))
+
+(let (([x y] [10 20])) ; x is 10, y is 20
+    (* x y))
+```
+
+== Lambda Expression
+
+Lambda expression is defined as follows.
+
+```lisp
+(lambda (x y) (* x y))
+```
+
+This lambda takes 2 integers and return the multiplication.
+Applying arguments to this is simple as follows.
+
+```lisp
+((lambda (x y) (* x y)) 10 20)
+```
+
+Every lambda expression is Pure.
+IO functions cannot be called in any lambda expressions.
+
+_map_ and _fold_ functions are internally defined as follows.
+
+```lisp
+(export map (f x) (Pure (-> ((Pure (-> (a) b)) '(a)) '(b)))
+    (match x
+        ((Cons h l) (Cons (f h) (map f l)))
+        (_ '())))
+
+(export fold (f init x) (Pure (-> ((Pure (-> (a b) b)) b '(a)) b))
+    (match x
+        ((Cons h l) (fold f (f h init) l))
+        (_ init)))
+```
+
+_map_ can be used to apply functions to elements of a list as follows.
+
+```lisp
+; square each element
+(let ((l '(1 2 3))
+      (f (lambda (x) (* x x))))
+        (map f l))
+```
+
+_fold_ can be used to calculate over elements of a list.
+For example, summation can be computed as follows.
+
+```lisp
+; summation
+(let ((l '(20 50 60))
+      (f (lambda (x y) (+ x y))))
+        (fold f 0 l)) ; 0 is an initial value
 ```
