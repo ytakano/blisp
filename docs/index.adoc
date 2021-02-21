@@ -1,4 +1,4 @@
-= BLisp: Lispっぽい静的型付け言語
+= BLisp: A Statically Typed Lisp Like Language
 Yuuki Takano <ytakano@wide.ad.jp>
 v0.1, 2021-02
 :doctype: article
