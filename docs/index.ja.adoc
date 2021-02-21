@@ -1,90 +1,82 @@
-= BLisp: Lispっぽい静的型付け言語
+= BLisp: A Statically Typed Lisp Like Language
 Yuuki Takano <ytakano@wide.ad.jp>
 v0.1, 2021-02
 :doctype: article
 :toc:
 :sectnums:
+:lang: ja
 :encoding: utf-8
 :stem: latexmath
 :source-highlighter: pygments
 
 
-BLisp is a statically typed Lisp like programming language which adopts effect system for no_std environments.
-BLisp supports higher order RPC like higher order functions of functional programing languages.
+BLispは静的型付けされたLispライクなプログラミング言語で、no_std環境用のエフェクトシステムを採用しています。BLispは関数型プログラミング言語の高階関数のような高階のRPCをサポートしています。
 
-This repository provides only a library crate.
-Please see https://github.com/ytakano/blisp-repl[blisp-repl] to use BLisp,
-and https://github.com/ytakano/baremetalisp[baremetalisp] which is a toy OS.
+本リポジトリではライブラリクレートのみを提供しています。BLispを利用するには https://github.com/ytakano/blisp-repl[blisp-repl] か、おもちゃのOSである https://github.com/ytakano/baremetalisp[baremetalisp] を参照してください。
 
-https://ytakano.github.io/blisp/index.ja.html[日本語版はこちら]
+== 特徴
 
-== Features
+* 代数的データ型
+* ジェネリクス
+* 型推論
+* IOと純粋な可能を分離するためのエフェクトシステム
+* 多倍長整数
+* no_std環境のサポート
 
-* Algebraic data type
-* Generics
-* Hindley–Milner based type inference
-* Effect system to separate side effects from pure functions
-* Big integer
-* Supporting no_std environments
-
-== Values
+== 値
 
 .values
 [source, lisp]
 ----
-144       ; integer value
-true      ; boolean value
-false     ; boolean value
-[true 10] ; tuple
-[]        ; empty tuple
-'(1 2 3)  ; list
-'()       ; empty list, Nil
+144       ; 整数値
+true      ; 真偽値
+false     ; 真偽値
+[true 10] ; タプル
+[]        ; 空のタプル
+'(1 2 3)  ; リスト
+'()       ; 空のリスト、Nil
 ----
 
-== Basic Types
+== 基本型
 
 .types
 [source, lisp]
 ----
-Int        ; signed integer
-Bool       ; boolean
-'(Int)     ; list of Int
-[Int Bool] ; tuple of Int and Bool
-(Pure (-> (Int Int) Bool)) ; Pure function, which takes 2 integers and return boolean value
-(IO (-> (Int) [])) ; IO function, which takes an integer and return []
+Int        ; 整数型
+Bool       ; 真偽値型
+'(Int)     ; Int型のリスト型
+[Int Bool] ; Int型とBool型のタプル型
+(Pure (-> (Int Int) Bool)) ; Int型の値を2つとり、Bool型の値をリターンする純粋な関数
+(IO (-> (Int) [])) ; Int型の値をとり[]をリターンするIOのある関数
 ----
 
-Pure and IO are function effects.
-In IO functions, both Pure and IO functions can be called.
-However, in Pure functions, calling only Pure functions is permitted.
+PureとIOは関数の効果です。IO関数内では、Pure関数とIO関数の両方を呼び出すことができます。しかし、Pure関数内では、Pure関数の呼び出しのみ許可されています。
 
-== Function Definition
+== 関数定義
 
-Functions can be defined by defun or export.
-"defun" defines a local function which cannot be called from Rust's eval function.
+関数はdefunやexportで定義することができます。"defun"はRustのeval関数からは呼び出せないローカル関数を定義します。
 
-Suppose following 2 functions.
+以下の2つの関数があるとしましょう。
 
 .defun
 [source, lisp]
 ----
-(defun double (x)         ; function name is "double" and "x" is an argument
-    (Pure (-> (Int) Int)) ; function Type
-    (* 2 x))              ; function body
+(defun double (x)         ; 関数名がdoubleでxは引数
+    (Pure (-> (Int) Int)) ; 関数の型
+    (* 2 x))              ; 関数の中身
 ----
 
 .export
 [source, lisp]
 ----
-(export quad (x)          ; function name is "quad" and "x" is an argument
-    (Pure (-> (Int) Int)) ; function Type
-    (double (double x)))  ; function body
+(export quad (x)          ; 関数名がquadで引数はx
+    (Pure (-> (Int) Int)) ; 関数の型
+    (double (double x)))  ; 関数の中身
 ----
 
-double cannot be called from Rust's eval, but can be called from internally defined functions.
-qued can be called from Rust's eval, and it calls double internally.
+doubleはRustのevalからは呼び出せませんが、内部で定義された関数からは呼び出せます。quedはRustのevalから呼び出すことができ、内部的にdoubleを呼び出します。
 
-This is the code what actually do in Rust.
+これはRustで実際に行うコードです。
 
 .Rust's eval
 [source, rust]
@@ -116,18 +108,18 @@ fn eval(e: &str, ctx: &blisp::semantics::Context) {
 fn main() {
     // internal code
     let code = "
-(defun double (x)         ; function name is double and x is an argument
-    (Pure (-> (Int) Int)) ; function Type
-    (* 2 x))              ; function body
+(defun double (x)         ; 関数名がdoubleでxは引数
+    (Pure (-> (Int) Int)) ; 関数の型
+    (* 2 x))              ; 関数の中身
 
-(export quad (x)          ; function name is quad and x is an argument
-    (Pure (-> (Int) Int)) ; function Type
-    (double (double x)))  ; function body
+(export quad (x)          ; 関数名がquadで引数はx
+    (Pure (-> (Int) Int)) ; 関数の型
+    (double (double x)))  ; 関数の中身
 ";
     let exprs = blisp::init(code).unwrap();
     let ctx = blisp::typing(&exprs).unwrap();
 
-    let e = "(double 10) ; error";
+    let e = "(double 10) ; エラー";
     eval(e, &ctx);
 
     let e = "(quad 10) ; OK";
@@ -135,14 +127,14 @@ fn main() {
 }
 ----
 
-This code output as follows.
+このコードは以下のように出力します。
 
  error:0:1: Typing Error: double is not defined
  40
 
-== Arithmetic Operations
+== 算術演算
 
-.basic
+.基本
 [source, lisp]
 ----
 ; (Pure (-> (Int Int) Int))
@@ -153,7 +145,7 @@ This code output as follows.
 (% 10 3)
 ----
 
-.comparison
+.比較
 [source, lisp]
 ----
 ; (Pure (-> (Int Int) Bool))
@@ -164,7 +156,7 @@ This code output as follows.
 (>= 30 40)
 ----
 
-== Boolean Operations
+== 真偽値演算
 
 .logical
 [source, lisp]
@@ -182,19 +174,18 @@ This code output as follows.
 (not true)
 ----
 
-== Algebraic Data Type
+== 代数的データ型
 
-Algebraic data type can be defined as follows.
+代数データ型は以下のように定義できます。
 
 ```lisp
 ; in BLisp
-(data Gender ; type name
-    Male     ; value
-    Female)  ; value
+(data Gender ; 型名
+    Male     ; 値
+    Female)  ; 値
 ```
 
-Type name's and its value's first character must be uppercase.
-This is equivalent to Rust's following code.
+型名とその値の最初の文字は大文字でなければなりません。これはRustの以下のコードと同等です。
 
 ```rust
 // in Rust
@@ -204,21 +195,21 @@ enum Gender {
 }
 ```
 
-Each element can have values as follows.
+各要素は以下のような値を持つことができます。
 
 ```lisp
 ; in BLisp
 (data Dim2
-    (Dim2 Int Int)) ; Dim2 has integers
+    (Dim2 Int Int)) ; Dim2は2つのInt型の値を持つ
 ```
 
-Dim2 can be instantiated as follows.
+Dim2は以下のようにインスタンス化することができます。
 
 ```lisp
 (Dim2 10 20)
 ```
 
-This type is equivalent to Rust's following type.
+この型はRustの以下の型と同等です。
 
 ```rust
 // in Rust
@@ -228,9 +219,9 @@ enum Dim2 {
 }
 ```
 
-== Generics
+== ジェネリクス
 
-Option and Result types are defined internally.
+Option型とResult型は内部で定義されています。
 
 ```lisp
 (data (Option t)
@@ -242,8 +233,8 @@ Option and Result types are defined internally.
     (Err e))
 ```
 
-_t_ and _e_ are type variables.
-This code is equivalent to Rust's following code.
+
+_t_ と _e_ は型変数です。このコードは、Rustの以下のコードと同等です。
 
 ```rust
 // in Rust
@@ -258,7 +249,7 @@ enum Result<T, E> {
 }
 ```
 
-List type is a built-in type as follows.
+リスト型は以下のような組み込み型です。
 
 ```lisp
 (data (List t)
@@ -266,17 +257,16 @@ List type is a built-in type as follows.
     Nil)
 ```
 
-So, following 2 lists are equivalent.
+したがって、以下の2つのリストは等価です。
 
 ```lisp
 (Cons 1 (Cons 2 (Cons 3 Nil)))
 '(1 2 3)
 ```
 
-== Generic Function
+== ジェネリック関数
 
-_car_ and _cdr_ are internally defined generic functions.
-These definitions are as follows.
+_car_ と _cdr_ は内部的に定義されたジェネリック関数です。これらの定義は以下の通りです。
 
 ```lisp
 (export car (x) (Pure (-> ('(t)) (Option t)))
@@ -290,18 +280,18 @@ These definitions are as follows.
         (_ '())))
 ```
 
-_t_ is a type variable. These functions can be used as follows.
+t_は型変数です。これらの関数は以下のように使うことができます。
 
 ```lisp
 (car '(3 8 9))  ; returns (Some 3)
 (cdr '(8 10 4)) ; returns '(10 4)
 ```
 
-Normal and type variables' first character must be lowercase.
+通常変数と型変数の最初の文字は小文字でなければなりません。
 
-== If Expression
+== If式
 
-Straightforward.
+単純です.
 
 ```lisp
 (if (< 10 20)
@@ -309,9 +299,9 @@ Straightforward.
     '())
 ```
 
-== Match Expression
+== Match式
 
-A list can be matched as follows.
+リストは以下のようにマッチさせることができます。
 
 ```lisp
 (match '(1 2 3)
@@ -319,23 +309,23 @@ A list can be matched as follows.
     ('() 0))
 ```
 
-The expression
+この、
 
  (Cons n _)
 
-is a pattern.
-If the pattern is matched to '(1 2 3), 1 is assigned to a varable _n_. Then, _n_, namely 1, is returned.
+という式はパターンです。
+パターンが '(1 2 3) にマッチした場合、1は可変変数 _n_ に代入されます。そうすると、_n_ つまり1が返されます。
 
-This is an example of pattern matching of tuple.
+タプルのパターンマッチングの例です。
 
 ```lisp
 (match [1 3]
     ([x y] [y x]))
 ```
 
-This code swap 1st and 2nd elements of the tuple.
+このコードはタプルの第1要素と第2要素を入れ替えます。
 
-Integer values can be also used for pattern matching.
+整数値はパターンマッチングにも使用できます。
 
 ```lisp
 (match 20
@@ -343,7 +333,7 @@ Integer values can be also used for pattern matching.
     (_ false))
 ```
 
-More complex example is a as follows.
+より複雑な例としては、以下のようなものがあります。
 
 ```lisp
 (match [(Some 10) true]
@@ -352,17 +342,16 @@ More complex example is a as follows.
     (_ 0))
 ```
 
-BLisp checks exhaustively of pattern.
-So, following code will be rejected.
+BLispはパターンを網羅的にチェックします。そのため、以下のコードは拒否されます。
 
 ```lisp
 (match '(1 2)
     ('() 0))
 ```
 
-== Let Expression
+== Let式
 
-Let expression is used to bind variables as follows.
+変数のバインドには、以下のようにLet式を使用します。
 
 ```lisp
 (let ((x 10) (y 20)) ; x is 10, y is 20
@@ -372,7 +361,7 @@ Let expression is used to bind variables as follows.
     x)
 ```
 
-Destructuring can be also performed as follows.
+また、以下のように分配束縛を行うこともできます。
 
 ```lisp
 (let (((Some x) (Some 10))) ; x is 10
@@ -382,25 +371,23 @@ Destructuring can be also performed as follows.
     (* x y))
 ```
 
-== Lambda Expression
+== ラムダ式
 
-Lambda expression is defined as follows.
+ラムダ式は以下のように定義されます。
 
 ```lisp
 (lambda (x y) (* x y))
 ```
 
-This lambda takes 2 integers and return the multiplication.
-Applying arguments to this is simple as follows.
+このラムダは2つの整数を受け取り、それらの乗算を返します。これに引数を適用するのは次のように簡単に行えます。
 
 ```lisp
 ((lambda (x y) (* x y)) 10 20)
 ```
 
-Every lambda expression is Pure.
-IO functions cannot be called in any lambda expressions.
+すべてのラムダ式は純粋です。よって、ラムダ式からIO関数を呼び出すことはできません。
 
-_map_ and _fold_ functions are internally defined as follows.
+_map_ と _fold_ 関数は内部的に以下のように定義されています。
 
 ```lisp
 (export map (f x) (Pure (-> ((Pure (-> (a) b)) '(a)) '(b)))
@@ -414,30 +401,29 @@ _map_ and _fold_ functions are internally defined as follows.
         (_ init)))
 ```
 
-_map_ can be used to apply functions to elements of a list as follows.
+_map_ を使うと、以下のようにリストの要素に関数を適用することができます。
 
 ```lisp
-; square each element
+; それぞれをの要素を2乗
 (let ((l '(1 2 3))
       (f (lambda (x) (* x x))))
         (map f l))
 ```
 
-_fold_ can be used to calculate over elements of a list.
-For example, summation can be computed as follows.
+_fold_ を使用して、リストの要素にまたがって計算することができます。例えば、合計は以下のように計算できます。
 
 ```lisp
-; summation
+; 合計
 (let ((l '(20 50 60))
       (f (lambda (x y) (+ x y))))
         (fold f 0 l)) ; 0 is an initial value
 ```
 
-== Examples
+== 例
 
-=== Factorial
+=== 階乗
 
-Tail call factorial can be coded as follows.
+末尾呼び出し版の階乗関数は、以下のように実装できます。
 
 ```lisp
 (export factorial (n) (Pure (-> (Int) Int))
@@ -449,7 +435,7 @@ Tail call factorial can be coded as follows.
         (fact (- n 1) (* n total))))
 ```
 
-This function can be called as follows.
+この関数は以下のように呼び出すことができます。
 
  >> (factorial 10)
  3628800

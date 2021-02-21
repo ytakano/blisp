@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -527,22 +527,22 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <div id="toc" class="toc">
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
-<li><a href="#_features">1. Features</a></li>
-<li><a href="#_values">2. Values</a></li>
-<li><a href="#_basic_types">3. Basic Types</a></li>
-<li><a href="#_function_definition">4. Function Definition</a></li>
-<li><a href="#_arithmetic_operations">5. Arithmetic Operations</a></li>
-<li><a href="#_boolean_operations">6. Boolean Operations</a></li>
-<li><a href="#_algebraic_data_type">7. Algebraic Data Type</a></li>
-<li><a href="#_generics">8. Generics</a></li>
-<li><a href="#_generic_function">9. Generic Function</a></li>
-<li><a href="#_if_expression">10. If Expression</a></li>
-<li><a href="#_match_expression">11. Match Expression</a></li>
-<li><a href="#_let_expression">12. Let Expression</a></li>
-<li><a href="#_lambda_expression">13. Lambda Expression</a></li>
-<li><a href="#_examples">14. Examples</a>
+<li><a href="#_特徴">1. 特徴</a></li>
+<li><a href="#_値">2. 値</a></li>
+<li><a href="#_基本型">3. 基本型</a></li>
+<li><a href="#_関数定義">4. 関数定義</a></li>
+<li><a href="#_算術演算">5. 算術演算</a></li>
+<li><a href="#_真偽値演算">6. 真偽値演算</a></li>
+<li><a href="#_代数的データ型">7. 代数的データ型</a></li>
+<li><a href="#_ジェネリクス">8. ジェネリクス</a></li>
+<li><a href="#_ジェネリック関数">9. ジェネリック関数</a></li>
+<li><a href="#_if式">10. If式</a></li>
+<li><a href="#_match式">11. Match式</a></li>
+<li><a href="#_let式">12. Let式</a></li>
+<li><a href="#_ラムダ式">13. ラムダ式</a></li>
+<li><a href="#_例">14. 例</a>
 <ul class="sectlevel2">
-<li><a href="#_factorial">14.1. Factorial</a></li>
+<li><a href="#_階乗">14.1. 階乗</a></li>
 </ul>
 </li>
 </ul>
@@ -552,116 +552,106 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <div id="preamble">
 <div class="sectionbody">
 <div class="paragraph">
-<p>BLisp is a statically typed Lisp like programming language which adopts effect system for no_std environments.
-BLisp supports higher order RPC like higher order functions of functional programing languages.</p>
+<p>BLispは静的型付けされたLispライクなプログラミング言語で、no_std環境用のエフェクトシステムを採用しています。BLispは関数型プログラミング言語の高階関数のような高階のRPCをサポートしています。</p>
 </div>
 <div class="paragraph">
-<p>This repository provides only a library crate.
-Please see <a href="https://github.com/ytakano/blisp-repl">blisp-repl</a> to use BLisp,
-and <a href="https://github.com/ytakano/baremetalisp">baremetalisp</a> which is a toy OS.</p>
-</div>
-<div class="paragraph">
-<p><a href="https://ytakano.github.io/blisp/index.ja.html">日本語版はこちら</a></p>
+<p>本リポジトリではライブラリクレートのみを提供しています。BLispを利用するには <a href="https://github.com/ytakano/blisp-repl">blisp-repl</a> か、おもちゃのOSである <a href="https://github.com/ytakano/baremetalisp">baremetalisp</a> を参照してください。</p>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_features">1. Features</h2>
+<h2 id="_特徴">1. 特徴</h2>
 <div class="sectionbody">
 <div class="ulist">
 <ul>
 <li>
-<p>Algebraic data type</p>
+<p>代数的データ型</p>
 </li>
 <li>
-<p>Generics</p>
+<p>ジェネリクス</p>
 </li>
 <li>
-<p>Hindley–Milner based type inference</p>
+<p>型推論</p>
 </li>
 <li>
-<p>Effect system to separate side effects from pure functions</p>
+<p>IOと純粋な可能を分離するためのエフェクトシステム</p>
 </li>
 <li>
-<p>Big integer</p>
+<p>多倍長整数</p>
 </li>
 <li>
-<p>Supporting no_std environments</p>
+<p>no_std環境のサポート</p>
 </li>
 </ul>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_values">2. Values</h2>
+<h2 id="_値">2. 値</h2>
 <div class="sectionbody">
 <div class="listingblock">
 <div class="title">values</div>
 <div class="content">
-<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-mi">144</span>       <span class="tok-c1">; integer value</span>
-<span class="tok-nv">true</span>      <span class="tok-c1">; boolean value</span>
-<span class="tok-nv">false</span>     <span class="tok-c1">; boolean value</span>
-<span class="tok-nv">[true</span> <span class="tok-nv">10]</span> <span class="tok-c1">; tuple</span>
-<span class="tok-nv">[]</span>        <span class="tok-c1">; empty tuple</span>
-<span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span> <span class="tok-mi">3</span><span class="tok-p">)</span>  <span class="tok-c1">; list</span>
-<span class="tok-o">&#39;</span><span class="tok-p">()</span>       <span class="tok-c1">; empty list, Nil</span></code></pre>
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-mi">144</span>       <span class="tok-c1">; 整数値</span>
+<span class="tok-nv">true</span>      <span class="tok-c1">; 真偽値</span>
+<span class="tok-nv">false</span>     <span class="tok-c1">; 真偽値</span>
+<span class="tok-nv">[true</span> <span class="tok-nv">10]</span> <span class="tok-c1">; タプル</span>
+<span class="tok-nv">[]</span>        <span class="tok-c1">; 空のタプル</span>
+<span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span> <span class="tok-mi">3</span><span class="tok-p">)</span>  <span class="tok-c1">; リスト</span>
+<span class="tok-o">&#39;</span><span class="tok-p">()</span>       <span class="tok-c1">; 空のリスト、Nil</span></code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_basic_types">3. Basic Types</h2>
+<h2 id="_基本型">3. 基本型</h2>
 <div class="sectionbody">
 <div class="listingblock">
 <div class="title">types</div>
 <div class="content">
-<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-nv">Int</span>        <span class="tok-c1">; signed integer</span>
-<span class="tok-nv">Bool</span>       <span class="tok-c1">; boolean</span>
-<span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-nv">Int</span><span class="tok-p">)</span>     <span class="tok-c1">; list of Int</span>
-<span class="tok-nv">[Int</span> <span class="tok-nv">Bool]</span> <span class="tok-c1">; tuple of Int and Bool</span>
-<span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">Int</span> <span class="tok-nv">Int</span><span class="tok-p">)</span> <span class="tok-nv">Bool</span><span class="tok-p">))</span> <span class="tok-c1">; Pure function, which takes 2 integers and return boolean value</span>
-<span class="tok-p">(</span><span class="tok-nv">IO</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">Int</span><span class="tok-p">)</span> <span class="tok-nv">[]</span><span class="tok-p">))</span> <span class="tok-c1">; IO function, which takes an integer and return []</span></code></pre>
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-nv">Int</span>        <span class="tok-c1">; 整数型</span>
+<span class="tok-nv">Bool</span>       <span class="tok-c1">; 真偽値型</span>
+<span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-nv">Int</span><span class="tok-p">)</span>     <span class="tok-c1">; Int型のリスト型</span>
+<span class="tok-nv">[Int</span> <span class="tok-nv">Bool]</span> <span class="tok-c1">; Int型とBool型のタプル型</span>
+<span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">Int</span> <span class="tok-nv">Int</span><span class="tok-p">)</span> <span class="tok-nv">Bool</span><span class="tok-p">))</span> <span class="tok-c1">; Int型の値を2つとり、Bool型の値をリターンする純粋な関数</span>
+<span class="tok-p">(</span><span class="tok-nv">IO</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">Int</span><span class="tok-p">)</span> <span class="tok-nv">[]</span><span class="tok-p">))</span> <span class="tok-c1">; Int型の値をとり[]をリターンするIOのある関数</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Pure and IO are function effects.
-In IO functions, both Pure and IO functions can be called.
-However, in Pure functions, calling only Pure functions is permitted.</p>
+<p>PureとIOは関数の効果です。IO関数内では、Pure関数とIO関数の両方を呼び出すことができます。しかし、Pure関数内では、Pure関数の呼び出しのみ許可されています。</p>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_function_definition">4. Function Definition</h2>
+<h2 id="_関数定義">4. 関数定義</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Functions can be defined by defun or export.
-"defun" defines a local function which cannot be called from Rust&#8217;s eval function.</p>
+<p>関数はdefunやexportで定義することができます。"defun"はRustのeval関数からは呼び出せないローカル関数を定義します。</p>
 </div>
 <div class="paragraph">
-<p>Suppose following 2 functions.</p>
+<p>以下の2つの関数があるとしましょう。</p>
 </div>
 <div class="listingblock">
 <div class="title">defun</div>
 <div class="content">
-<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nb">defun</span> <span class="tok-nv">double</span> <span class="tok-p">(</span><span class="tok-nv">x</span><span class="tok-p">)</span>         <span class="tok-c1">; function name is &quot;double&quot; and &quot;x&quot; is an argument</span>
-    <span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">Int</span><span class="tok-p">)</span> <span class="tok-nv">Int</span><span class="tok-p">))</span> <span class="tok-c1">; function Type</span>
-    <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-mi">2</span> <span class="tok-nv">x</span><span class="tok-p">))</span>              <span class="tok-c1">; function body</span></code></pre>
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nb">defun</span> <span class="tok-nv">double</span> <span class="tok-p">(</span><span class="tok-nv">x</span><span class="tok-p">)</span>         <span class="tok-c1">; 関数名がdoubleでxは引数</span>
+    <span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">Int</span><span class="tok-p">)</span> <span class="tok-nv">Int</span><span class="tok-p">))</span> <span class="tok-c1">; 関数の型</span>
+    <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-mi">2</span> <span class="tok-nv">x</span><span class="tok-p">))</span>              <span class="tok-c1">; 関数の中身</span></code></pre>
 </div>
 </div>
 <div class="listingblock">
 <div class="title">export</div>
 <div class="content">
-<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nb">export</span> <span class="tok-nv">quad</span> <span class="tok-p">(</span><span class="tok-nv">x</span><span class="tok-p">)</span>          <span class="tok-c1">; function name is &quot;quad&quot; and &quot;x&quot; is an argument</span>
-    <span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">Int</span><span class="tok-p">)</span> <span class="tok-nv">Int</span><span class="tok-p">))</span> <span class="tok-c1">; function Type</span>
-    <span class="tok-p">(</span><span class="tok-nv">double</span> <span class="tok-p">(</span><span class="tok-nv">double</span> <span class="tok-nv">x</span><span class="tok-p">)))</span>  <span class="tok-c1">; function body</span></code></pre>
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nb">export</span> <span class="tok-nv">quad</span> <span class="tok-p">(</span><span class="tok-nv">x</span><span class="tok-p">)</span>          <span class="tok-c1">; 関数名がquadで引数はx</span>
+    <span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">Int</span><span class="tok-p">)</span> <span class="tok-nv">Int</span><span class="tok-p">))</span> <span class="tok-c1">; 関数の型</span>
+    <span class="tok-p">(</span><span class="tok-nv">double</span> <span class="tok-p">(</span><span class="tok-nv">double</span> <span class="tok-nv">x</span><span class="tok-p">)))</span>  <span class="tok-c1">; 関数の中身</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>double cannot be called from Rust&#8217;s eval, but can be called from internally defined functions.
-qued can be called from Rust&#8217;s eval, and it calls double internally.</p>
+<p>doubleはRustのevalからは呼び出せませんが、内部で定義された関数からは呼び出せます。quedはRustのevalから呼び出すことができ、内部的にdoubleを呼び出します。</p>
 </div>
 <div class="paragraph">
-<p>This is the code what actually do in Rust.</p>
+<p>これはRustで実際に行うコードです。</p>
 </div>
 <div class="listingblock">
 <div class="title">Rust&#8217;s eval</div>
@@ -693,18 +683,18 @@ qued can be called from Rust&#8217;s eval, and it calls double internally.</p>
 <span class="tok-k">fn</span> <span class="tok-nf">main</span><span class="tok-p">()</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
 <span class="tok-w">    </span><span class="tok-c1">// internal code</span>
 <span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">code</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s">&quot;</span>
-<span class="tok-s">(defun double (x)         ; function name is double and x is an argument</span>
-<span class="tok-s">    (Pure (-&gt; (Int) Int)) ; function Type</span>
-<span class="tok-s">    (* 2 x))              ; function body</span>
+<span class="tok-s">(defun double (x)         ; 関数名がdoubleでxは引数</span>
+<span class="tok-s">    (Pure (-&gt; (Int) Int)) ; 関数の型</span>
+<span class="tok-s">    (* 2 x))              ; 関数の中身</span>
 
-<span class="tok-s">(export quad (x)          ; function name is quad and x is an argument</span>
-<span class="tok-s">    (Pure (-&gt; (Int) Int)) ; function Type</span>
-<span class="tok-s">    (double (double x)))  ; function body</span>
+<span class="tok-s">(export quad (x)          ; 関数名がquadで引数はx</span>
+<span class="tok-s">    (Pure (-&gt; (Int) Int)) ; 関数の型</span>
+<span class="tok-s">    (double (double x)))  ; 関数の中身</span>
 <span class="tok-s">&quot;</span><span class="tok-p">;</span><span class="tok-w"></span>
 <span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">exprs</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">init</span><span class="tok-p">(</span><span class="tok-n">code</span><span class="tok-p">).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span>
 <span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">ctx</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">typing</span><span class="tok-p">(</span><span class="tok-o">&amp;</span><span class="tok-n">exprs</span><span class="tok-p">).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span>
 
-<span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">e</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s">&quot;(double 10) ; error&quot;</span><span class="tok-p">;</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">e</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s">&quot;(double 10) ; エラー&quot;</span><span class="tok-p">;</span><span class="tok-w"></span>
 <span class="tok-w">    </span><span class="tok-n">eval</span><span class="tok-p">(</span><span class="tok-n">e</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-o">&amp;</span><span class="tok-n">ctx</span><span class="tok-p">);</span><span class="tok-w"></span>
 
 <span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">e</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s">&quot;(quad 10) ; OK&quot;</span><span class="tok-p">;</span><span class="tok-w"></span>
@@ -713,7 +703,7 @@ qued can be called from Rust&#8217;s eval, and it calls double internally.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>This code output as follows.</p>
+<p>このコードは以下のように出力します。</p>
 </div>
 <div class="literalblock">
 <div class="content">
@@ -724,10 +714,10 @@ qued can be called from Rust&#8217;s eval, and it calls double internally.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_arithmetic_operations">5. Arithmetic Operations</h2>
+<h2 id="_算術演算">5. 算術演算</h2>
 <div class="sectionbody">
 <div class="listingblock">
-<div class="title">basic</div>
+<div class="title">基本</div>
 <div class="content">
 <pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; (Int Int) Int))</span>
 <span class="tok-p">(</span><span class="tok-nb">+</span> <span class="tok-mi">10</span> <span class="tok-mi">20</span><span class="tok-p">)</span>
@@ -738,7 +728,7 @@ qued can be called from Rust&#8217;s eval, and it calls double internally.</p>
 </div>
 </div>
 <div class="listingblock">
-<div class="title">comparison</div>
+<div class="title">比較</div>
 <div class="content">
 <pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; (Int Int) Bool))</span>
 <span class="tok-p">(</span><span class="tok-nb">=</span> <span class="tok-mi">4</span> <span class="tok-mi">4</span><span class="tok-p">)</span>
@@ -751,7 +741,7 @@ qued can be called from Rust&#8217;s eval, and it calls double internally.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_boolean_operations">6. Boolean Operations</h2>
+<h2 id="_真偽値演算">6. 真偽値演算</h2>
 <div class="sectionbody">
 <div class="listingblock">
 <div class="title">logical</div>
@@ -772,22 +762,21 @@ qued can be called from Rust&#8217;s eval, and it calls double internally.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_algebraic_data_type">7. Algebraic Data Type</h2>
+<h2 id="_代数的データ型">7. 代数的データ型</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Algebraic data type can be defined as follows.</p>
+<p>代数データ型は以下のように定義できます。</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; in BLisp</span>
-<span class="tok-p">(</span><span class="tok-nv">data</span> <span class="tok-nv">Gender</span> <span class="tok-c1">; type name</span>
-    <span class="tok-nv">Male</span>     <span class="tok-c1">; value</span>
-    <span class="tok-nv">Female</span><span class="tok-p">)</span>  <span class="tok-c1">; value</span></code></pre>
+<span class="tok-p">(</span><span class="tok-nv">data</span> <span class="tok-nv">Gender</span> <span class="tok-c1">; 型名</span>
+    <span class="tok-nv">Male</span>     <span class="tok-c1">; 値</span>
+    <span class="tok-nv">Female</span><span class="tok-p">)</span>  <span class="tok-c1">; 値</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Type name&#8217;s and its value&#8217;s first character must be uppercase.
-This is equivalent to Rust&#8217;s following code.</p>
+<p>型名とその値の最初の文字は大文字でなければなりません。これはRustの以下のコードと同等です。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -799,17 +788,17 @@ This is equivalent to Rust&#8217;s following code.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Each element can have values as follows.</p>
+<p>各要素は以下のような値を持つことができます。</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; in BLisp</span>
 <span class="tok-p">(</span><span class="tok-nv">data</span> <span class="tok-nv">Dim2</span>
-    <span class="tok-p">(</span><span class="tok-nv">Dim2</span> <span class="tok-nv">Int</span> <span class="tok-nv">Int</span><span class="tok-p">))</span> <span class="tok-c1">; Dim2 has integers</span></code></pre>
+    <span class="tok-p">(</span><span class="tok-nv">Dim2</span> <span class="tok-nv">Int</span> <span class="tok-nv">Int</span><span class="tok-p">))</span> <span class="tok-c1">; Dim2は2つのInt型の値を持つ</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Dim2 can be instantiated as follows.</p>
+<p>Dim2は以下のようにインスタンス化することができます。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -817,7 +806,7 @@ This is equivalent to Rust&#8217;s following code.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>This type is equivalent to Rust&#8217;s following type.</p>
+<p>この型はRustの以下の型と同等です。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -831,10 +820,10 @@ This is equivalent to Rust&#8217;s following code.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_generics">8. Generics</h2>
+<h2 id="_ジェネリクス">8. ジェネリクス</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Option and Result types are defined internally.</p>
+<p>Option型とResult型は内部で定義されています。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -848,8 +837,7 @@ This is equivalent to Rust&#8217;s following code.</p>
 </div>
 </div>
 <div class="paragraph">
-<p><em>t</em> and <em>e</em> are type variables.
-This code is equivalent to Rust&#8217;s following code.</p>
+<p><em>t</em> と <em>e</em> は型変数です。このコードは、Rustの以下のコードと同等です。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -866,7 +854,7 @@ This code is equivalent to Rust&#8217;s following code.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>List type is a built-in type as follows.</p>
+<p>リスト型は以下のような組み込み型です。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -876,7 +864,7 @@ This code is equivalent to Rust&#8217;s following code.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>So, following 2 lists are equivalent.</p>
+<p>したがって、以下の2つのリストは等価です。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -887,11 +875,10 @@ This code is equivalent to Rust&#8217;s following code.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_generic_function">9. Generic Function</h2>
+<h2 id="_ジェネリック関数">9. ジェネリック関数</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p><em>car</em> and <em>cdr</em> are internally defined generic functions.
-These definitions are as follows.</p>
+<p><em>car</em> と <em>cdr</em> は内部的に定義されたジェネリック関数です。これらの定義は以下の通りです。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -907,7 +894,7 @@ These definitions are as follows.</p>
 </div>
 </div>
 <div class="paragraph">
-<p><em>t</em> is a type variable. These functions can be used as follows.</p>
+<p>t_は型変数です。これらの関数は以下のように使うことができます。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -916,15 +903,15 @@ These definitions are as follows.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Normal and type variables' first character must be lowercase.</p>
+<p>通常変数と型変数の最初の文字は小文字でなければなりません。</p>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_if_expression">10. If Expression</h2>
+<h2 id="_if式">10. If式</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Straightforward.</p>
+<p>単純です.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -936,10 +923,10 @@ These definitions are as follows.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_match_expression">11. Match Expression</h2>
+<h2 id="_match式">11. Match式</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>A list can be matched as follows.</p>
+<p>リストは以下のようにマッチさせることができます。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -949,7 +936,7 @@ These definitions are as follows.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>The expression</p>
+<p>この、</p>
 </div>
 <div class="literalblock">
 <div class="content">
@@ -957,11 +944,11 @@ These definitions are as follows.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>is a pattern.
-If the pattern is matched to '(1 2 3), 1 is assigned to a varable <em>n</em>. Then, <em>n</em>, namely 1, is returned.</p>
+<p>という式はパターンです。
+パターンが '(1 2 3) にマッチした場合、1は可変変数 <em>n</em> に代入されます。そうすると、<em>n</em> つまり1が返されます。</p>
 </div>
 <div class="paragraph">
-<p>This is an example of pattern matching of tuple.</p>
+<p>タプルのパターンマッチングの例です。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -970,10 +957,10 @@ If the pattern is matched to '(1 2 3), 1 is assigned to a varable <em>n</em>. Th
 </div>
 </div>
 <div class="paragraph">
-<p>This code swap 1st and 2nd elements of the tuple.</p>
+<p>このコードはタプルの第1要素と第2要素を入れ替えます。</p>
 </div>
 <div class="paragraph">
-<p>Integer values can be also used for pattern matching.</p>
+<p>整数値はパターンマッチングにも使用できます。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -983,7 +970,7 @@ If the pattern is matched to '(1 2 3), 1 is assigned to a varable <em>n</em>. Th
 </div>
 </div>
 <div class="paragraph">
-<p>More complex example is a as follows.</p>
+<p>より複雑な例としては、以下のようなものがあります。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -994,8 +981,7 @@ If the pattern is matched to '(1 2 3), 1 is assigned to a varable <em>n</em>. Th
 </div>
 </div>
 <div class="paragraph">
-<p>BLisp checks exhaustively of pattern.
-So, following code will be rejected.</p>
+<p>BLispはパターンを網羅的にチェックします。そのため、以下のコードは拒否されます。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1006,10 +992,10 @@ So, following code will be rejected.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_let_expression">12. Let Expression</h2>
+<h2 id="_let式">12. Let式</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Let expression is used to bind variables as follows.</p>
+<p>変数のバインドには、以下のようにLet式を使用します。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1021,7 +1007,7 @@ So, following code will be rejected.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Destructuring can be also performed as follows.</p>
+<p>また、以下のように分配束縛を行うこともできます。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1035,10 +1021,10 @@ So, following code will be rejected.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_lambda_expression">13. Lambda Expression</h2>
+<h2 id="_ラムダ式">13. ラムダ式</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Lambda expression is defined as follows.</p>
+<p>ラムダ式は以下のように定義されます。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1046,8 +1032,7 @@ So, following code will be rejected.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>This lambda takes 2 integers and return the multiplication.
-Applying arguments to this is simple as follows.</p>
+<p>このラムダは2つの整数を受け取り、それらの乗算を返します。これに引数を適用するのは次のように簡単に行えます。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1055,11 +1040,10 @@ Applying arguments to this is simple as follows.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Every lambda expression is Pure.
-IO functions cannot be called in any lambda expressions.</p>
+<p>すべてのラムダ式は純粋です。よって、ラムダ式からIO関数を呼び出すことはできません。</p>
 </div>
 <div class="paragraph">
-<p><em>map</em> and <em>fold</em> functions are internally defined as follows.</p>
+<p><em>map</em> と <em>fold</em> 関数は内部的に以下のように定義されています。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1075,23 +1059,22 @@ IO functions cannot be called in any lambda expressions.</p>
 </div>
 </div>
 <div class="paragraph">
-<p><em>map</em> can be used to apply functions to elements of a list as follows.</p>
+<p><em>map</em> を使うと、以下のようにリストの要素に関数を適用することができます。</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; square each element</span>
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; それぞれをの要素を2乗</span>
 <span class="tok-p">(</span><span class="tok-k">let</span> <span class="tok-p">((</span><span class="tok-nv">l</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span> <span class="tok-mi">3</span><span class="tok-p">))</span>
       <span class="tok-p">(</span><span class="tok-nv">f</span> <span class="tok-p">(</span><span class="tok-k">lambda</span> <span class="tok-p">(</span><span class="tok-nv">x</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-nv">x</span> <span class="tok-nv">x</span><span class="tok-p">))))</span>
         <span class="tok-p">(</span><span class="tok-nb">map</span> <span class="tok-nv">f</span> <span class="tok-nv">l</span><span class="tok-p">))</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p><em>fold</em> can be used to calculate over elements of a list.
-For example, summation can be computed as follows.</p>
+<p><em>fold</em> を使用して、リストの要素にまたがって計算することができます。例えば、合計は以下のように計算できます。</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; summation</span>
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; 合計</span>
 <span class="tok-p">(</span><span class="tok-k">let</span> <span class="tok-p">((</span><span class="tok-nv">l</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">20</span> <span class="tok-mi">50</span> <span class="tok-mi">60</span><span class="tok-p">))</span>
       <span class="tok-p">(</span><span class="tok-nv">f</span> <span class="tok-p">(</span><span class="tok-k">lambda</span> <span class="tok-p">(</span><span class="tok-nv">x</span> <span class="tok-nv">y</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nb">+</span> <span class="tok-nv">x</span> <span class="tok-nv">y</span><span class="tok-p">))))</span>
         <span class="tok-p">(</span><span class="tok-nv">fold</span> <span class="tok-nv">f</span> <span class="tok-mi">0</span> <span class="tok-nv">l</span><span class="tok-p">))</span> <span class="tok-c1">; 0 is an initial value</span></code></pre>
@@ -1100,12 +1083,12 @@ For example, summation can be computed as follows.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_examples">14. Examples</h2>
+<h2 id="_例">14. 例</h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_factorial">14.1. Factorial</h3>
+<h3 id="_階乗">14.1. 階乗</h3>
 <div class="paragraph">
-<p>Tail call factorial can be coded as follows.</p>
+<p>末尾呼び出し版の階乗関数は、以下のように実装できます。</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1119,7 +1102,7 @@ For example, summation can be computed as follows.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>This function can be called as follows.</p>
+<p>この関数は以下のように呼び出すことができます。</p>
 </div>
 <div class="literalblock">
 <div class="content">
@@ -1143,7 +1126,7 @@ For example, summation can be computed as follows.</p>
 <div id="footer">
 <div id="footer-text">
 Version 0.1<br>
-Last updated 2021-02-21 15:12:59 +0900
+Last updated 2021-02-21 15:12:19 +0900
 </div>
 </div>
 <script type="text/x-mathjax-config">
