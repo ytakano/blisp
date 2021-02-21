@@ -12,6 +12,9 @@ v0.1, 2021-02
 
 BLispは静的型付けされたLispライクなプログラミング言語で、no_std環境用のエフェクトシステムを採用しています。BLispは関数型プログラミング言語の高階関数のような高階のRPCをサポートしています。
 
+* https://github.com/ytakano/blisp[GitHubリポジトリ]
+* https://crates.io/crates/blisp[BLispのcrates.io]
+
 本リポジトリではライブラリクレートのみを提供しています。BLispを利用するには https://github.com/ytakano/blisp-repl[blisp-repl] か、おもちゃのOSである https://github.com/ytakano/baremetalisp[baremetalisp] を参照してください。
 
 == 特徴
