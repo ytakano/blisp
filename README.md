@@ -1,7 +1,7 @@
 # BLisp
 
 BLisp is a statically typed Lisp like programming language which adopts effect system for no_std environments.
-BLisp supports higher order RPC like higher order functions of functional programing languages.
+BLisp supports higher order RPC like higher order functions of functional programming languages.
 
 This repository provides only a library crate.
 Please see [blisp-repl](https://github.com/ytakano/blisp-repl) to use BLisp,
