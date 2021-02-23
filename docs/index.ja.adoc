@@ -77,7 +77,7 @@ PureとIOは関数の効果です。IO関数内では、Pure関数とIO関数の
     (double (double x)))  ; 関数の中身
 ----
 
-doubleはRustのevalからは呼び出せませんが、内部で定義された関数からは呼び出せます。quedはRustのevalから呼び出すことができ、内部的にdoubleを呼び出します。
+doubleはRustのevalからは呼び出せませんが、内部で定義された関数からは呼び出せます。quadはRustのevalから呼び出すことができ、内部的にdoubleを呼び出します。
 
 これはRustで実際に行うコードです。
 
