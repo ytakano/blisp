@@ -483,7 +483,7 @@ let e = "(callback 100 2000 30000)"; <2>
 blisp::eval(e, &ctx);
 ```
 
-<1> callback function called from BLisp. The function type must is Fn:(&BigInt, &BigInt, &BigInt) -> Option<BigInt>
+<1> callback function called from BLisp. The function type must be Fn:(&BigInt, &BigInt, &BigInt) -> Option<BigInt>
 
 <2> call Rust's callback function
 
