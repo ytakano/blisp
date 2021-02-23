@@ -1,6 +1,6 @@
 = BLisp: Lispっぽい静的型付け言語
 Yuuki Takano <ytakano@wide.ad.jp>
-v0.1, 2021-02
+v0.2, 2021-02
 :doctype: article
 :toc:
 :sectnums:
@@ -16,6 +16,9 @@ BLispは静的型付けされたLispライクなプログラミング言語で�
 * https://crates.io/crates/blisp[BLispのcrates.io]
 
 本リポジトリではライブラリクレートのみを提供しています。BLispを利用するには https://github.com/ytakano/blisp-repl[blisp-repl] か、おもちゃのOSである https://github.com/ytakano/baremetalisp[baremetalisp] を参照してください。
+
+.no_stdで動くBLisp
+image:https://cdn-ak.f.st-hatena.com/images/fotolife/y/ytakano/20210221/20210221155657.gif[no_stdで動くBLisp]
 
 == 特徴
 
@@ -421,6 +424,61 @@ _fold_ を使用して、リストの要素にまたがって計算すること�
       (f (lambda (x y) (+ x y))))
         (fold f 0 l)) ; 0 is an initial value
 ```
+
+当然、これは以下のようにも記述できます。
+
+```lisp
+; summation
+(fold + 0 '(20 50 60))
+```
+
+== 外部関数呼び出し
+
+_call-rust_ はRustの関数を呼び出すための関数です。
+これは以下のように組み込み関数として定義されています。
+
+```lisp
+(define call-rust
+    (IO (-> (Int Int Int) (Option Int))) ; type of call-rust
+    ; 省略
+    )
+```
+
+この関数は3つの整数値をとり、(Option Int)をリターンします。
+Rustの関数を呼び出すためには、以下のようにコールバック関数を設定しなければなりません。
+
+```rust
+use blisp;
+use num_bigint::BigInt;
+
+let expr = "
+(export callback (x y z)
+    (IO (-> (Int Int Int) (Option Int)))
+    (call-rust x y z))";
+let exprs = blisp::init(expr).unwrap();
+let mut ctx = blisp::typing(&exprs).unwrap();
+
+let fun = |x: &BigInt, y: &BigInt, z: &BigInt| { <1>
+    let n = x * y * z;
+    println!("n = {}", n);
+    Some(n)
+};
+ctx.set_callback(Box::new(fun));
+
+let e = "(callback 100 2000 30000)"; <2>
+blisp::eval(e, &ctx);
+```
+
+<1> BLispから呼び出されるコールバック関数です. この関数の型は Fn:(&BigInt, &BigInt, &BigInt) -> Some(BigInt) でなければなりません。
+
+<2> Rustのコールバック関数を呼び出しています。
+
+このコードを呼び出すと、次のように出力されます。
+
+ n = 6000000000
+
+_call-rust_ はIO関数です. 従って、Pure関数からは呼び出すことは出来ません。
+
 
 == 例
 

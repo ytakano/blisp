@@ -1,6 +1,6 @@
 = BLisp: A Statically Typed Lisp Like Language
 Yuuki Takano <ytakano@wide.ad.jp>
-v0.1, 2021-02
+v0.2, 2021-02
 :doctype: article
 :toc:
 :sectnums:
@@ -20,6 +20,9 @@ Please see https://github.com/ytakano/blisp-repl[blisp-repl] to use BLisp,
 and https://github.com/ytakano/baremetalisp[baremetalisp] which is a toy OS.
 
 https://ytakano.github.io/blisp/index.ja.html[日本語版はこちら]
+
+.BLisp on no_std Environment
+image:https://cdn-ak.f.st-hatena.com/images/fotolife/y/ytakano/20210221/20210221155657.gif[BLisp on no_std Environment]
 
 == Features
 
@@ -435,6 +438,60 @@ For example, summation can be computed as follows.
       (f (lambda (x y) (+ x y))))
         (fold f 0 l)) ; 0 is an initial value
 ```
+
+Of course, this can be written as follows.
+
+```lisp
+; summation
+(fold + 0 '(20 50 60))
+```
+
+== Foreign Function Interface
+
+_call-rust_ is a function to call Rust's function.
+This is defined as a built-in function as follows.
+
+```lisp
+(define call-rust
+    (IO (-> (Int Int Int) (Option Int))) ; type of call-rust
+    ; omitted
+    )
+```
+
+It takes 3 integers and returns (Option Int).
+In order to call Rust's function, setting a callback function is required as follows.
+
+```rust
+use blisp;
+use num_bigint::BigInt;
+
+let expr = "
+(export callback (x y z)
+    (IO (-> (Int Int Int) (Option Int)))
+    (call-rust x y z))";
+let exprs = blisp::init(expr).unwrap();
+let mut ctx = blisp::typing(&exprs).unwrap();
+
+let fun = |x: &BigInt, y: &BigInt, z: &BigInt| { <1>
+    let n = x * y * z;
+    println!("n = {}", n);
+    Some(n)
+};
+ctx.set_callback(Box::new(fun));
+
+let e = "(callback 100 2000 30000)"; <2>
+blisp::eval(e, &ctx);
+```
+
+<1> callback function called from BLisp. The function type must is Fn:(&BigInt, &BigInt, &BigInt) -> Some(BigInt)
+
+<2> call Rust's callback function
+
+When executing this code, it outputs as follows.
+
+ n = 6000000000
+
+_call-rust_ is a IO function. Therefore, this cannot be called from Pure functions.
 
 == Examples
 

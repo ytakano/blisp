@@ -11,8 +11,9 @@
 //!
 //! [Homepage](https://ytakano.github.io/blisp/) is here.
 //!
-//! ## Example
+//! ## Examples
 //!
+//! ### Simple Eval
 //! ```
 //! let code = "(export factorial (n) (Pure (-> (Int) Int))
 //!    (if (<= n 0)
@@ -25,6 +26,30 @@
 //! for result in blisp::eval(expr, &ctx).unwrap() {
 //!    println!("{}", result.unwrap());
 //! }
+//! ```
+//!
+//! ### Foreign Function Interface
+//!
+//! ```
+//! use blisp;
+//! use num_bigint::BigInt;
+//!
+//! let expr = "
+//! (export callback (x y z)
+//!     (IO (-> (Int Int Int) (Option Int)))
+//!     (call-rust x y z))";
+//! let exprs = blisp::init(expr).unwrap();
+//! let mut ctx = blisp::typing(&exprs).unwrap();
+//!
+//! let fun = |x: &BigInt, y: &BigInt, z: &BigInt| {
+//!     let n = x * y * z;
+//!     println!("n = {}", n);
+//!     Some(n)
+//! };
+//! ctx.set_callback(Box::new(fun));
+//!
+//! let e = "(callback 100 2000 30000)";
+//! blisp::eval(e, &ctx);
 //! ```
 //!
 //! ## Features

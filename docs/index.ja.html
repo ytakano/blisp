@@ -521,7 +521,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <div class="details">
 <span id="author" class="author">Yuuki Takano</span><br>
 <span id="email" class="email"><a href="mailto:ytakano@wide.ad.jp">ytakano@wide.ad.jp</a></span><br>
-<span id="revnumber">version 0.1,</span>
+<span id="revnumber">version 0.2,</span>
 <span id="revdate">2021-02</span>
 </div>
 <div id="toc" class="toc">
@@ -540,9 +540,10 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <li><a href="#_match式">11. Match式</a></li>
 <li><a href="#_let式">12. Let式</a></li>
 <li><a href="#_ラムダ式">13. ラムダ式</a></li>
-<li><a href="#_例">14. 例</a>
+<li><a href="#_外部関数呼び出し">14. 外部関数呼び出し</a></li>
+<li><a href="#_例">15. 例</a>
 <ul class="sectlevel2">
-<li><a href="#_階乗">14.1. 階乗</a></li>
+<li><a href="#_階乗">15.1. 階乗</a></li>
 </ul>
 </li>
 </ul>
@@ -566,6 +567,10 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 </div>
 <div class="paragraph">
 <p>本リポジトリではライブラリクレートのみを提供しています。BLispを利用するには <a href="https://github.com/ytakano/blisp-repl">blisp-repl</a> か、おもちゃのOSである <a href="https://github.com/ytakano/baremetalisp">baremetalisp</a> を参照してください。</p>
+</div>
+<div class="paragraph">
+<div class="title">no_stdで動くBLisp</div>
+<p><span class="image"><img src="https://cdn-ak.f.st-hatena.com/images/fotolife/y/ytakano/20210221/20210221155657.gif" alt="no_stdで動くBLisp"></span></p>
 </div>
 </div>
 </div>
@@ -1090,13 +1095,87 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
         <span class="tok-p">(</span><span class="tok-nv">fold</span> <span class="tok-nv">f</span> <span class="tok-mi">0</span> <span class="tok-nv">l</span><span class="tok-p">))</span> <span class="tok-c1">; 0 is an initial value</span></code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>当然、これは以下のようにも記述できます。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; summation</span>
+<span class="tok-p">(</span><span class="tok-nv">fold</span> <span class="tok-nb">+</span> <span class="tok-mi">0</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">20</span> <span class="tok-mi">50</span> <span class="tok-mi">60</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_例">14. 例</h2>
+<h2 id="_外部関数呼び出し">14. 外部関数呼び出し</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><em>call-rust</em> はRustの関数を呼び出すための関数です。
+これは以下のように組み込み関数として定義されています。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">define</span> <span class="tok-nv">call-rust</span>
+    <span class="tok-p">(</span><span class="tok-nv">IO</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">Int</span> <span class="tok-nv">Int</span> <span class="tok-nv">Int</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Option</span> <span class="tok-nv">Int</span><span class="tok-p">)))</span> <span class="tok-c1">; type of call-rust</span>
+    <span class="tok-c1">; 省略</span>
+    <span class="tok-p">)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>この関数は3つの整数値をとり、(Option Int)をリターンします。
+Rustの関数を呼び出すためには、以下のようにコールバック関数を設定しなければなりません。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="rust"><span></span><span class="tok-k">use</span><span class="tok-w"> </span><span class="tok-n">blisp</span><span class="tok-p">;</span><span class="tok-w"></span>
+<span class="tok-k">use</span><span class="tok-w"> </span><span class="tok-n">num_bigint</span>::<span class="tok-n">BigInt</span><span class="tok-p">;</span><span class="tok-w"></span>
+
+<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">expr</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s">&quot;</span>
+<span class="tok-s">(export callback (x y z)</span>
+<span class="tok-s">    (IO (-&gt; (Int Int Int) (Option Int)))</span>
+<span class="tok-s">    (call-rust x y z))&quot;</span><span class="tok-p">;</span><span class="tok-w"></span>
+<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">exprs</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">init</span><span class="tok-p">(</span><span class="tok-n">expr</span><span class="tok-p">).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span>
+<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-k">mut</span><span class="tok-w"> </span><span class="tok-n">ctx</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">typing</span><span class="tok-p">(</span><span class="tok-o">&amp;</span><span class="tok-n">exprs</span><span class="tok-p">).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span>
+
+<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">fun</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-o">|</span><span class="tok-n">x</span>: <span class="tok-kp">&amp;</span><span class="tok-nc">BigInt</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">y</span>: <span class="tok-kp">&amp;</span><span class="tok-nc">BigInt</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">z</span>: <span class="tok-kp">&amp;</span><span class="tok-nc">BigInt</span><span class="tok-o">|</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"> </span><b class="conum">(1)</b>
+<span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">n</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">x</span><span class="tok-w"> </span><span class="tok-o">*</span><span class="tok-w"> </span><span class="tok-n">y</span><span class="tok-w"> </span><span class="tok-o">*</span><span class="tok-w"> </span><span class="tok-n">z</span><span class="tok-p">;</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-fm">println!</span><span class="tok-p">(</span><span class="tok-s">&quot;n = {}&quot;</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">n</span><span class="tok-p">);</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-nb">Some</span><span class="tok-p">(</span><span class="tok-n">n</span><span class="tok-p">)</span><span class="tok-w"></span>
+<span class="tok-p">};</span><span class="tok-w"></span>
+<span class="tok-n">ctx</span><span class="tok-p">.</span><span class="tok-n">set_callback</span><span class="tok-p">(</span><span class="tok-nb">Box</span>::<span class="tok-n">new</span><span class="tok-p">(</span><span class="tok-n">fun</span><span class="tok-p">));</span><span class="tok-w"></span>
+
+<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">e</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s">&quot;(callback 100 2000 30000)&quot;</span><span class="tok-p">;</span><span class="tok-w"> </span><b class="conum">(2)</b>
+<span class="tok-n">blisp</span>::<span class="tok-n">eval</span><span class="tok-p">(</span><span class="tok-n">e</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-o">&amp;</span><span class="tok-n">ctx</span><span class="tok-p">);</span><span class="tok-w"></span></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>BLispから呼び出されるコールバック関数です. この関数の型は Fn:(&amp;BigInt, &amp;BigInt, &amp;BigInt) &#8594; Some(BigInt) でなければなりません。</p>
+</li>
+<li>
+<p>Rustのコールバック関数を呼び出しています。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>このコードを呼び出すと、次のように出力されます。</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>n = 6000000000</pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>call-rust</em> はIO関数です. 従って、Pure関数からは呼び出すことは出来ません。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_例">15. 例</h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_階乗">14.1. 階乗</h3>
+<h3 id="_階乗">15.1. 階乗</h3>
 <div class="paragraph">
 <p>末尾呼び出し版の階乗関数は、以下のように実装できます。</p>
 </div>
@@ -1135,8 +1214,8 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 0.1<br>
-Last updated 2021-02-21 17:18:03 +0900
+Version 0.2<br>
+Last updated 2021-02-23 22:38:52 +0900
 </div>
 </div>
 <script type="text/x-mathjax-config">

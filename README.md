@@ -50,7 +50,7 @@ Cargo.toml
 
 ```toml
 [dependencies.blisp]
-version = "0.2"
+version = "0.3"
 ```
 
 ## Internally Defined Types and Functions
