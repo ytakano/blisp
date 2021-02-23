@@ -60,7 +60,7 @@ enum TCall {
 
 #[derive(Debug, Clone)]
 enum RTData {
-    Int(*const BigInt),
+    Int(*const BigInt, *mut bool),
     Bool(bool),
     Defun(String),
     Lambda(*const Clojure),
@@ -71,7 +71,7 @@ enum RTData {
 impl RTData {
     fn get_in_lisp(&self, list_head: bool) -> String {
         match self {
-            RTData::Int(n) => format!("{}", unsafe { &**n }),
+            RTData::Int(n, _) => format!("{}", unsafe { &**n }),
             RTData::Bool(n) => format!("{}", n),
             RTData::Defun(n) => format!("{}", n),
             RTData::Lambda(n) => format!("(Lambda {})", unsafe { &(*(*n)).ident }),
@@ -158,7 +158,7 @@ struct Clojure {
 struct RootObject {
     objects: LinkedList<LabeledData>,
     clojure: LinkedList<Clojure>,
-    integers: LinkedList<BigInt>,
+    integers: LinkedList<(BigInt, bool)>,
 }
 
 impl RootObject {
@@ -170,9 +170,10 @@ impl RootObject {
         }
     }
 
-    fn make_int(&mut self, n: BigInt) -> *const BigInt {
-        self.integers.push_back(n);
-        self.integers.back().unwrap() as *const BigInt
+    fn make_int(&mut self, n: BigInt) -> (*const BigInt, *mut bool) {
+        self.integers.push_back((n, false));
+        let (val, flag) = self.integers.back_mut().unwrap();
+        (val as *const BigInt, flag as *mut bool)
     }
 
     fn make_obj(&mut self, label: String, data: Option<Vec<RTData>>) -> *const LabeledData {
@@ -271,8 +272,8 @@ fn eval_expr(
 ) -> Result<RTData, RuntimeErr> {
     match expr {
         Expr::LitNum(e) => {
-            let ptr = root.make_int(e.num.clone());
-            Ok(RTData::Int(ptr))
+            let (ptr, flag) = root.make_int(e.num.clone());
+            Ok(RTData::Int(ptr, flag))
         }
         Expr::LitBool(e) => Ok(RTData::Bool(e.val)),
         Expr::IfExpr(e) => eval_if(&e, lambda, ctx, root, vars),
@@ -514,7 +515,7 @@ fn eval_tail_call<'a>(
 
 fn get_int_int(args: Vec<RTData>, pos: Pos) -> Result<(*const BigInt, *const BigInt), RuntimeErr> {
     match (&args[0], &args[1]) {
-        (RTData::Int(n1), RTData::Int(n2)) => Ok((*n1, *n2)),
+        (RTData::Int(n1, _), RTData::Int(n2, _)) => Ok((*n1, *n2)),
         _ => Err(RuntimeErr {
             msg: "there must be exactly 2 integers".to_string(),
             pos: pos,
@@ -527,7 +528,7 @@ fn get_int_int_int(
     pos: Pos,
 ) -> Result<(*const BigInt, *const BigInt, *const BigInt), RuntimeErr> {
     match (&args[0], &args[1], &args[2]) {
-        (RTData::Int(n1), RTData::Int(n2), RTData::Int(n3)) => Ok((*n1, *n2, *n3)),
+        (RTData::Int(n1, _), RTData::Int(n2, _), RTData::Int(n3, _)) => Ok((*n1, *n2, *n3)),
         _ => Err(RuntimeErr {
             msg: "there must be exactly 3 integers".to_string(),
             pos: pos,
@@ -566,32 +567,32 @@ fn eval_built_in(
         "+" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let n = unsafe { &*n1 + &*n2 };
-            let ptr = root.make_int(n);
-            Ok(RTData::Int(ptr))
+            let (ptr, flag) = root.make_int(n);
+            Ok(RTData::Int(ptr, flag))
         }
         "-" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let n = unsafe { &*n1 - &*n2 };
-            let ptr = root.make_int(n);
-            Ok(RTData::Int(ptr))
+            let (ptr, flag) = root.make_int(n);
+            Ok(RTData::Int(ptr, flag))
         }
         "*" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let n = unsafe { &*n1 * &*n2 };
-            let ptr = root.make_int(n);
-            Ok(RTData::Int(ptr))
+            let (ptr, flag) = root.make_int(n);
+            Ok(RTData::Int(ptr, flag))
         }
         "/" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let n = unsafe { &*n1 / &*n2 };
-            let ptr = root.make_int(n);
-            Ok(RTData::Int(ptr))
+            let (ptr, flag) = root.make_int(n);
+            Ok(RTData::Int(ptr, flag))
         }
         "%" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let n = unsafe { &*n1 % &*n2 };
-            let ptr = root.make_int(n);
-            Ok(RTData::Int(ptr))
+            let (ptr, flag) = root.make_int(n);
+            Ok(RTData::Int(ptr, flag))
         }
         "<" => {
             let (n1, n2) = get_int_int(args, pos)?;
@@ -638,8 +639,8 @@ fn eval_built_in(
             let (n1, n2, n3) = get_int_int_int(args, pos)?;
             let n = unsafe { (ctx.callback)(&*n1, &*n2, &*n3) };
             if let Some(n) = n {
-                let ptr = root.make_int(n);
-                let n = RTData::Int(ptr);
+                let (ptr, flag) = root.make_int(n);
+                let n = RTData::Int(ptr, flag);
                 let data = root.make_obj("Some".to_string(), Some(vec![n]));
                 Ok(RTData::LData(data))
             } else {
@@ -785,7 +786,7 @@ fn eval_pat(pat: &Pattern, data: RTData, vars: &mut Variables) -> bool {
             true
         }
         Pattern::PatNum(p) => match data {
-            RTData::Int(n) => (unsafe { &*n }) == &p.num,
+            RTData::Int(n, _) => (unsafe { &*n }) == &p.num,
             _ => false,
         },
         Pattern::PatBool(p) => match data {
@@ -836,5 +837,47 @@ fn eval_pat(pat: &Pattern, data: RTData, vars: &mut Variables) -> bool {
             }
             _ => false,
         },
+    }
+}
+
+/// mark reachable objects
+fn mark(vars: &mut Variables) {
+    for v in vars.vars.iter_mut() {
+        for (_, v) in v.iter_mut() {
+            match v {
+                RTData::Int(_, flag) => unsafe {
+                    **flag = true;
+                },
+                _ => (), // TODO: traverse
+            }
+        }
+    }
+}
+
+/// remove unreachable objects
+fn sweep<T>(root: &mut LinkedList<(T, bool)>) {
+    let mut tail = root.split_off(0);
+    loop {
+        if tail.is_empty() {
+            break;
+        }
+
+        // take head
+        let tail2 = tail.split_off(1);
+        let mut head = tail;
+        tail = tail2;
+
+        // if head
+        let h = head.front_mut().unwrap();
+        let flag = if h.1 {
+            h.1 = false;
+            true
+        } else {
+            false
+        };
+
+        if flag {
+            root.append(&mut head);
+        }
     }
 }
