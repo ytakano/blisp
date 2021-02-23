@@ -1151,7 +1151,7 @@ Rustの関数を呼び出すためには、以下のようにコールバック�
 <div class="colist arabic">
 <ol>
 <li>
-<p>BLispから呼び出されるコールバック関数です. この関数の型は Fn:(&amp;BigInt, &amp;BigInt, &amp;BigInt) &#8594; Some(BigInt) でなければなりません。</p>
+<p>BLispから呼び出されるコールバック関数です. この関数の型は Fn:(&amp;BigInt, &amp;BigInt, &amp;BigInt) &#8594; Option&lt;BigInt&gt; でなければなりません。</p>
 </li>
 <li>
 <p>Rustのコールバック関数を呼び出しています。</p>
@@ -1215,7 +1215,7 @@ Rustの関数を呼び出すためには、以下のようにコールバック�
 <div id="footer">
 <div id="footer-text">
 Version 0.2<br>
-Last updated 2021-02-23 22:38:52 +0900
+Last updated 2021-02-23 22:47:54 +0900
 </div>
 </div>
 <script type="text/x-mathjax-config">

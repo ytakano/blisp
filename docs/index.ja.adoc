@@ -469,7 +469,7 @@ let e = "(callback 100 2000 30000)"; <2>
 blisp::eval(e, &ctx);
 ```
 
-<1> BLispから呼び出されるコールバック関数です. この関数の型は Fn:(&BigInt, &BigInt, &BigInt) -> Some(BigInt) でなければなりません。
+<1> BLispから呼び出されるコールバック関数です. この関数の型は Fn:(&BigInt, &BigInt, &BigInt) -> Option<BigInt> でなければなりません。
 
 <2> Rustのコールバック関数を呼び出しています。
 
