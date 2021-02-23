@@ -247,4 +247,25 @@ mod tests {
         let e = "(fold (lambda (x y) (+ x y)) 0 '(1 2 3))";
         eval_result(e, &ctx);
     }
+
+    #[test]
+    fn callback() {
+        let expr = "
+(export callback (x y z) (IO (-> (Int Int Int) (Option Int)))
+    (call-rust x y z))";
+        let exprs = init(expr).unwrap();
+        let mut ctx = typing(&exprs).unwrap();
+
+        use num_bigint::BigInt;
+        use std::boxed::Box;
+        let fun = |x: &BigInt, y: &BigInt, z: &BigInt| {
+            let n = x * y * z;
+            println!("n = {}", n);
+            Some(n)
+        };
+        ctx.set_callback(Box::new(fun));
+
+        let e = "(callback 100 2000 30000)";
+        eval_result(e, &ctx);
+    }
 }

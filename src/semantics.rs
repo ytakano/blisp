@@ -9,7 +9,6 @@ use alloc::fmt;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use num_bigint::BigInt;
-use num_traits::Zero;
 
 type ID = u64;
 type Sbst = BTreeMap<ID, Type>;
@@ -727,7 +726,7 @@ pub struct Context {
     data: BTreeMap<String, DataType>,
     pub(crate) built_in: BTreeSet<String>,
     label2data: BTreeMap<String, String>,
-    pub callback: Box<dyn Fn(BigInt, BigInt, BigInt) -> BigInt>,
+    pub callback: Box<dyn Fn(&BigInt, &BigInt, &BigInt) -> Option<BigInt>>,
 }
 
 impl Context {
@@ -757,11 +756,11 @@ impl Context {
             label2data: BTreeMap::new(),
             lambda: BTreeMap::new(),
             lambda_ident: 0,
-            callback: Box::new(|_, _, _| Zero::zero()),
+            callback: Box::new(|_, _, _| None),
         }
     }
 
-    pub fn set_callback(&mut self, func: Box<dyn Fn(BigInt, BigInt, BigInt) -> BigInt>) {
+    pub fn set_callback(&mut self, func: Box<dyn Fn(&BigInt, &BigInt, &BigInt) -> Option<BigInt>>) {
         self.callback = func;
     }
 
@@ -1277,7 +1276,10 @@ impl Context {
                                 ty = ty_fun(
                                     &Effect::IO,
                                     vec![ty_int(), ty_int(), ty_int()],
-                                    ty_int(),
+                                    Type::TCon(Tycon {
+                                        id: "Option".to_string(),
+                                        args: vec![ty_int()],
+                                    }),
                                 );
                             }
                             _ => {

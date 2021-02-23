@@ -4,9 +4,10 @@ use super::{LispErr, Pos};
 
 use alloc::collections::btree_map::BTreeMap;
 use alloc::collections::linked_list::LinkedList;
+use alloc::collections::vec_deque::VecDeque;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use num_bigint::{BigInt, ToBigInt};
+use num_bigint::BigInt;
 
 type Expr = semantics::LangExpr;
 type Pattern = semantics::Pattern;
@@ -18,12 +19,12 @@ struct RuntimeErr {
 
 #[derive(Debug, Clone)]
 struct Variables {
-    vars: LinkedList<BTreeMap<String, RTData>>,
+    vars: VecDeque<BTreeMap<String, RTData>>,
 }
 
 impl Variables {
     fn new() -> Variables {
-        let mut list = LinkedList::new();
+        let mut list = VecDeque::new();
         list.push_back(BTreeMap::new());
         Variables { vars: list }
     }
@@ -59,7 +60,7 @@ enum TCall {
 
 #[derive(Debug, Clone)]
 enum RTData {
-    Int(BigInt),
+    Int(*const BigInt),
     Bool(bool),
     Defun(String),
     Lambda(*const Clojure),
@@ -70,7 +71,7 @@ enum RTData {
 impl RTData {
     fn get_in_lisp(&self, list_head: bool) -> String {
         match self {
-            RTData::Int(n) => format!("{}", n),
+            RTData::Int(n) => format!("{}", unsafe { &**n }),
             RTData::Bool(n) => format!("{}", n),
             RTData::Defun(n) => format!("{}", n),
             RTData::Lambda(n) => format!("(Lambda {})", unsafe { &(*(*n)).ident }),
@@ -157,6 +158,7 @@ struct Clojure {
 struct RootObject {
     objects: LinkedList<LabeledData>,
     clojure: LinkedList<Clojure>,
+    integers: LinkedList<BigInt>,
 }
 
 impl RootObject {
@@ -164,7 +166,13 @@ impl RootObject {
         RootObject {
             objects: LinkedList::new(),
             clojure: LinkedList::new(),
+            integers: LinkedList::new(),
         }
+    }
+
+    fn make_int(&mut self, n: BigInt) -> *const BigInt {
+        self.integers.push_back(n);
+        self.integers.back().unwrap() as *const BigInt
     }
 
     fn make_obj(&mut self, label: String, data: Option<Vec<RTData>>) -> *const LabeledData {
@@ -262,7 +270,10 @@ fn eval_expr(
     vars: &mut Variables,
 ) -> Result<RTData, RuntimeErr> {
     match expr {
-        Expr::LitNum(e) => Ok(RTData::Int(e.num.clone())),
+        Expr::LitNum(e) => {
+            let ptr = root.make_int(e.num.clone());
+            Ok(RTData::Int(ptr))
+        }
         Expr::LitBool(e) => Ok(RTData::Bool(e.val)),
         Expr::IfExpr(e) => eval_if(&e, lambda, ctx, root, vars),
         Expr::DataExpr(e) => eval_data(&e, lambda, ctx, root, vars),
@@ -427,7 +438,7 @@ fn eval_apply(
                     let data = eval_expr(&e, lambda, ctx, root, vars)?;
                     v.push(data);
                 }
-                return eval_built_in(fun_name, v, expr.pos, ctx);
+                return eval_built_in(fun_name, v, expr.pos, root, ctx);
             }
 
             // look up defun
@@ -501,9 +512,9 @@ fn eval_tail_call<'a>(
     }
 }
 
-fn get_int_int(args: Vec<RTData>, pos: Pos) -> Result<(BigInt, BigInt), RuntimeErr> {
-    match (args[0].clone(), args[1].clone()) {
-        (RTData::Int(n1), RTData::Int(n2)) => Ok((n1, n2)),
+fn get_int_int(args: Vec<RTData>, pos: Pos) -> Result<(*const BigInt, *const BigInt), RuntimeErr> {
+    match (&args[0], &args[1]) {
+        (RTData::Int(n1), RTData::Int(n2)) => Ok((*n1, *n2)),
         _ => Err(RuntimeErr {
             msg: "there must be exactly 2 integers".to_string(),
             pos: pos,
@@ -511,9 +522,12 @@ fn get_int_int(args: Vec<RTData>, pos: Pos) -> Result<(BigInt, BigInt), RuntimeE
     }
 }
 
-fn get_int_int_int(args: Vec<RTData>, pos: Pos) -> Result<(BigInt, BigInt, BigInt), RuntimeErr> {
-    match (args[0].clone(), args[1].clone(), args[2].clone()) {
-        (RTData::Int(n1), RTData::Int(n2), RTData::Int(n3)) => Ok((n1, n2, n3)),
+fn get_int_int_int(
+    args: Vec<RTData>,
+    pos: Pos,
+) -> Result<(*const BigInt, *const BigInt, *const BigInt), RuntimeErr> {
+    match (&args[0], &args[1], &args[2]) {
+        (RTData::Int(n1), RTData::Int(n2), RTData::Int(n3)) => Ok((*n1, *n2, *n3)),
         _ => Err(RuntimeErr {
             msg: "there must be exactly 3 integers".to_string(),
             pos: pos,
@@ -545,48 +559,64 @@ fn eval_built_in(
     fun_name: String,
     args: Vec<RTData>,
     pos: Pos,
+    root: &mut RootObject,
     ctx: &semantics::Context,
 ) -> Result<RTData, RuntimeErr> {
     match fun_name.as_str() {
         "+" => {
             let (n1, n2) = get_int_int(args, pos)?;
-            Ok(RTData::Int(n1 + n2))
+            let n = unsafe { &*n1 + &*n2 };
+            let ptr = root.make_int(n);
+            Ok(RTData::Int(ptr))
         }
         "-" => {
             let (n1, n2) = get_int_int(args, pos)?;
-            Ok(RTData::Int(n1 - n2))
+            let n = unsafe { &*n1 - &*n2 };
+            let ptr = root.make_int(n);
+            Ok(RTData::Int(ptr))
         }
         "*" => {
             let (n1, n2) = get_int_int(args, pos)?;
-            Ok(RTData::Int(n1 * n2))
+            let n = unsafe { &*n1 * &*n2 };
+            let ptr = root.make_int(n);
+            Ok(RTData::Int(ptr))
         }
         "/" => {
             let (n1, n2) = get_int_int(args, pos)?;
-            Ok(RTData::Int(n1 / n2))
+            let n = unsafe { &*n1 / &*n2 };
+            let ptr = root.make_int(n);
+            Ok(RTData::Int(ptr))
         }
         "%" => {
             let (n1, n2) = get_int_int(args, pos)?;
-            Ok(RTData::Int(n1 % n2))
+            let n = unsafe { &*n1 % &*n2 };
+            let ptr = root.make_int(n);
+            Ok(RTData::Int(ptr))
         }
         "<" => {
             let (n1, n2) = get_int_int(args, pos)?;
-            Ok(RTData::Bool(n1 < n2))
+            let b = unsafe { &*n1 < &*n2 };
+            Ok(RTData::Bool(b))
         }
         ">" => {
             let (n1, n2) = get_int_int(args, pos)?;
-            Ok(RTData::Bool(n1 > n2))
+            let b = unsafe { &*n1 > &*n2 };
+            Ok(RTData::Bool(b))
         }
         "=" => {
             let (n1, n2) = get_int_int(args, pos)?;
-            Ok(RTData::Bool(n1 == n2))
+            let b = unsafe { &*n1 == &*n2 };
+            Ok(RTData::Bool(b))
         }
         "<=" => {
             let (n1, n2) = get_int_int(args, pos)?;
-            Ok(RTData::Bool(n1 <= n2))
+            let b = unsafe { &*n1 <= &*n2 };
+            Ok(RTData::Bool(b))
         }
         ">=" => {
             let (n1, n2) = get_int_int(args, pos)?;
-            Ok(RTData::Bool(n1 >= n2))
+            let b = unsafe { &*n1 >= &*n2 };
+            Ok(RTData::Bool(b))
         }
         "and" => {
             let (n1, n2) = get_bool_bool(args, pos)?;
@@ -606,12 +636,15 @@ fn eval_built_in(
         }
         "call-rust" => {
             let (n1, n2, n3) = get_int_int_int(args, pos)?;
-            match (ctx.callback)(n1, n2, n3).to_bigint() {
-                Some(n) => Ok(RTData::Int(n)),
-                None => Err(RuntimeErr {
-                    msg: "call-rust returned invalid value".to_string(),
-                    pos: pos,
-                }),
+            let n = unsafe { (ctx.callback)(&*n1, &*n2, &*n3) };
+            if let Some(n) = n {
+                let ptr = root.make_int(n);
+                let n = RTData::Int(ptr);
+                let data = root.make_obj("Some".to_string(), Some(vec![n]));
+                Ok(RTData::LData(data))
+            } else {
+                let data = root.make_obj("None".to_string(), None);
+                Ok(RTData::LData(data))
             }
         }
         _ => Err(RuntimeErr {
@@ -752,7 +785,7 @@ fn eval_pat(pat: &Pattern, data: RTData, vars: &mut Variables) -> bool {
             true
         }
         Pattern::PatNum(p) => match data {
-            RTData::Int(n) => n == p.num,
+            RTData::Int(n) => (unsafe { &*n }) == &p.num,
             _ => false,
         },
         Pattern::PatBool(p) => match data {
