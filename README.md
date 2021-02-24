@@ -50,8 +50,14 @@ Cargo.toml
 
 ```toml
 [dependencies.blisp]
-version = "0.3"
+version = "0.3.1"
 ```
+
+## Version History
+
+### 0.3.1
+
+- garbage collection is ready (mark and sweep)
 
 ## Internally Defined Types and Functions
 
