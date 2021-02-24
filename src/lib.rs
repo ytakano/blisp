@@ -15,14 +15,18 @@
 //!
 //! ### Simple Eval
 //! ```
-//! let code = "(export factorial (n) (Pure (-> (Int) Int))
-//!    (if (<= n 0)
-//!        1
-//!        (* n (factorial (- n 1)))))";
+//! let code = "
+//! (export factorial (n) (Pure (-> (Int) Int))
+//!     (factorial' n 1))
+//!
+//! (defun factorial' (n total) (Pure (-> (Int Int) Int))
+//!     (if (<= n 0)
+//!         total
+//!         (factorial' (- n 1) (* n total))))";
 //!
 //! let exprs = blisp::init(code).unwrap();
 //! let ctx = blisp::typing(&exprs).unwrap();
-//! let expr = "(factorial 30)";
+//! let expr = "(factorial 10)";
 //! for result in blisp::eval(expr, &ctx).unwrap() {
 //!    println!("{}", result.unwrap());
 //! }
@@ -61,7 +65,7 @@
 //! - Big integer
 //! - Supporting no_std environments
 
-//#![no_std]
+#![no_std]
 
 #[macro_use]
 extern crate alloc;
@@ -191,7 +195,7 @@ mod tests {
 
     fn eval_result(code: &str, ctx: &semantics::Context) {
         for r in eval(code, &ctx).unwrap() {
-            r.unwrap();
+            println!("{} -> {}", code, r.unwrap());
         }
     }
 
@@ -211,6 +215,9 @@ mod tests {
         let exprs = init(expr).unwrap();
         let ctx = typing(&exprs).unwrap();
         let e = "(lambda-test (lambda (x y) (* x y)))";
+        eval_result(e, &ctx);
+
+        let e = "(lambda-test +)";
         eval_result(e, &ctx);
     }
 
@@ -253,26 +260,33 @@ mod tests {
 
     #[test]
     fn prelude() {
-        let expr = "";
+        let expr = "
+(export factorial (n) (Pure (-> (Int) Int))
+    (fact n 1))
+
+(defun fact (n total) (Pure (-> (Int Int) Int))
+    (if (<= n 0)
+        total
+        (fact (- n 1) (* n total))))";
         let exprs = init(expr).unwrap();
         let ctx = typing(&exprs).unwrap();
 
-        //let e = "(Some 10)";
-        //eval_result(e, &ctx);
+        let e = "(Some 10)";
+        eval_result(e, &ctx);
 
-        //let e = "(car '(1 2 3))";
-        //eval_result(e, &ctx);
+        let e = "(car '(1 2 3))";
+        eval_result(e, &ctx);
 
-        println!("cdr");
         let e = "(cdr '(1 2 3))";
         eval_result(e, &ctx);
 
-        println!("\nmap");
-        let e = "(map (lambda (x) (* x 2)) '(1 2 3))";
+        let e = "(map (lambda (x) (* x 2)) '(8 9 10))";
         eval_result(e, &ctx);
 
-        println!("\nfold");
-        let e = "(fold (lambda (x y) (+ x y)) 0 '(1 2 3))";
+        let e = "(fold + 0 '(1 2 3 4 5 6 7 8 9))";
+        eval_result(e, &ctx);
+
+        let e = "(factorial 2000)";
         eval_result(e, &ctx);
     }
 

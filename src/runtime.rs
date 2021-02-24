@@ -75,7 +75,6 @@ impl RTData {
     fn get_in_lisp(&self, list_head: bool) -> String {
         match self {
             RTData::Int(n) => {
-                println!("n = {:?}", *n);
                 format!("{}", unsafe { &(**n).0 })
             }
             RTData::Bool(n) => format!("{}", n),
@@ -161,10 +160,13 @@ struct Clojure {
     data: Option<BTreeMap<String, RTData>>,
 }
 
+const MIN_GC_NUM: usize = 1024;
+
 struct RootObject {
     objects: LinkedList<Pin<Box<(LabeledData, bool)>>>,
     clojure: LinkedList<Pin<Box<(Clojure, bool)>>>,
     integers: LinkedList<Pin<Box<(BigInt, bool)>>>,
+    threshold: usize,
 }
 
 impl RootObject {
@@ -173,16 +175,13 @@ impl RootObject {
             objects: LinkedList::new(),
             clojure: LinkedList::new(),
             integers: LinkedList::new(),
+            threshold: MIN_GC_NUM,
         }
     }
 
     fn make_int(&mut self, n: BigInt) -> *mut (BigInt, bool) {
         self.integers.push_back(Box::pin((n, false)));
         let ptr = self.integers.back_mut().unwrap();
-
-        let h = unsafe { ptr.as_mut().get_unchecked_mut() };
-        println!("alloc int {:x}", h as *const (BigInt, bool) as usize);
-
         unsafe { ptr.as_mut().get_unchecked_mut() as *mut (BigInt, bool) }
     }
 
@@ -193,10 +192,6 @@ impl RootObject {
         };
         self.objects.push_back(Box::pin((obj, false)));
         let ptr = self.objects.back_mut().unwrap();
-
-        let h = unsafe { ptr.as_mut().get_unchecked_mut() };
-        println!("alloc data {:x}", h as *const (LabeledData, bool) as usize);
-
         unsafe { ptr.as_mut().get_unchecked_mut() as *mut (LabeledData, bool) }
     }
 
@@ -211,10 +206,6 @@ impl RootObject {
         };
         self.clojure.push_back(Box::pin((obj, false)));
         let ptr = self.clojure.back_mut().unwrap();
-
-        let h = unsafe { ptr.as_mut().get_unchecked_mut() };
-        println!("alloc lambda {:x}", h as *const (Clojure, bool) as usize);
-
         unsafe { ptr.as_mut().get_unchecked_mut() as *mut (Clojure, bool) }
     }
 }
@@ -261,7 +252,6 @@ pub(crate) fn eval(
         vars.push_back(Variables::new());
         match eval_expr(expr, lambda, ctx, &mut root, &mut vars) {
             Ok(val) => {
-                println!("val = {:?}", val);
                 result.push_back(Ok(val.get_in_lisp(true)));
             }
             Err(e) => {
@@ -526,12 +516,14 @@ fn eval_tail_call<'a>(
                 expr = &fun.expr;
                 vars.pop_back();
                 vars.push_back(vars_fun);
+                collect_garbage(vars, root); // mark and sweep
             }
             RTData::TailCall(TCall::Lambda(id), vars_fun) => {
                 let fun = get_lambda(ctx, lambda, id, expr)?;
                 expr = &fun.expr;
                 vars.pop_back();
                 vars.push_back(vars_fun);
+                collect_garbage(vars, root); // mark and sweep
             }
             x => {
                 return Ok(x);
@@ -863,12 +855,23 @@ fn eval_pat(pat: &Pattern, data: RTData, vars: &mut VecDeque<Variables>) -> bool
     }
 }
 
+/// do garbage collection
 fn collect_garbage(vars: &mut VecDeque<Variables>, root: &mut RootObject) {
-    println!("start GC");
+    let n = root.integers.len() + root.objects.len() + root.clojure.len();
+    if n < root.threshold {
+        return;
+    }
+
     mark(vars);
     sweep(&mut root.clojure);
     sweep(&mut root.objects);
     sweep(&mut root.integers);
+
+    let n = root.integers.len() + root.objects.len() + root.clojure.len();
+    root.threshold = n * 2;
+    if root.threshold < (MIN_GC_NUM >> 1) {
+        root.threshold = MIN_GC_NUM;
+    }
 }
 
 /// mark reachable objects
@@ -882,19 +885,15 @@ fn mark(vars: &mut VecDeque<Variables>) {
     }
 }
 
+/// mark reachable objects recursively
 fn mark_obj(data: &mut RTData) {
     match data {
         RTData::Int(ptr) => unsafe {
-            println!("mark int {:x}", *ptr as usize);
-
-            (**ptr).1 = true;
+            write_volatile(&mut (**ptr).1, true);
         },
         RTData::Lambda(ptr) => unsafe {
             if !(**ptr).1 {
-                println!("mark lambda {:x}", *ptr as usize);
                 write_volatile(&mut (**ptr).1, true);
-                //(**ptr).1 = true;
-                println!("{}", (**ptr).1);
                 if let Some(data) = &mut (**ptr).0.data {
                     for (_, v) in data.iter_mut() {
                         mark_obj(v);
@@ -904,7 +903,6 @@ fn mark_obj(data: &mut RTData) {
         },
         RTData::LData(ptr) => unsafe {
             if !(**ptr).1 {
-                println!("mark data {:x}", *ptr as usize);
                 write_volatile(&mut (**ptr).1, true);
                 if let Some(data) = &mut (**ptr).0.data {
                     for v in data.iter_mut() {
@@ -913,9 +911,6 @@ fn mark_obj(data: &mut RTData) {
                 }
             }
         },
-        RTData::TailCall(_, _) => {
-            println!("tail call");
-        }
         _ => (),
     }
 }
@@ -942,17 +937,14 @@ fn sweep<T>(root: &mut LinkedList<Pin<Box<(T, bool)>>>) {
         let h = head.front_mut().unwrap();
         let marked = unsafe { read_volatile(&h.as_ref().1) };
         let flag = if marked {
-            // reachable
+            // the head is reachable
             let h = h.as_mut();
             unsafe {
                 h.get_unchecked_mut().1 = false;
             }
             true
         } else {
-            // unreachable
-            let h = unsafe { h.as_mut().get_unchecked_mut() };
-            println!("freed {:x}", h as *const (T, bool) as usize);
-            println!("{}", marked);
+            // the head unreachable
             false
         };
 
