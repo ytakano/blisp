@@ -61,7 +61,7 @@
 //! - Big integer
 //! - Supporting no_std environments
 
-#![no_std]
+//#![no_std]
 
 #[macro_use]
 extern crate alloc;
@@ -257,18 +257,21 @@ mod tests {
         let exprs = init(expr).unwrap();
         let ctx = typing(&exprs).unwrap();
 
-        let e = "(Some 10)";
-        eval_result(e, &ctx);
+        //let e = "(Some 10)";
+        //eval_result(e, &ctx);
 
-        let e = "(car '(1 2 3))";
-        eval_result(e, &ctx);
+        //let e = "(car '(1 2 3))";
+        //eval_result(e, &ctx);
 
+        println!("cdr");
         let e = "(cdr '(1 2 3))";
         eval_result(e, &ctx);
 
+        println!("\nmap");
         let e = "(map (lambda (x) (* x 2)) '(1 2 3))";
         eval_result(e, &ctx);
 
+        println!("\nfold");
         let e = "(fold (lambda (x y) (+ x y)) 0 '(1 2 3))";
         eval_result(e, &ctx);
     }

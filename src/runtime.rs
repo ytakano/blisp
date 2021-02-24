@@ -2,11 +2,14 @@ use super::parser;
 use super::semantics;
 use super::{LispErr, Pos};
 
+use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::collections::linked_list::LinkedList;
 use alloc::collections::vec_deque::VecDeque;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+use core::pin::Pin;
+use core::ptr::{read_volatile, write_volatile};
 use num_bigint::BigInt;
 
 type Expr = semantics::LangExpr;
@@ -60,27 +63,30 @@ enum TCall {
 
 #[derive(Debug, Clone)]
 enum RTData {
-    Int(*const BigInt, *mut bool),
+    Int(*mut (BigInt, bool)),
     Bool(bool),
     Defun(String),
-    Lambda(*const Clojure),
-    LData(*const LabeledData),
+    Lambda(*mut (Clojure, bool)),
+    LData(*mut (LabeledData, bool)),
     TailCall(TCall, Variables),
 }
 
 impl RTData {
     fn get_in_lisp(&self, list_head: bool) -> String {
         match self {
-            RTData::Int(n, _) => format!("{}", unsafe { &**n }),
+            RTData::Int(n) => {
+                println!("n = {:?}", *n);
+                format!("{}", unsafe { &(**n).0 })
+            }
             RTData::Bool(n) => format!("{}", n),
             RTData::Defun(n) => format!("{}", n),
-            RTData::Lambda(n) => format!("(Lambda {})", unsafe { &(*(*n)).ident }),
+            RTData::Lambda(n) => format!("(Lambda {})", unsafe { &(*(*n)).0.ident }),
             RTData::LData(n) => {
-                let label = unsafe { &(*(*n)).label };
+                let label = unsafe { &(*(*n)).0.label };
                 if label == "Cons" {
                     let e1;
                     let e2;
-                    match unsafe { (*(*n)).data.as_ref() } {
+                    match unsafe { (*(*n)).0.data.as_ref() } {
                         Some(ld) => {
                             e1 = ld[0].get_in_lisp(true);
                             e2 = ld[1].get_in_lisp(false);
@@ -107,7 +113,7 @@ impl RTData {
                         "".to_string()
                     }
                 } else if label == "Tuple" {
-                    match unsafe { (*(*n)).data.as_ref() } {
+                    match unsafe { (*(*n)).0.data.as_ref() } {
                         Some(ld) => {
                             let mut msg = "".to_string();
                             let len = (*ld).len();
@@ -125,7 +131,7 @@ impl RTData {
                         None => "[]".to_string(),
                     }
                 } else {
-                    match unsafe { (*(*n)).data.as_ref() } {
+                    match unsafe { (*(*n)).0.data.as_ref() } {
                         Some(ld) => {
                             let mut msg = format!("({}", label);
                             for d in ld.iter() {
@@ -156,9 +162,9 @@ struct Clojure {
 }
 
 struct RootObject {
-    objects: LinkedList<LabeledData>,
-    clojure: LinkedList<Clojure>,
-    integers: LinkedList<(BigInt, bool)>,
+    objects: LinkedList<Pin<Box<(LabeledData, bool)>>>,
+    clojure: LinkedList<Pin<Box<(Clojure, bool)>>>,
+    integers: LinkedList<Pin<Box<(BigInt, bool)>>>,
 }
 
 impl RootObject {
@@ -170,32 +176,46 @@ impl RootObject {
         }
     }
 
-    fn make_int(&mut self, n: BigInt) -> (*const BigInt, *mut bool) {
-        self.integers.push_back((n, false));
-        let (val, flag) = self.integers.back_mut().unwrap();
-        (val as *const BigInt, flag as *mut bool)
+    fn make_int(&mut self, n: BigInt) -> *mut (BigInt, bool) {
+        self.integers.push_back(Box::pin((n, false)));
+        let ptr = self.integers.back_mut().unwrap();
+
+        let h = unsafe { ptr.as_mut().get_unchecked_mut() };
+        println!("alloc int {:x}", h as *const (BigInt, bool) as usize);
+
+        unsafe { ptr.as_mut().get_unchecked_mut() as *mut (BigInt, bool) }
     }
 
-    fn make_obj(&mut self, label: String, data: Option<Vec<RTData>>) -> *const LabeledData {
+    fn make_obj(&mut self, label: String, data: Option<Vec<RTData>>) -> *mut (LabeledData, bool) {
         let obj = LabeledData {
             label: label,
             data: data,
         };
-        self.objects.push_back(obj);
-        self.objects.back().unwrap() as *const LabeledData
+        self.objects.push_back(Box::pin((obj, false)));
+        let ptr = self.objects.back_mut().unwrap();
+
+        let h = unsafe { ptr.as_mut().get_unchecked_mut() };
+        println!("alloc data {:x}", h as *const (LabeledData, bool) as usize);
+
+        unsafe { ptr.as_mut().get_unchecked_mut() as *mut (LabeledData, bool) }
     }
 
     fn make_clojure(
         &mut self,
         ident: u64,
         data: Option<BTreeMap<String, RTData>>,
-    ) -> *const Clojure {
+    ) -> *mut (Clojure, bool) {
         let obj = Clojure {
             ident: ident,
             data: data,
         };
-        self.clojure.push_back(obj);
-        self.clojure.back().unwrap() as *const Clojure
+        self.clojure.push_back(Box::pin((obj, false)));
+        let ptr = self.clojure.back_mut().unwrap();
+
+        let h = unsafe { ptr.as_mut().get_unchecked_mut() };
+        println!("alloc lambda {:x}", h as *const (Clojure, bool) as usize);
+
+        unsafe { ptr.as_mut().get_unchecked_mut() as *mut (Clojure, bool) }
     }
 }
 
@@ -237,9 +257,11 @@ pub(crate) fn eval(
     let mut root = RootObject::new();
     let mut result = LinkedList::new();
     for (expr, lambda) in &typed_exprs {
-        let mut vars = Variables::new();
+        let mut vars = VecDeque::new();
+        vars.push_back(Variables::new());
         match eval_expr(expr, lambda, ctx, &mut root, &mut vars) {
             Ok(val) => {
+                println!("val = {:?}", val);
                 result.push_back(Ok(val.get_in_lisp(true)));
             }
             Err(e) => {
@@ -256,8 +278,8 @@ pub(crate) fn eval(
     Ok(result)
 }
 
-fn get_data_of_id(id: &String, vars: &mut Variables) -> RTData {
-    match vars.get(id) {
+fn get_data_of_id(id: &String, vars: &mut VecDeque<Variables>) -> RTData {
+    match vars.back_mut().unwrap().get(id) {
         Some(data) => data.clone(),
         None => RTData::Defun(id.to_string()),
     }
@@ -268,13 +290,10 @@ fn eval_expr(
     lambda: &BTreeMap<u64, semantics::Lambda>,
     ctx: &semantics::Context,
     root: &mut RootObject,
-    vars: &mut Variables,
+    vars: &mut VecDeque<Variables>,
 ) -> Result<RTData, RuntimeErr> {
     match expr {
-        Expr::LitNum(e) => {
-            let (ptr, flag) = root.make_int(e.num.clone());
-            Ok(RTData::Int(ptr, flag))
-        }
+        Expr::LitNum(e) => Ok(RTData::Int(root.make_int(e.num.clone()))),
         Expr::LitBool(e) => Ok(RTData::Bool(e.val)),
         Expr::IfExpr(e) => eval_if(&e, lambda, ctx, root, vars),
         Expr::DataExpr(e) => eval_data(&e, lambda, ctx, root, vars),
@@ -291,7 +310,7 @@ fn eval_expr(
 fn eval_lambda(
     expr: &semantics::Lambda,
     root: &mut RootObject,
-    vars: &mut Variables,
+    vars: &mut VecDeque<Variables>,
 ) -> Result<RTData, RuntimeErr> {
     let data = if expr.vars.len() > 0 {
         let mut m = BTreeMap::new();
@@ -303,7 +322,8 @@ fn eval_lambda(
         None
     };
 
-    Ok(RTData::Lambda(root.make_clojure(expr.ident, data)))
+    let ptr = root.make_clojure(expr.ident, data);
+    Ok(RTData::Lambda(ptr))
 }
 
 fn eval_tuple(
@@ -311,16 +331,16 @@ fn eval_tuple(
     lambda: &BTreeMap<u64, semantics::Lambda>,
     ctx: &semantics::Context,
     root: &mut RootObject,
-    vars: &mut Variables,
+    vars: &mut VecDeque<Variables>,
 ) -> Result<RTData, RuntimeErr> {
     let mut v = Vec::new();
     for e in expr.exprs.iter() {
         v.push(eval_expr(e, lambda, ctx, root, vars)?);
     }
 
-    let elm = root.make_obj("Tuple".to_string(), Some(v));
+    let ptr = root.make_obj("Tuple".to_string(), Some(v));
 
-    Ok(RTData::LData(elm))
+    Ok(RTData::LData(ptr))
 }
 
 fn get_fun<'a>(
@@ -374,7 +394,7 @@ fn call_lambda(
     lambda: &BTreeMap<u64, semantics::Lambda>,
     ctx: &semantics::Context,
     root: &mut RootObject,
-    vars: &mut Variables,
+    vars: &mut VecDeque<Variables>,
     cloj: *const Clojure,
     iter: core::slice::Iter<semantics::LangExpr>,
     fun_expr: &semantics::LangExpr,
@@ -404,7 +424,10 @@ fn call_lambda(
     if expr.is_tail {
         Ok(RTData::TailCall(TCall::Lambda(ident), vars_fun))
     } else {
-        eval_tail_call(&fun.expr, lambda, ctx, root, &mut vars_fun)
+        vars.push_back(vars_fun);
+        let result = eval_tail_call(&fun.expr, lambda, ctx, root, vars);
+        vars.pop_back();
+        result
     }
 }
 
@@ -413,7 +436,7 @@ fn eval_apply(
     lambda: &BTreeMap<u64, semantics::Lambda>,
     ctx: &semantics::Context,
     root: &mut RootObject,
-    vars: &mut Variables,
+    vars: &mut VecDeque<Variables>,
 ) -> Result<RTData, RuntimeErr> {
     let mut iter = expr.exprs.iter();
     let fun_expr;
@@ -455,13 +478,16 @@ fn eval_apply(
                 if expr.is_tail {
                     Ok(RTData::TailCall(TCall::Defun(fun_name), vars_fun))
                 } else {
-                    eval_tail_call(&fun.expr, lambda, ctx, root, &mut vars_fun)
+                    vars.push_back(vars_fun);
+                    let result = eval_tail_call(&fun.expr, lambda, ctx, root, vars)?;
+                    vars.pop_back();
+                    Ok(result)
                 }
             } else {
                 // call clojure
-                if let Some(f) = vars.get(&fun_name) {
+                if let Some(f) = vars.back_mut().unwrap().get(&fun_name) {
                     if let RTData::Lambda(cloj) = f {
-                        let cloj = *cloj;
+                        let cloj = unsafe { &mut (**cloj).0 };
                         return call_lambda(expr, lambda, ctx, root, vars, cloj, iter, fun_expr);
                     }
                 }
@@ -472,7 +498,10 @@ fn eval_apply(
                 Err(RuntimeErr { msg: msg, pos: pos })
             }
         }
-        RTData::Lambda(f) => call_lambda(expr, lambda, ctx, root, vars, f, iter, fun_expr),
+        RTData::Lambda(f) => {
+            let f = unsafe { &(*f).0 };
+            call_lambda(expr, lambda, ctx, root, vars, f, iter, fun_expr)
+        }
         _ => {
             let pos = fun_expr.get_pos();
             return Err(RuntimeErr {
@@ -488,23 +517,21 @@ fn eval_tail_call<'a>(
     lambda: &'a BTreeMap<u64, semantics::Lambda>,
     ctx: &'a semantics::Context,
     root: &mut RootObject,
-    vars: &mut Variables,
+    vars: &mut VecDeque<Variables>,
 ) -> Result<RTData, RuntimeErr> {
-    let mut vs;
-    let mut vars = vars;
     loop {
         match eval_expr(expr, lambda, ctx, root, vars)? {
             RTData::TailCall(TCall::Defun(fun_name), vars_fun) => {
                 let fun = get_fun(ctx, &fun_name, expr)?;
-                vs = vars_fun;
                 expr = &fun.expr;
-                vars = &mut vs;
+                vars.pop_back();
+                vars.push_back(vars_fun);
             }
             RTData::TailCall(TCall::Lambda(id), vars_fun) => {
                 let fun = get_lambda(ctx, lambda, id, expr)?;
-                vs = vars_fun;
                 expr = &fun.expr;
-                vars = &mut vs;
+                vars.pop_back();
+                vars.push_back(vars_fun);
             }
             x => {
                 return Ok(x);
@@ -515,7 +542,7 @@ fn eval_tail_call<'a>(
 
 fn get_int_int(args: Vec<RTData>, pos: Pos) -> Result<(*const BigInt, *const BigInt), RuntimeErr> {
     match (&args[0], &args[1]) {
-        (RTData::Int(n1, _), RTData::Int(n2, _)) => Ok((*n1, *n2)),
+        (RTData::Int(n1), RTData::Int(n2)) => unsafe { Ok((&(**n1).0, &(**n2).0)) },
         _ => Err(RuntimeErr {
             msg: "there must be exactly 2 integers".to_string(),
             pos: pos,
@@ -528,7 +555,9 @@ fn get_int_int_int(
     pos: Pos,
 ) -> Result<(*const BigInt, *const BigInt, *const BigInt), RuntimeErr> {
     match (&args[0], &args[1], &args[2]) {
-        (RTData::Int(n1, _), RTData::Int(n2, _), RTData::Int(n3, _)) => Ok((*n1, *n2, *n3)),
+        (RTData::Int(n1), RTData::Int(n2), RTData::Int(n3)) => unsafe {
+            Ok((&(**n1).0, &(**n2).0, &(**n3).0))
+        },
         _ => Err(RuntimeErr {
             msg: "there must be exactly 3 integers".to_string(),
             pos: pos,
@@ -567,32 +596,27 @@ fn eval_built_in(
         "+" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let n = unsafe { &*n1 + &*n2 };
-            let (ptr, flag) = root.make_int(n);
-            Ok(RTData::Int(ptr, flag))
+            Ok(RTData::Int(root.make_int(n)))
         }
         "-" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let n = unsafe { &*n1 - &*n2 };
-            let (ptr, flag) = root.make_int(n);
-            Ok(RTData::Int(ptr, flag))
+            Ok(RTData::Int(root.make_int(n)))
         }
         "*" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let n = unsafe { &*n1 * &*n2 };
-            let (ptr, flag) = root.make_int(n);
-            Ok(RTData::Int(ptr, flag))
+            Ok(RTData::Int(root.make_int(n)))
         }
         "/" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let n = unsafe { &*n1 / &*n2 };
-            let (ptr, flag) = root.make_int(n);
-            Ok(RTData::Int(ptr, flag))
+            Ok(RTData::Int(root.make_int(n)))
         }
         "%" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let n = unsafe { &*n1 % &*n2 };
-            let (ptr, flag) = root.make_int(n);
-            Ok(RTData::Int(ptr, flag))
+            Ok(RTData::Int(root.make_int(n)))
         }
         "<" => {
             let (n1, n2) = get_int_int(args, pos)?;
@@ -639,13 +663,12 @@ fn eval_built_in(
             let (n1, n2, n3) = get_int_int_int(args, pos)?;
             let n = unsafe { (ctx.callback)(&*n1, &*n2, &*n3) };
             if let Some(n) = n {
-                let (ptr, flag) = root.make_int(n);
-                let n = RTData::Int(ptr, flag);
-                let data = root.make_obj("Some".to_string(), Some(vec![n]));
-                Ok(RTData::LData(data))
+                let n = RTData::Int(root.make_int(n));
+                let ptr = root.make_obj("Some".to_string(), Some(vec![n]));
+                Ok(RTData::LData(ptr))
             } else {
-                let data = root.make_obj("None".to_string(), None);
-                Ok(RTData::LData(data))
+                let ptr = root.make_obj("None".to_string(), None);
+                Ok(RTData::LData(ptr))
             }
         }
         _ => Err(RuntimeErr {
@@ -660,18 +683,18 @@ fn eval_match(
     lambda: &BTreeMap<u64, semantics::Lambda>,
     ctx: &semantics::Context,
     root: &mut RootObject,
-    vars: &mut Variables,
+    vars: &mut VecDeque<Variables>,
 ) -> Result<RTData, RuntimeErr> {
     let data = eval_expr(&expr.expr, lambda, ctx, root, vars)?;
 
     for c in &expr.cases {
-        vars.push();
+        vars.back_mut().unwrap().push();
         if eval_pat(&c.pattern, data.clone(), vars) {
             let retval = eval_expr(&c.expr, lambda, ctx, root, vars)?;
-            vars.pop();
+            vars.back_mut().unwrap().pop();
             return Ok(retval);
         }
-        vars.pop();
+        vars.back_mut().unwrap().pop();
     }
 
     let pos = expr.pos;
@@ -681,7 +704,7 @@ fn eval_match(
     })
 }
 
-fn eval_id(expr: &semantics::IDNode, vars: &mut Variables) -> Result<RTData, RuntimeErr> {
+fn eval_id(expr: &semantics::IDNode, vars: &mut VecDeque<Variables>) -> Result<RTData, RuntimeErr> {
     let id = expr.id.to_string();
     Ok(get_data_of_id(&id, vars))
 }
@@ -691,7 +714,7 @@ fn eval_list(
     lambda: &BTreeMap<u64, semantics::Lambda>,
     ctx: &semantics::Context,
     root: &mut RootObject,
-    vars: &mut Variables,
+    vars: &mut VecDeque<Variables>,
 ) -> Result<RTData, RuntimeErr> {
     let mut elm = root.make_obj("Nil".to_string(), None);
     for e in expr.exprs.iter().rev() {
@@ -707,7 +730,7 @@ fn eval_if(
     lambda: &BTreeMap<u64, semantics::Lambda>,
     ctx: &semantics::Context,
     root: &mut RootObject,
-    vars: &mut Variables,
+    vars: &mut VecDeque<Variables>,
 ) -> Result<RTData, RuntimeErr> {
     let cond = eval_expr(&expr.cond_expr, lambda, ctx, root, vars)?;
     let flag;
@@ -736,7 +759,7 @@ fn eval_data(
     lambda: &BTreeMap<u64, semantics::Lambda>,
     ctx: &semantics::Context,
     root: &mut RootObject,
-    vars: &mut Variables,
+    vars: &mut VecDeque<Variables>,
 ) -> Result<RTData, RuntimeErr> {
     let data = if expr.exprs.len() == 0 {
         None
@@ -758,9 +781,9 @@ fn eval_let(
     lambda: &BTreeMap<u64, semantics::Lambda>,
     ctx: &semantics::Context,
     root: &mut RootObject,
-    vars: &mut Variables,
+    vars: &mut VecDeque<Variables>,
 ) -> Result<RTData, RuntimeErr> {
-    vars.push();
+    vars.back_mut().unwrap().push();
 
     for def in &expr.def_vars {
         let data = eval_expr(&def.expr, lambda, ctx, root, vars)?;
@@ -774,19 +797,19 @@ fn eval_let(
     }
 
     let result = eval_expr(&expr.expr, lambda, ctx, root, vars)?;
-    vars.pop();
+    vars.back_mut().unwrap().pop();
 
     Ok(result)
 }
 
-fn eval_pat(pat: &Pattern, data: RTData, vars: &mut Variables) -> bool {
+fn eval_pat(pat: &Pattern, data: RTData, vars: &mut VecDeque<Variables>) -> bool {
     match pat {
         Pattern::PatID(p) => {
-            vars.insert(p.id.to_string(), data);
+            vars.back_mut().unwrap().insert(p.id.to_string(), data);
             true
         }
         Pattern::PatNum(p) => match data {
-            RTData::Int(n, _) => (unsafe { &*n }) == &p.num,
+            RTData::Int(n) => (unsafe { &(*n).0 }) == &p.num,
             _ => false,
         },
         Pattern::PatBool(p) => match data {
@@ -794,16 +817,16 @@ fn eval_pat(pat: &Pattern, data: RTData, vars: &mut Variables) -> bool {
             _ => false,
         },
         Pattern::PatNil(_) => match data {
-            RTData::LData(ptr) => unsafe { (*ptr).label == "Nil" },
+            RTData::LData(ptr) => unsafe { (*ptr).0.label == "Nil" },
             _ => false,
         },
         Pattern::PatTuple(p) => match data {
             RTData::LData(ptr) => {
-                if unsafe { &(*ptr).label } != "Tuple" {
+                if unsafe { &(*ptr).0.label } != "Tuple" {
                     return false;
                 }
 
-                match unsafe { &(*ptr).data } {
+                match unsafe { &(*ptr).0.data } {
                     Some(rds) => {
                         for (pat2, rd) in p.pattern.iter().zip(rds.iter()) {
                             if !eval_pat(pat2, rd.clone(), vars) {
@@ -819,11 +842,11 @@ fn eval_pat(pat: &Pattern, data: RTData, vars: &mut Variables) -> bool {
         },
         Pattern::PatData(p) => match data {
             RTData::LData(ptr) => {
-                if unsafe { (*ptr).label != p.label.id } {
+                if unsafe { (*ptr).0.label != p.label.id } {
                     return false;
                 }
 
-                match unsafe { &(*ptr).data } {
+                match unsafe { &(*ptr).0.data } {
                     Some(rds) => {
                         for (pat2, rd) in p.pattern.iter().zip(rds.iter()) {
                             if !eval_pat(pat2, rd.clone(), vars) {
@@ -840,22 +863,65 @@ fn eval_pat(pat: &Pattern, data: RTData, vars: &mut Variables) -> bool {
     }
 }
 
+fn collect_garbage(vars: &mut VecDeque<Variables>, root: &mut RootObject) {
+    println!("start GC");
+    mark(vars);
+    sweep(&mut root.clojure);
+    sweep(&mut root.objects);
+    sweep(&mut root.integers);
+}
+
 /// mark reachable objects
-fn mark(vars: &mut Variables) {
-    for v in vars.vars.iter_mut() {
-        for (_, v) in v.iter_mut() {
-            match v {
-                RTData::Int(_, flag) => unsafe {
-                    **flag = true;
-                },
-                _ => (), // TODO: traverse
+fn mark(vars: &mut VecDeque<Variables>) {
+    for v in vars.iter_mut() {
+        for var in v.vars.iter_mut() {
+            for (_, v) in var.iter_mut() {
+                mark_obj(v);
             }
         }
     }
 }
 
+fn mark_obj(data: &mut RTData) {
+    match data {
+        RTData::Int(ptr) => unsafe {
+            println!("mark int {:x}", *ptr as usize);
+
+            (**ptr).1 = true;
+        },
+        RTData::Lambda(ptr) => unsafe {
+            if !(**ptr).1 {
+                println!("mark lambda {:x}", *ptr as usize);
+                write_volatile(&mut (**ptr).1, true);
+                //(**ptr).1 = true;
+                println!("{}", (**ptr).1);
+                if let Some(data) = &mut (**ptr).0.data {
+                    for (_, v) in data.iter_mut() {
+                        mark_obj(v);
+                    }
+                }
+            }
+        },
+        RTData::LData(ptr) => unsafe {
+            if !(**ptr).1 {
+                println!("mark data {:x}", *ptr as usize);
+                write_volatile(&mut (**ptr).1, true);
+                if let Some(data) = &mut (**ptr).0.data {
+                    for v in data.iter_mut() {
+                        mark_obj(v);
+                    }
+                }
+            }
+        },
+        RTData::TailCall(_, _) => {
+            println!("tail call");
+        }
+        _ => (),
+    }
+}
+
 /// remove unreachable objects
-fn sweep<T>(root: &mut LinkedList<(T, bool)>) {
+fn sweep<T>(root: &mut LinkedList<Pin<Box<(T, bool)>>>) {
     let mut tail = root.split_off(0);
     loop {
         if tail.is_empty() {
@@ -863,19 +929,34 @@ fn sweep<T>(root: &mut LinkedList<(T, bool)>) {
         }
 
         // take head
-        let tail2 = tail.split_off(1);
-        let mut head = tail;
-        tail = tail2;
+        let mut head;
+        if tail.len() == 1 {
+            head = tail.split_off(0);
+        } else {
+            let tmp = tail.split_off(1);
+            head = tail;
+            tail = tmp;
+        };
 
-        // if head
+        // check the head is reachable or not
         let h = head.front_mut().unwrap();
-        let flag = if h.1 {
-            h.1 = false;
+        let marked = unsafe { read_volatile(&h.as_ref().1) };
+        let flag = if marked {
+            // reachable
+            let h = h.as_mut();
+            unsafe {
+                h.get_unchecked_mut().1 = false;
+            }
             true
         } else {
+            // unreachable
+            let h = unsafe { h.as_mut().get_unchecked_mut() };
+            println!("freed {:x}", h as *const (T, bool) as usize);
+            println!("{}", marked);
             false
         };
 
+        // if reachable, append the head
         if flag {
             root.append(&mut head);
         }
