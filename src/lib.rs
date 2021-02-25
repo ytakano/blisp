@@ -200,10 +200,19 @@ mod tests {
     }
 
     #[test]
-    fn add() {
+    fn ops() {
         let exprs = init("").unwrap();
         let ctx = typing(&exprs).unwrap();
         eval_result("(+ 10 20)", &ctx);
+        eval_result("(pow 10 20)", &ctx);
+        eval_result("(band 1 0)", &ctx);
+        eval_result("(band 1 1)", &ctx);
+        eval_result("(bor 1 0)", &ctx);
+        eval_result("(bor 1 1)", &ctx);
+        eval_result("(bxor 1 0)", &ctx);
+        eval_result("(bxor 1 1)", &ctx);
+        eval_result("(sqrt 16)", &ctx);
+        eval_result("(sqrt -1)", &ctx);
     }
 
     #[test]

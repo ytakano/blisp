@@ -1,6 +1,6 @@
 [package]
 name = "blisp"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Yuuki Takano <ytakanoster@gmail.com>"]
 edition = "2018"
 description = "A lisp like statically typed programing language for no_std."

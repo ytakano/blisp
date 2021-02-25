@@ -55,6 +55,19 @@ version = "0.3.1"
 
 ## Version History
 
+### 0.3.2
+
+- add pow to compute exponent
+  - example: (pow 10 20)
+  - type of pow: (Pure (-> (Int Int) (Option Int)))
+  - the exponent portion is greater or equal to 2^32, then return None
+- add sqrt
+  - example: (sqrt 16)
+  - type of sqrt: (Pure (-> (Int) (Option Int)))
+  - if the value is less than 0, then return None
+- add bitwise operations
+  - band, bor, bxor
+
 ### 0.3.1
 
 - garbage collection is ready (mark and sweep)

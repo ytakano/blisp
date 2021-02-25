@@ -11,6 +11,7 @@ use alloc::vec::Vec;
 use core::pin::Pin;
 use core::ptr::{read_volatile, write_volatile};
 use num_bigint::BigInt;
+use num_traits::{ToPrimitive, Zero};
 
 type Expr = semantics::LangExpr;
 type Pattern = semantics::Pattern;
@@ -532,6 +533,16 @@ fn eval_tail_call<'a>(
     }
 }
 
+fn get_int(args: Vec<RTData>, pos: Pos) -> Result<*const BigInt, RuntimeErr> {
+    match &args[0] {
+        RTData::Int(n) => unsafe { Ok(&(**n).0) },
+        _ => Err(RuntimeErr {
+            msg: "there must be exactly 2 integers".to_string(),
+            pos: pos,
+        }),
+    }
+}
+
 fn get_int_int(args: Vec<RTData>, pos: Pos) -> Result<(*const BigInt, *const BigInt), RuntimeErr> {
     match (&args[0], &args[1]) {
         (RTData::Int(n1), RTData::Int(n2)) => unsafe { Ok((&(**n1).0, &(**n2).0)) },
@@ -650,6 +661,45 @@ fn eval_built_in(
         "not" => {
             let n = get_bool(args, pos)?;
             Ok(RTData::Bool(!n))
+        }
+        "band" => {
+            let (n1, n2) = get_int_int(args, pos)?;
+            let n = unsafe { &*n1 & &*n2 };
+            Ok(RTData::Int(root.make_int(n)))
+        }
+        "bor" => {
+            let (n1, n2) = get_int_int(args, pos)?;
+            let n = unsafe { &*n1 | &*n2 };
+            Ok(RTData::Int(root.make_int(n)))
+        }
+        "bxor" => {
+            let (n1, n2) = get_int_int(args, pos)?;
+            let n = unsafe { &*n1 ^ &*n2 };
+            Ok(RTData::Int(root.make_int(n)))
+        }
+        "sqrt" => {
+            let n = get_int(args, pos)?;
+            if unsafe { (*n) >= Zero::zero() } {
+                let n = unsafe { (*n).sqrt() };
+                let n = RTData::Int(root.make_int(n));
+                let ptr = root.make_obj("Some".to_string(), Some(vec![n]));
+                Ok(RTData::LData(ptr))
+            } else {
+                let ptr = root.make_obj("None".to_string(), None);
+                Ok(RTData::LData(ptr))
+            }
+        }
+        "pow" => {
+            let (n1, n2) = get_int_int(args, pos)?;
+            if let Some(e) = unsafe { (*n2).to_u32() } {
+                let n = unsafe { (*n1).pow(e) };
+                let n = RTData::Int(root.make_int(n));
+                let ptr = root.make_obj("Some".to_string(), Some(vec![n]));
+                Ok(RTData::LData(ptr))
+            } else {
+                let ptr = root.make_obj("None".to_string(), None);
+                Ok(RTData::LData(ptr))
+            }
         }
         "call-rust" => {
             let (n1, n2, n3) = get_int_int_int(args, pos)?;

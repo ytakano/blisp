@@ -1,6 +1,6 @@
 = BLisp: Lispっぽい静的型付け言語
 Yuuki Takano <ytakano@wide.ad.jp>
-v0.2, 2021-02
+v0.3.2, 2021-02
 :doctype: article
 :toc:
 :sectnums:
@@ -179,6 +179,32 @@ fn main() {
 ; (Pure (-> (Bool) Bool))
 (not true)
 ----
+
+== ビット演算
+
+[source, lisp]
+----
+(band 1 0) ; ビット積
+(band 1 1) ; ビット積
+(bor 1 0)  ; ビット和
+(bor 1 1)  ; ビット和
+(bxor 1 0) ; ビット排他的論理和
+----
+
+== 数学的演算
+
+[source, lisp]
+----
+; (Pure (-> (Int Int) (Option Int)))
+(pow 10 20) ; (Some 100000000000000000000) namely 10^20
+
+; (Pure (-> (Int) (Option Int)))
+(sqrt 16)   ; (Some 4)
+----
+
+powの指数部が2^32以上の場合は、powはNoneをリターンします。
+
+sqrtの引数が0以下の場合は、sqrtはNoneをリターンします。
 
 == 代数的データ型
 

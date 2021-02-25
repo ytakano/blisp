@@ -737,6 +737,11 @@ impl Context {
         built_in.insert("-".to_string());
         built_in.insert("*".to_string());
         built_in.insert("/".to_string());
+        built_in.insert("band".to_string());
+        built_in.insert("bor".to_string());
+        built_in.insert("bxor".to_string());
+        built_in.insert("pow".to_string());
+        built_in.insert("sqrt".to_string());
         built_in.insert("%".to_string());
         built_in.insert("<".to_string());
         built_in.insert(">".to_string());
@@ -1260,7 +1265,7 @@ impl Context {
                     None => {
                         match expr.id.as_ref() {
                             // built-in functions
-                            "+" | "-" | "*" | "/" | "%" => {
+                            "+" | "-" | "*" | "/" | "%" | "band" | "bor" | "bxor" => {
                                 ty = ty_fun(&Effect::Pure, vec![ty_int(), ty_int()], ty_int());
                             }
                             "<" | ">" | "=" | "<=" | ">=" => {
@@ -1272,7 +1277,29 @@ impl Context {
                             "not" => {
                                 ty = ty_fun(&Effect::Pure, vec![ty_bool()], ty_bool());
                             }
+                            "sqrt" => {
+                                ty = ty_fun(
+                                    &Effect::Pure,
+                                    vec![ty_int()],
+                                    Type::TCon(Tycon {
+                                        id: "Option".to_string(),
+                                        args: vec![ty_int()],
+                                    }),
+                                );
+                            }
+                            "pow" => {
+                                // (Pure (-> (Int Int) (Option Int)))
+                                ty = ty_fun(
+                                    &Effect::Pure,
+                                    vec![ty_int(), ty_int()],
+                                    Type::TCon(Tycon {
+                                        id: "Option".to_string(),
+                                        args: vec![ty_int()],
+                                    }),
+                                );
+                            }
                             "call-rust" => {
+                                // (IO (-> (Int Int Int) (Option Int)))
                                 ty = ty_fun(
                                     &Effect::IO,
                                     vec![ty_int(), ty_int(), ty_int()],
