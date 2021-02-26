@@ -35,6 +35,9 @@ image:https://cdn-ak.f.st-hatena.com/images/fotolife/y/ytakano/20210221/20210221
 [source, lisp]
 ----
 144       ; 整数値
+0xabcDEF  ; 16進数
+0o777     ; 8進数
+0b1001    ; 2進数
 true      ; 真偽値
 false     ; 真偽値
 [true 10] ; タプル
