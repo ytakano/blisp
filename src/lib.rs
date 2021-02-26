@@ -65,7 +65,7 @@
 //! - Big integer
 //! - Supporting no_std environments
 
-//#![no_std]
+#![no_std]
 
 #[macro_use]
 extern crate alloc;
