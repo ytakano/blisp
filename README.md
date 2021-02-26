@@ -55,12 +55,19 @@ version = "0.3.2"
 
 ## Version History
 
+### 0.3.3
+
+- add hexadecimal, octal, and binary
+  - 0xabcDEF
+  - 0o777
+  - 0b1010
+
 ### 0.3.2
 
 - add pow to compute exponent
   - example: (pow 10 20)
   - type of pow: (Pure (-> (Int Int) (Option Int)))
-  - the exponent portion is greater or equal to 2^32, then return None
+  - if the exponent portion is greater or equal to 2^32, then return None
 - add sqrt
   - example: (sqrt 16)
   - type of sqrt: (Pure (-> (Int) (Option Int)))

@@ -2,7 +2,7 @@
 
 ## Literal
 
-- $LITERAL := $HEX | $BIN | $DECIMAL | $BOOL
+- $LITERAL := $HEX | $OCT | $BIN | $DECIMAL | $BOOL
 - $DECIMAL
   - decimal number
   - examples: 0, 100, 224, -130, 4457, 0007
@@ -121,6 +121,9 @@ example:
 ## Built-in Functions
 
 - +, -, *, /, %: (Pure (-> (Int Int) Int))
+- band, bor, bxor: (Pure (-> (Int Int) Int))
+- pow: (Pure (-> (Int Int) (Some Int)))
+- sqrt: (Pure (-> (Int) (Some Int)))
 - <, >, <=, >=, =: (Pure (-> (Int Int) Bool))
 - and, or, xor: (Pure (-> (Bool Bool) Bool))
 - not: (Pure (-> (Bool) Bool))

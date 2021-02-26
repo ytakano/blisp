@@ -1,13 +1,14 @@
 /*
  * $NUM   := [0-9]*
  * $HEX   := 0x[0-9a-fA-F]*
+ * $OCT   := 0o[0-9a-fA-F]*
  * $BIN   := 0b[01]*
  * $BOOL  := true | false
  * $ID    := string
  * $LIST  := '( $EXPRS )
  * $TUPLE := [ $EXPRS ]
  * $APPLY := ( $EXPRS )
- * $EXP   := $HEX | $BIN | $NUM | $BOOL | $ID | $LIST | $TUPLE | $APPLY
+ * $EXP   := $HEX | $OCT | $BIN | $NUM | $BOOL | $ID | $LIST | $TUPLE | $APPLY
  * $EXPRS := $EXP $EXPRS | ∅
  */
 
@@ -110,19 +111,160 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn parse_oct(&mut self) -> Result<Expr, SyntaxErr> {
+        let mut n = Zero::zero();
+        let mut i = 0;
+
+        for c in self.remain.chars() {
+            let m = if '0' <= c && c <= '7' {
+                c as u32 - '0' as u32
+            } else {
+                break;
+            };
+            n *= 8;
+            n += m;
+            i += 1;
+        }
+
+        if i == 0 {
+            return Err(SyntaxErr {
+                pos: self.pos,
+                msg: "expect hexadecimal number",
+            });
+        }
+
+        let expr = Expr::Num(n, self.pos);
+
+        self.pos.column += i;
+        self.remain = &self.remain[i..];
+
+        self.check_eof(expr)
+    }
+
+    fn parse_hex(&mut self) -> Result<Expr, SyntaxErr> {
+        let mut n = Zero::zero();
+        let mut i = 0;
+
+        for c in self.remain.chars() {
+            let m = if '0' <= c && c <= '9' {
+                c as u32 - '0' as u32
+            } else if 'a' <= c && c <= 'f' {
+                c as u32 - 'a' as u32 + 10
+            } else if 'A' <= c && c <= 'F' {
+                c as u32 - 'A' as u32 + 10
+            } else {
+                break;
+            };
+            n *= 16;
+            n += m;
+            i += 1;
+        }
+
+        if i == 0 {
+            return Err(SyntaxErr {
+                pos: self.pos,
+                msg: "expect hexadecimal number",
+            });
+        }
+
+        let expr = Expr::Num(n, self.pos);
+
+        self.pos.column += i;
+        self.remain = &self.remain[i..];
+
+        self.check_eof(expr)
+    }
+
+    fn check_eof(&self, expr: Expr) -> Result<Expr, SyntaxErr> {
+        if self.remain.len() == 0 {
+            return Ok(expr);
+        }
+
+        match self.remain.chars().nth(0) {
+            Some(c0) => {
+                if is_paren(c0) || is_space(c0) {
+                    Ok(expr)
+                } else {
+                    Err(SyntaxErr {
+                        pos: self.pos,
+                        msg: "expected '(', ')', '[', ']' or space",
+                    })
+                }
+            }
+            None => Err(SyntaxErr {
+                pos: self.pos,
+                msg: "unexpected EOF",
+            }),
+        }
+    }
+
+    fn parse_binary(&mut self) -> Result<Expr, SyntaxErr> {
+        let mut n = Zero::zero();
+        let mut i = 0;
+
+        for c in self.remain.chars() {
+            let m = if c == '0' {
+                0
+            } else if c == '1' {
+                1
+            } else {
+                break;
+            };
+            n *= 2;
+            n += m;
+            i += 1;
+        }
+
+        if i == 0 {
+            return Err(SyntaxErr {
+                pos: self.pos,
+                msg: "expect binary number",
+            });
+        }
+
+        let expr = Expr::Num(n, self.pos);
+
+        self.pos.column += i;
+        self.remain = &self.remain[i..];
+
+        self.check_eof(expr)
+    }
+
     fn parse_num(&mut self) -> Result<Expr, SyntaxErr> {
         let mut i = 0;
         let is_minus;
 
-        let c = if self.remain.chars().nth(0) == Some('-') {
-            is_minus = true;
-            i += 1;
-            &self.remain[1..]
-        } else {
-            is_minus = false;
-            self.remain
+        let mut cs = self.remain.chars();
+        let c0 = cs.nth(0);
+        let c1 = cs.nth(0);
+        let c = match (c0, c1) {
+            (Some('-'), _) => {
+                is_minus = true;
+                i += 1;
+                &self.remain[1..]
+            }
+            (Some('0'), Some('x')) => {
+                self.pos.column += 2;
+                self.remain = &self.remain[2..];
+                return self.parse_hex();
+            }
+            (Some('0'), Some('b')) => {
+                self.pos.column += 2;
+                self.remain = &self.remain[2..];
+                return self.parse_binary();
+            }
+            (Some('0'), Some('o')) => {
+                self.pos.column += 2;
+                self.remain = &self.remain[2..];
+                return self.parse_oct();
+            }
+            _ => {
+                is_minus = false;
+                self.remain
+            }
         };
 
+        // parse decimal number
         let mut n = Zero::zero();
 
         for a in c.chars() {
@@ -139,31 +281,12 @@ impl<'a> Parser<'a> {
             n *= -1;
         }
 
-        let expr = Ok(Expr::Num(n, self.pos));
+        let expr = Expr::Num(n, self.pos);
 
         self.pos.column += i;
         self.remain = &self.remain[i..];
 
-        if self.remain.len() == 0 {
-            return expr;
-        }
-
-        match self.remain.chars().nth(0) {
-            Some(c0) => {
-                if is_paren(c0) || is_space(c0) {
-                    expr
-                } else {
-                    Err(SyntaxErr {
-                        pos: self.pos,
-                        msg: "expected '(', ')', '[', ']' or space",
-                    })
-                }
-            }
-            None => Err(SyntaxErr {
-                pos: self.pos,
-                msg: "unexpected EOF",
-            }),
-        }
+        self.check_eof(expr)
     }
 
     fn skip_spaces(&mut self) {

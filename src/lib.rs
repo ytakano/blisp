@@ -65,7 +65,7 @@
 //! - Big integer
 //! - Supporting no_std environments
 
-#![no_std]
+//#![no_std]
 
 #[macro_use]
 extern crate alloc;
@@ -203,6 +203,9 @@ mod tests {
     fn ops() {
         let exprs = init("").unwrap();
         let ctx = typing(&exprs).unwrap();
+        eval_result("(+ 0x10 0x20)", &ctx);
+        eval_result("(+ 0b111 0b101)", &ctx);
+        eval_result("(+ 0o777 0o444)", &ctx);
         eval_result("(+ 10 20)", &ctx);
         eval_result("(pow 10 20)", &ctx);
         eval_result("(band 1 0)", &ctx);

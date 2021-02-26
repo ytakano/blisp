@@ -1,6 +1,6 @@
 = BLisp: A Statically Typed Lisp Like Language
 Yuuki Takano <ytakano@wide.ad.jp>
-v0.3.2, 2021-02
+v0.3.3, 2021-02
 :doctype: article
 :toc:
 :sectnums:
@@ -39,6 +39,9 @@ image:https://cdn-ak.f.st-hatena.com/images/fotolife/y/ytakano/20210221/20210221
 [source, lisp]
 ----
 144       ; integer value
+0xabcDEF  ; hexadecimal
+0o777     ; octal
+0b1001    ; binary
 true      ; boolean value
 false     ; boolean value
 [true 10] ; tuple

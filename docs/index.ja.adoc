@@ -1,6 +1,6 @@
 = BLisp: Lispっぽい静的型付け言語
 Yuuki Takano <ytakano@wide.ad.jp>
-v0.3.2, 2021-02
+v0.3.3, 2021-02
 :doctype: article
 :toc:
 :sectnums:
@@ -208,7 +208,7 @@ sqrtの引数が0以下の場合は、sqrtはNoneをリターンします。
 
 == 代数的データ型
 
-代数データ型は以下のように定義できます。
+代数的データ型は以下のように定義できます。
 
 ```lisp
 ; in BLisp
