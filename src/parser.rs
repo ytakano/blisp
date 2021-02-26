@@ -1,11 +1,13 @@
 /*
- * $NUM   := [1-9][0-9]*
+ * $NUM   := [0-9]*
+ * $HEX   := 0x[0-9a-fA-F]*
+ * $BIN   := 0b[01]*
  * $BOOL  := true | false
  * $ID    := string
  * $LIST  := '( $EXPRS )
  * $TUPLE := [ $EXPRS ]
  * $APPLY := ( $EXPRS )
- * $EXP   := $NUM | $BOOL | $ID | $LIST | $TUPLE | $APPLY
+ * $EXP   := $HEX | $BIN | $NUM | $BOOL | $ID | $LIST | $TUPLE | $APPLY
  * $EXPRS := $EXP $EXPRS | ∅
  */
 

@@ -2,10 +2,16 @@
 
 ## Literal
 
-- $LITERAL := $DECIMAL | $BOOL
+- $LITERAL := $HEX | $BIN | $DECIMAL | $BOOL
 - $DECIMAL
   - decimal number
-  - examples: 0, 100, 224, -130, 4457
+  - examples: 0, 100, 224, -130, 4457, 0007
+- $HEX
+  - hexadecimal number
+  - examples: 0xabcd 0xABCD
+- $BIN
+  - binary number
+  - examples: 0b1100, 0b01011
 - $BOOL := true | false
 
 ## Identifier
