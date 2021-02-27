@@ -1,6 +1,6 @@
 = BLisp: A Statically Typed Lisp Like Language
 Yuuki Takano <ytakano@wide.ad.jp>
-v0.3.3, 2021-02
+v0.3.4, 2021-02
 :doctype: article
 :toc:
 :sectnums:
@@ -523,6 +523,39 @@ When executing this code, it outputs as follows.
 _call-rust_ is a IO function. Therefore, this cannot be called from Pure functions.
 
 == Examples
+
+=== Reverse
+
+_reverse_ is a internally defined function. It reverses order of a list.
+
+```lisp
+(reverse '(1 2 3 4 5 6 7 8 9))
+```
+
+This outputs as follows.
+
+ '(9 8 7 6 5 4 3 2 1)
+
+=== Filter
+
+_filter_ is a internally defined function. It filters the elements in a list.
+
+```lisp
+(filter (lambda (x) (= (% x 2) 0)) '(1 2 3 4 5 6 7 8 9))
+```
+
+This outputs as follows.
+
+ '(2 4 6 8)
+
+_filter_'s type is as follows.
+
+```lisp
+(Pure (->
+    ((Pure (-> (t) Bool)) ; take a function
+     '(t))                ; take a list
+    '(t))) ; return a list
+```
 
 === Factorial
 

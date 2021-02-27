@@ -25,3 +25,25 @@
     (match x
         ((Cons h l) (fold f (f h init) l))
         (_ init)))
+
+(export filter (f x)
+    (Pure (->
+        ((Pure (-> (t) Bool)) '(t))
+        '(t)))
+    (reverse (filter' f x '())))
+
+(defun filter' (f x l)
+    (Pure (-> (
+        (Pure (-> (t) Bool)) '(t) '(t))
+        '(t)))
+    (match x
+        ((Cons h a) (if (f h) (filter' f a (Cons h l)) (filter' f a l) ))
+        (_ l)))
+
+(export reverse (x) (Pure (-> ('(t)) '(t)))
+    (reverse' x '()))
+
+(defun reverse' (x l) (Pure (-> ('(t) '(t)) '(t)))
+    (match x
+        ((Cons h a) (reverse' a (Cons h l)))
+        (_ l)))

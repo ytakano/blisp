@@ -521,7 +521,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <div class="details">
 <span id="author" class="author">Yuuki Takano</span><br>
 <span id="email" class="email"><a href="mailto:ytakano@wide.ad.jp">ytakano@wide.ad.jp</a></span><br>
-<span id="revnumber">version 0.3.3,</span>
+<span id="revnumber">version 0.3.4,</span>
 <span id="revdate">2021-02</span>
 </div>
 <div id="toc" class="toc">
@@ -545,7 +545,9 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <li><a href="#_foreign_function_interface">16. Foreign Function Interface</a></li>
 <li><a href="#_examples">17. Examples</a>
 <ul class="sectlevel2">
-<li><a href="#_factorial">17.1. Factorial</a></li>
+<li><a href="#_reverse">17.1. Reverse</a></li>
+<li><a href="#_filter">17.2. Filter</a></li>
+<li><a href="#_factorial">17.3. Factorial</a></li>
 </ul>
 </li>
 </ul>
@@ -1231,7 +1233,56 @@ In order to call Rust&#8217;s function, setting a callback function is required 
 <h2 id="_examples">17. Examples</h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_factorial">17.1. Factorial</h3>
+<h3 id="_reverse">17.1. Reverse</h3>
+<div class="paragraph">
+<p><em>reverse</em> is a internally defined function. It reverses order of a list.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nb">reverse</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span> <span class="tok-mi">3</span> <span class="tok-mi">4</span> <span class="tok-mi">5</span> <span class="tok-mi">6</span> <span class="tok-mi">7</span> <span class="tok-mi">8</span> <span class="tok-mi">9</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This outputs as follows.</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>'(9 8 7 6 5 4 3 2 1)</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_filter">17.2. Filter</h3>
+<div class="paragraph">
+<p><em>filter</em> is a internally defined function. It filters the elements in a list.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">filter</span> <span class="tok-p">(</span><span class="tok-k">lambda</span> <span class="tok-p">(</span><span class="tok-nv">x</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nb">=</span> <span class="tok-p">(</span><span class="tok-nv">%</span> <span class="tok-nv">x</span> <span class="tok-mi">2</span><span class="tok-p">)</span> <span class="tok-mi">0</span><span class="tok-p">))</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span> <span class="tok-mi">3</span> <span class="tok-mi">4</span> <span class="tok-mi">5</span> <span class="tok-mi">6</span> <span class="tok-mi">7</span> <span class="tok-mi">8</span> <span class="tok-mi">9</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This outputs as follows.</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>'(2 4 6 8)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>filter</em>'s type is as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span>
+    <span class="tok-p">((</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-no">t</span><span class="tok-p">)</span> <span class="tok-nv">Bool</span><span class="tok-p">))</span> <span class="tok-c1">; take a function</span>
+     <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-no">t</span><span class="tok-p">))</span>                <span class="tok-c1">; take a list</span>
+    <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-no">t</span><span class="tok-p">)))</span> <span class="tok-c1">; return a list</span></code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_factorial">17.3. Factorial</h3>
 <div class="paragraph">
 <p>Tail call factorial can be coded as follows.</p>
 </div>
@@ -1270,8 +1321,8 @@ In order to call Rust&#8217;s function, setting a callback function is required 
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 0.3.3<br>
-Last updated 2021-02-26 23:03:24 +0900
+Version 0.3.4<br>
+Last updated 2021-02-27 18:06:20 +0900
 </div>
 </div>
 <script type="text/x-mathjax-config">

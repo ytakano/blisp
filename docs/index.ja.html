@@ -521,7 +521,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <div class="details">
 <span id="author" class="author">Yuuki Takano</span><br>
 <span id="email" class="email"><a href="mailto:ytakano@wide.ad.jp">ytakano@wide.ad.jp</a></span><br>
-<span id="revnumber">version 0.3.3,</span>
+<span id="revnumber">version 0.3.4,</span>
 <span id="revdate">2021-02</span>
 </div>
 <div id="toc" class="toc">
@@ -545,7 +545,9 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <li><a href="#_外部関数呼び出し">16. 外部関数呼び出し</a></li>
 <li><a href="#_例">17. 例</a>
 <ul class="sectlevel2">
-<li><a href="#_階乗">17.1. 階乗</a></li>
+<li><a href="#_リバース">17.1. リバース</a></li>
+<li><a href="#_filter">17.2. Filter</a></li>
+<li><a href="#_階乗">17.3. 階乗</a></li>
 </ul>
 </li>
 </ul>
@@ -569,6 +571,9 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 </div>
 <div class="paragraph">
 <p>本リポジトリではライブラリクレートのみを提供しています。BLispを利用するには <a href="https://github.com/ytakano/blisp-repl">blisp-repl</a> か、おもちゃのOSである <a href="https://github.com/ytakano/baremetalisp">baremetalisp</a> を参照してください。</p>
+</div>
+<div class="paragraph">
+<p><a href="https://ytakano.github.io/blisp/">English version is here.</a></p>
 </div>
 <div class="paragraph">
 <div class="title">no_stdで動くBLisp</div>
@@ -1214,7 +1219,56 @@ Rustの関数を呼び出すためには、以下のようにコールバック�
 <h2 id="_例">17. 例</h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_階乗">17.1. 階乗</h3>
+<h3 id="_リバース">17.1. リバース</h3>
+<div class="paragraph">
+<p><em>reverse</em> は内部で定義されている関数です。この関数はリストを反転します。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nb">reverse</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span> <span class="tok-mi">3</span> <span class="tok-mi">4</span> <span class="tok-mi">5</span> <span class="tok-mi">6</span> <span class="tok-mi">7</span> <span class="tok-mi">8</span> <span class="tok-mi">9</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>このコードの出力は以下の通りです。</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>'(9 8 7 6 5 4 3 2 1)</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_filter">17.2. Filter</h3>
+<div class="paragraph">
+<p><em>filter</em> は内部で定義されている関数です。この関数はリストの中身をフィルターします。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">filter</span> <span class="tok-p">(</span><span class="tok-k">lambda</span> <span class="tok-p">(</span><span class="tok-nv">x</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nb">=</span> <span class="tok-p">(</span><span class="tok-nv">%</span> <span class="tok-nv">x</span> <span class="tok-mi">2</span><span class="tok-p">)</span> <span class="tok-mi">0</span><span class="tok-p">))</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span> <span class="tok-mi">3</span> <span class="tok-mi">4</span> <span class="tok-mi">5</span> <span class="tok-mi">6</span> <span class="tok-mi">7</span> <span class="tok-mi">8</span> <span class="tok-mi">9</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>このコードの出力は以下の通りです。</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>'(2 4 6 8)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>filter</em>' の型は以下の通りです。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span>
+    <span class="tok-p">((</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-no">t</span><span class="tok-p">)</span> <span class="tok-nv">Bool</span><span class="tok-p">))</span> <span class="tok-c1">; 関数を引数にとる</span>
+     <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-no">t</span><span class="tok-p">))</span>                <span class="tok-c1">; リストを引数にとる</span>
+    <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-no">t</span><span class="tok-p">)))</span> <span class="tok-c1">; リストをリターン</span></code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_階乗">17.3. 階乗</h3>
 <div class="paragraph">
 <p>末尾呼び出し版の階乗関数は、以下のように実装できます。</p>
 </div>
@@ -1253,8 +1307,8 @@ Rustの関数を呼び出すためには、以下のようにコールバック�
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 0.3.3<br>
-Last updated 2021-02-26 23:41:52 +0900
+Version 0.3.4<br>
+Last updated 2021-02-27 18:11:35 +0900
 </div>
 </div>
 <script type="text/x-mathjax-config">

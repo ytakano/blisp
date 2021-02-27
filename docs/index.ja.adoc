@@ -1,6 +1,6 @@
 = BLisp: Lispっぽい静的型付け言語
 Yuuki Takano <ytakano@wide.ad.jp>
-v0.3.3, 2021-02
+v0.3.4, 2021-02
 :doctype: article
 :toc:
 :sectnums:
@@ -16,6 +16,8 @@ BLispは静的型付けされたLispライクなプログラミング言語で�
 * https://crates.io/crates/blisp[BLispのcrates.io]
 
 本リポジトリではライブラリクレートのみを提供しています。BLispを利用するには https://github.com/ytakano/blisp-repl[blisp-repl] か、おもちゃのOSである https://github.com/ytakano/baremetalisp[baremetalisp] を参照してください。
+
+https://ytakano.github.io/blisp/[English version is here.]
 
 .no_stdで動くBLisp
 image:https://cdn-ak.f.st-hatena.com/images/fotolife/y/ytakano/20210221/20210221155657.gif[no_stdで動くBLisp]
@@ -510,6 +512,39 @@ _call-rust_ はIO関数です. 従って、Pure関数からは呼び出すこと
 
 
 == 例
+
+=== リバース
+
+_reverse_ は内部で定義されている関数です。この関数はリストを反転します。
+
+```lisp
+(reverse '(1 2 3 4 5 6 7 8 9))
+```
+
+このコードの出力は以下の通りです。
+
+ '(9 8 7 6 5 4 3 2 1)
+
+=== Filter
+
+_filter_ は内部で定義されている関数です。この関数はリストの中身をフィルターします。
+
+```lisp
+(filter (lambda (x) (= (% x 2) 0)) '(1 2 3 4 5 6 7 8 9))
+```
+
+このコードの出力は以下の通りです。
+
+ '(2 4 6 8)
+
+_filter_' の型は以下の通りです。
+
+```lisp
+(Pure (->
+    ((Pure (-> (t) Bool)) ; 関数を引数にとる
+     '(t))                ; リストを引数にとる
+    '(t))) ; リストをリターン
+```
 
 === 階乗
 

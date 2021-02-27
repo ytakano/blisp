@@ -2241,12 +2241,8 @@ impl Context {
                             });
                         }
 
-                        self.check_defun_type_recur(
-                            &expr.ty.as_ref().unwrap(),
-                            defun,
-                            fun_types,
-                            chk_rec,
-                        )?;
+                        let call_ty = expr.ty.as_ref().unwrap().apply_sbst(sbst);
+                        self.check_defun_type_recur(&call_ty, defun, fun_types, true)?;
                     }
                     None => {
                         if self.built_in.contains(&expr.id) {

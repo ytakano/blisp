@@ -14,6 +14,7 @@
 //! ## Examples
 //!
 //! ### Simple Eval
+//!
 //! ```
 //! let code = "
 //! (export factorial (n) (Pure (-> (Int) Int))
@@ -54,6 +55,20 @@
 //!
 //! let e = "(callback 100 2000 30000)";
 //! blisp::eval(e, &ctx);
+//! ```
+//!
+//! ### Expressions
+//!
+//! ```lisp
+//! (+ 0x10 0x20)   ; 48
+//! (+ 0b111 0b101) ; 12
+//! (+ 0o777 0o444) ; 803
+//! (car '(1 2 3))  ; (Some 1)
+//! (cdr '(1 2 3))  ; '(2 3)
+//! (map (lambda (x) (* x 2)) '(8 9 10)) ; '(16 18 20)
+//! (fold + 0 '(1 2 3 4 5 6 7 8 9))      ; 45
+//! (reverse '(1 2 3 4 5 6 7 8 9))       ; '(9 8 7 6 5 4 3 2 1)
+//! (filter (lambda (x) (= (% x 2) 0)) '(1 2 3 4 5 6 7 8 9)) ; '(2 4 6 8)
 //! ```
 //!
 //! ## Features
@@ -274,12 +289,13 @@ mod tests {
     fn prelude() {
         let expr = "
 (export factorial (n) (Pure (-> (Int) Int))
-    (fact n 1))
+    (factorial' n 1))
 
-(defun fact (n total) (Pure (-> (Int Int) Int))
+(defun factorial' (n total) (Pure (-> (Int Int) Int))
     (if (<= n 0)
         total
-        (fact (- n 1) (* n total))))";
+        (factorial' (- n 1) (* n total))))
+";
         let exprs = init(expr).unwrap();
         let ctx = typing(&exprs).unwrap();
 
@@ -296,6 +312,12 @@ mod tests {
         eval_result(e, &ctx);
 
         let e = "(fold + 0 '(1 2 3 4 5 6 7 8 9))";
+        eval_result(e, &ctx);
+
+        let e = "(reverse '(1 2 3 4 5 6 7 8 9))";
+        eval_result(e, &ctx);
+
+        let e = "(filter (lambda (x) (= (% x 2) 0)) '(1 2 3 4 5 6 7 8 9))";
         eval_result(e, &ctx);
 
         let e = "(factorial 2000)";
