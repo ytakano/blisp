@@ -1,8 +1,8 @@
-# Syntax and Semantics of Typed Lisp
+# Syntax and Semantics of BLisp
 
 ## Literal
 
-- $LITERAL := $HEX | $OCT | $BIN | $DECIMAL | $BOOL
+- $LITERAL := $HEX | $OCT | $BIN | $DECIMAL | $BOOL | $STRING
 - $DECIMAL
   - decimal number
   - examples: 0, 100, 224, -130, 4457, 0007
@@ -13,6 +13,16 @@
   - binary number
   - examples: 0b1100, 0b01011
 - $BOOL := true | false
+- $STRING
+  - string literal
+  - example: "Hello, World!"
+  - escape sequences
+    - \r
+    - \n
+    - \t
+    - \0
+    - \\\\
+    - \"
 
 ## Identifier
 

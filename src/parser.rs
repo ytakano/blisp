@@ -4,7 +4,8 @@
  * $OCT   := 0o[0-9a-fA-F]*
  * $BIN   := 0b[01]*
  * $BOOL  := true | false
- * $ID    := string
+ * $STR   := " string literal "
+ * $ESCC  := character * $ID    := string
  * $LIST  := '( $EXPRS )
  * $TUPLE := [ $EXPRS ]
  * $APPLY := ( $EXPRS )
@@ -34,6 +35,7 @@ pub struct Parser<'a> {
 
 #[derive(Debug)]
 pub enum Expr {
+    Str(String, Pos),
     Num(BigInt, Pos),
     ID(String, Pos),
     Bool(bool, Pos),
@@ -51,6 +53,7 @@ impl Expr {
             Expr::List(_, pos) => *pos,
             Expr::Tuple(_, pos) => *pos,
             Expr::Apply(_, pos) => *pos,
+            Expr::Str(_, pos) => *pos,
         }
     }
 }
@@ -346,6 +349,7 @@ impl<'a> Parser<'a> {
             Some('(') => self.parse_apply(),
             Some('\'') => self.parse_list(),
             Some('[') => self.parse_tuple(),
+            Some('"') => self.parse_string(),
             Some(a) => {
                 if a == ')' {
                     Err(SyntaxErr {
@@ -374,6 +378,72 @@ impl<'a> Parser<'a> {
                 msg: "unexpected character",
             }),
         }
+    }
+
+    fn parse_string(&mut self) -> Result<Expr, SyntaxErr> {
+        self.remain = &self.remain[1..]; // skip '"'
+        let pos = self.pos;
+        self.pos.column += 1;
+
+        let mut prev = ' ';
+        let mut str = "".to_string();
+        loop {
+            if let Some(c) = self.remain.chars().nth(0) {
+                match c {
+                    '"' => {
+                        self.pos.column += 1;
+                        self.remain = &self.remain[1..];
+                        break;
+                    }
+                    '\\' => {
+                        if let Some(c1) = self.remain.chars().nth(1) {
+                            // TODO:
+                            //  \x41     | 7-bit character code (exactly 2 digits, up to 0x7F)
+                            //  \u{7FFF} | 24-bit Unicode character code (up to 6 digits)
+
+                            let esc = match c1 {
+                                'r' => '\r',
+                                'n' => '\n',
+                                't' => '\t',
+                                '0' => '\0',
+                                '\\' => '\\',
+                                '"' => '"',
+                                _ => {
+                                    return Err(SyntaxErr {
+                                        pos: self.pos,
+                                        msg: "invalid escape character",
+                                    });
+                                }
+                            };
+
+                            str.push(esc);
+                            self.remain = &self.remain[2..];
+                            self.pos.column += 2;
+                            continue;
+                        } else {
+                            return Err(SyntaxErr {
+                                pos: self.pos,
+                                msg: "expected escape character",
+                            });
+                        }
+                    }
+                    _ => {
+                        if c == '\r' || (c == '\n' && prev != '\r') {
+                            self.pos.line += 1;
+                            self.pos.column = 0;
+                        } else {
+                            self.pos.column += 1;
+                        }
+
+                        prev = c;
+                        str.push(c);
+                        self.remain = &self.remain[1..];
+                    }
+                }
+            }
+        }
+
+        Ok(Expr::Str(str, pos))
     }
 
     fn parse_apply(&mut self) -> Result<Expr, SyntaxErr> {

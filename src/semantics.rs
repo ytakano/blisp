@@ -77,6 +77,13 @@ fn ty_int() -> Type {
     })
 }
 
+fn ty_string() -> Type {
+    Type::TCon(Tycon {
+        id: "String".to_string(),
+        args: Vec::new(),
+    })
+}
+
 fn ty_var(n: ID) -> Type {
     Type::TVar(n)
 }
@@ -243,6 +250,7 @@ impl TypingErr {
 pub(crate) enum LangExpr {
     IfExpr(Box<IfNode>),
     LetExpr(Box<LetNode>),
+    LitStr(StrNode),
     LitNum(NumNode),
     LitBool(BoolNode),
     IDExpr(IDNode),
@@ -259,6 +267,7 @@ impl LangExpr {
         match self {
             LangExpr::IfExpr(e) => e.pos,
             LangExpr::LetExpr(e) => e.pos,
+            LangExpr::LitStr(e) => e.pos,
             LangExpr::LitNum(e) => e.pos,
             LangExpr::LitBool(e) => e.pos,
             LangExpr::IDExpr(e) => e.pos,
@@ -293,6 +302,7 @@ impl LangExpr {
                 e.expr.apply_sbst(sbst);
                 e.ty = app(&e.ty);
             }
+            LangExpr::LitStr(_) => (),
             LangExpr::LitNum(_) => (),
             LangExpr::LitBool(_) => (),
             LangExpr::IDExpr(e) => {
@@ -349,6 +359,13 @@ pub(crate) struct Lambda {
     pub(crate) pos: Pos,
     pub(crate) vars: Vec<String>,
     pub(crate) ident: u64,
+    ty: Option<Type>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct StrNode {
+    pub(crate) str: String,
+    pub(crate) pos: Pos,
     ty: Option<Type>,
 }
 
@@ -416,6 +433,7 @@ pub(crate) struct DataNode {
 
 #[derive(Clone, Debug)]
 pub(crate) enum Pattern {
+    PatStr(StrNode),
     PatNum(NumNode),
     PatBool(BoolNode),
     PatID(IDNode),
@@ -427,6 +445,7 @@ pub(crate) enum Pattern {
 impl Pattern {
     pub(crate) fn get_pos(&self) -> Pos {
         match self {
+            Pattern::PatStr(e) => e.pos,
             Pattern::PatNum(e) => e.pos,
             Pattern::PatBool(e) => e.pos,
             Pattern::PatID(e) => e.pos,
@@ -438,6 +457,7 @@ impl Pattern {
 
     fn get_type(&self) -> &Option<Type> {
         match self {
+            Pattern::PatStr(e) => &e.ty,
             Pattern::PatNum(e) => &e.ty,
             Pattern::PatBool(e) => &e.ty,
             Pattern::PatID(e) => &e.ty,
@@ -897,6 +917,7 @@ impl Context {
         num_tv: &mut ID,
     ) -> Result<(Type, Sbst), TypingErr> {
         match expr {
+            LangExpr::LitStr(_) => Ok((ty_string(), sbst)),
             LangExpr::LitBool(_) => Ok((ty_bool(), sbst)),
             LangExpr::LitNum(_) => Ok((ty_int(), sbst)),
             LangExpr::IfExpr(e) => self.typing_if(e, sbst, var_type, num_tv),
@@ -1434,6 +1455,7 @@ impl Context {
         num_tv: &mut ID,
     ) -> Result<(Type, Sbst), TypingErr> {
         match expr {
+            Pattern::PatStr(_) => Ok((ty_string(), sbst)),
             Pattern::PatBool(_) => Ok((ty_bool(), sbst)),
             Pattern::PatNum(_) => Ok((ty_int(), sbst)),
             Pattern::PatID(e) => self.typing_pat_id(e, sbst, var_type, num_tv),
@@ -2114,7 +2136,7 @@ impl Context {
                 self.check_data_type(&e, fun_types, vars, sbst, effect, chk_rec)
             }
             LangExpr::LambdaExpr(e) => self.check_lambda_type(&e, fun_types, vars, sbst, chk_rec),
-            LangExpr::LitNum(_) | LangExpr::LitBool(_) => Ok(()),
+            LangExpr::LitNum(_) | LangExpr::LitBool(_) | LangExpr::LitStr(_) => Ok(()),
         }
     }
 
@@ -2471,7 +2493,7 @@ fn get_free_var_expr(
         LangExpr::LambdaExpr(e) => {
             get_free_var_lambda(e, funs, local_vars, ext_vars, ident, lambda)
         }
-        LangExpr::LitNum(_) | LangExpr::LitBool(_) => (),
+        LangExpr::LitNum(_) | LangExpr::LitBool(_) | LangExpr::LitStr(_) => (),
     }
 }
 
@@ -2664,7 +2686,7 @@ fn get_free_var_pattern(pat: &Pattern, local_vars: &mut VarType) {
                 get_free_var_pattern(it, local_vars);
             }
         }
-        Pattern::PatNum(_) | Pattern::PatBool(_) | Pattern::PatNil(_) => (),
+        Pattern::PatNum(_) | Pattern::PatBool(_) | Pattern::PatNil(_) | Pattern::PatStr(_) => (),
     }
 }
 
@@ -3307,6 +3329,11 @@ fn list_types2vec_types(exprs: &LinkedList<parser::Expr>) -> Result<Vec<TypeExpr
 /// $EXPR := $LITERAL | $ID | $TID | $LET | $IF | $LAMBDA | $MATCH | $LIST | $TUPLE | $GENDATA | $APPLY
 fn expr2typed_expr(expr: &parser::Expr) -> Result<LangExpr, TypingErr> {
     match expr {
+        parser::Expr::Str(str, pos) => Ok(LangExpr::LitStr(StrNode {
+            str: str.clone(),
+            pos: *pos,
+            ty: Some(ty_string()),
+        })),
         parser::Expr::Num(num, pos) => Ok(LangExpr::LitNum(NumNode {
             num: num.clone(),
             pos: *pos,
@@ -3623,6 +3650,14 @@ fn expr2mpat(expr: &parser::Expr) -> Result<Pattern, TypingErr> {
                 let id_node = expr2id(expr)?;
                 Ok(Pattern::PatID(id_node))
             }
+        }
+        parser::Expr::Str(str, pos) => {
+            // $LITERAL
+            Ok(Pattern::PatStr(StrNode {
+                str: str.clone(),
+                pos: *pos,
+                ty: Some(ty_string()),
+            }))
         }
         parser::Expr::Bool(val, pos) => {
             // $LITERAL
@@ -4078,6 +4113,10 @@ fn check_pattern_exhaustive(
                 }
                 "Int" => {
                     // integer type must be matched by general pattern
+                    pat.insert("'dummy".to_string());
+                }
+                "String" => {
+                    // string type must be matched by general pattern
                     pat.insert("'dummy".to_string());
                 }
                 _ => match ctx.data.get(&tc.id) {

@@ -60,6 +60,7 @@
 //! ### Expressions
 //!
 //! ```lisp
+//! "Hello, World!" ; string
 //! (+ 0x10 0x20)   ; 48
 //! (+ 0b111 0b101) ; 12
 //! (+ 0o777 0o444) ; 803
@@ -218,6 +219,7 @@ mod tests {
     fn ops() {
         let exprs = init("").unwrap();
         let ctx = typing(&exprs).unwrap();
+        eval_result("\"Hello, World!\"", &ctx);
         eval_result("(+ 0x10 0x20)", &ctx);
         eval_result("(+ 0b111 0b101)", &ctx);
         eval_result("(+ 0o777 0o444)", &ctx);

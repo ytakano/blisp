@@ -64,6 +64,7 @@ enum TCall {
 
 #[derive(Debug, Clone)]
 enum RTData {
+    Str(*mut (String, bool)),
     Int(*mut (BigInt, bool)),
     Bool(bool),
     Defun(String),
@@ -75,6 +76,33 @@ enum RTData {
 impl RTData {
     fn get_in_lisp(&self, list_head: bool) -> String {
         match self {
+            RTData::Str(n) => {
+                let mut str = "\"".to_string();
+                for s in unsafe { &(**n).0 }.chars() {
+                    match s {
+                        '\n' => {
+                            str.push_str("\\n");
+                        }
+                        '\r' => {
+                            str.push_str("\\r");
+                        }
+                        '\t' => {
+                            str.push_str("\\t");
+                        }
+                        '\0' => {
+                            str.push_str("\\0");
+                        }
+                        '"' => {
+                            str.push_str("\\\"");
+                        }
+                        _ => {
+                            str.push(s);
+                        }
+                    }
+                }
+                str.push('"');
+                str
+            }
             RTData::Int(n) => {
                 format!("{}", unsafe { &(**n).0 })
             }
@@ -167,6 +195,7 @@ struct RootObject {
     objects: LinkedList<Pin<Box<(LabeledData, bool)>>>,
     clojure: LinkedList<Pin<Box<(Clojure, bool)>>>,
     integers: LinkedList<Pin<Box<(BigInt, bool)>>>,
+    strings: LinkedList<Pin<Box<(String, bool)>>>,
     threshold: usize,
 }
 
@@ -176,14 +205,25 @@ impl RootObject {
             objects: LinkedList::new(),
             clojure: LinkedList::new(),
             integers: LinkedList::new(),
+            strings: LinkedList::new(),
             threshold: MIN_GC_NUM,
         }
+    }
+
+    fn len(&self) -> usize {
+        self.objects.len() + self.clojure.len() + self.integers.len() + self.strings.len()
     }
 
     fn make_int(&mut self, n: BigInt) -> *mut (BigInt, bool) {
         self.integers.push_back(Box::pin((n, false)));
         let ptr = self.integers.back_mut().unwrap();
         unsafe { ptr.as_mut().get_unchecked_mut() as *mut (BigInt, bool) }
+    }
+
+    fn make_str(&mut self, str: String) -> *mut (String, bool) {
+        self.strings.push_back(Box::pin((str, false)));
+        let ptr = self.strings.back_mut().unwrap();
+        unsafe { ptr.as_mut().get_unchecked_mut() as *mut (String, bool) }
     }
 
     fn make_obj(&mut self, label: String, data: Option<Vec<RTData>>) -> *mut (LabeledData, bool) {
@@ -284,6 +324,7 @@ fn eval_expr(
     vars: &mut VecDeque<Variables>,
 ) -> Result<RTData, RuntimeErr> {
     match expr {
+        Expr::LitStr(e) => Ok(RTData::Str(root.make_str(e.str.clone()))),
         Expr::LitNum(e) => Ok(RTData::Int(root.make_int(e.num.clone()))),
         Expr::LitBool(e) => Ok(RTData::Bool(e.val)),
         Expr::IfExpr(e) => eval_if(&e, lambda, ctx, root, vars),
@@ -850,6 +891,10 @@ fn eval_pat(pat: &Pattern, data: RTData, vars: &mut VecDeque<Variables>) -> bool
             vars.back_mut().unwrap().insert(p.id.to_string(), data);
             true
         }
+        Pattern::PatStr(p) => match data {
+            RTData::Str(n) => (unsafe { &(*n).0 }) == &p.str,
+            _ => false,
+        },
         Pattern::PatNum(p) => match data {
             RTData::Int(n) => (unsafe { &(*n).0 }) == &p.num,
             _ => false,
@@ -907,7 +952,7 @@ fn eval_pat(pat: &Pattern, data: RTData, vars: &mut VecDeque<Variables>) -> bool
 
 /// do garbage collection
 fn collect_garbage(vars: &mut VecDeque<Variables>, root: &mut RootObject) {
-    let n = root.integers.len() + root.objects.len() + root.clojure.len();
+    let n = root.len();
     if n < root.threshold {
         return;
     }
@@ -916,8 +961,9 @@ fn collect_garbage(vars: &mut VecDeque<Variables>, root: &mut RootObject) {
     sweep(&mut root.clojure);
     sweep(&mut root.objects);
     sweep(&mut root.integers);
+    sweep(&mut root.strings);
 
-    let n = root.integers.len() + root.objects.len() + root.clojure.len();
+    let n = root.len();
     root.threshold = n * 2;
     if root.threshold < (MIN_GC_NUM >> 1) {
         root.threshold = MIN_GC_NUM;
@@ -938,6 +984,9 @@ fn mark(vars: &mut VecDeque<Variables>) {
 /// mark reachable objects recursively
 fn mark_obj(data: &mut RTData) {
     match data {
+        RTData::Str(ptr) => unsafe {
+            write_volatile(&mut (**ptr).1, true);
+        },
         RTData::Int(ptr) => unsafe {
             write_volatile(&mut (**ptr).1, true);
         },
