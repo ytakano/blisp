@@ -521,8 +521,8 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <div class="details">
 <span id="author" class="author">Yuuki Takano</span><br>
 <span id="email" class="email"><a href="mailto:ytakano@wide.ad.jp">ytakano@wide.ad.jp</a></span><br>
-<span id="revnumber">version 0.3.4,</span>
-<span id="revdate">2021-02</span>
+<span id="revnumber">version 0.3.5,</span>
+<span id="revdate">2021-03</span>
 </div>
 <div id="toc" class="toc">
 <div id="toctitle">Table of Contents</div>
@@ -533,21 +533,22 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <li><a href="#_function_definition">4. Function Definition</a></li>
 <li><a href="#_arithmetic_operations">5. Arithmetic Operations</a></li>
 <li><a href="#_boolean_operations">6. Boolean Operations</a></li>
-<li><a href="#_bitwise_operations">7. Bitwise Operations</a></li>
-<li><a href="#_mathematical_operations">8. Mathematical Operations</a></li>
-<li><a href="#_algebraic_data_type">9. Algebraic Data Type</a></li>
-<li><a href="#_generics">10. Generics</a></li>
-<li><a href="#_generic_function">11. Generic Function</a></li>
-<li><a href="#_if_expression">12. If Expression</a></li>
-<li><a href="#_match_expression">13. Match Expression</a></li>
-<li><a href="#_let_expression">14. Let Expression</a></li>
-<li><a href="#_lambda_expression">15. Lambda Expression</a></li>
-<li><a href="#_foreign_function_interface">16. Foreign Function Interface</a></li>
-<li><a href="#_examples">17. Examples</a>
+<li><a href="#_comparison">7. Comparison</a></li>
+<li><a href="#_bitwise_operations">8. Bitwise Operations</a></li>
+<li><a href="#_mathematical_operations">9. Mathematical Operations</a></li>
+<li><a href="#_algebraic_data_type">10. Algebraic Data Type</a></li>
+<li><a href="#_generics">11. Generics</a></li>
+<li><a href="#_generic_function">12. Generic Function</a></li>
+<li><a href="#_if_expression">13. If Expression</a></li>
+<li><a href="#_match_expression">14. Match Expression</a></li>
+<li><a href="#_let_expression">15. Let Expression</a></li>
+<li><a href="#_lambda_expression">16. Lambda Expression</a></li>
+<li><a href="#_foreign_function_interface">17. Foreign Function Interface</a></li>
+<li><a href="#_examples">18. Examples</a>
 <ul class="sectlevel2">
-<li><a href="#_reverse">17.1. Reverse</a></li>
-<li><a href="#_filter">17.2. Filter</a></li>
-<li><a href="#_factorial">17.3. Factorial</a></li>
+<li><a href="#_reverse">18.1. Reverse</a></li>
+<li><a href="#_filter">18.2. Filter</a></li>
+<li><a href="#_factorial">18.3. Factorial</a></li>
 </ul>
 </li>
 </ul>
@@ -617,7 +618,8 @@ and <a href="https://github.com/ytakano/baremetalisp">baremetalisp</a> which is 
 <div class="listingblock">
 <div class="title">values</div>
 <div class="content">
-<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-mi">144</span>       <span class="tok-c1">; integer value</span>
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-s">&quot;Hello&quot;</span>   <span class="tok-c1">; string literal</span>
+<span class="tok-mi">144</span>       <span class="tok-c1">; integer value</span>
 <span class="tok-nv">0xabcDEF</span>  <span class="tok-c1">; hexadecimal</span>
 <span class="tok-nv">0o777</span>     <span class="tok-c1">; octal</span>
 <span class="tok-nv">0b1001</span>    <span class="tok-c1">; binary</span>
@@ -637,7 +639,8 @@ and <a href="https://github.com/ytakano/baremetalisp">baremetalisp</a> which is 
 <div class="listingblock">
 <div class="title">types</div>
 <div class="content">
-<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-nv">Int</span>        <span class="tok-c1">; signed integer</span>
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-nv">String</span>     <span class="tok-c1">; string</span>
+<span class="tok-nv">Int</span>        <span class="tok-c1">; signed integer</span>
 <span class="tok-nv">Bool</span>       <span class="tok-c1">; boolean</span>
 <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-nv">Int</span><span class="tok-p">)</span>     <span class="tok-c1">; list of Int</span>
 <span class="tok-nv">[Int</span> <span class="tok-nv">Bool]</span> <span class="tok-c1">; tuple of Int and Bool</span>
@@ -759,17 +762,6 @@ quad can be called from Rust&#8217;s eval, and it calls double internally.</p>
 <span class="tok-p">(</span><span class="tok-nv">%</span> <span class="tok-mi">10</span> <span class="tok-mi">3</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
-<div class="listingblock">
-<div class="title">comparison</div>
-<div class="content">
-<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; (Int Int) Bool))</span>
-<span class="tok-p">(</span><span class="tok-nb">=</span> <span class="tok-mi">4</span> <span class="tok-mi">4</span><span class="tok-p">)</span>
-<span class="tok-p">(</span><span class="tok-nb">&lt;</span> <span class="tok-mi">6</span> <span class="tok-mi">7</span><span class="tok-p">)</span>
-<span class="tok-p">(</span><span class="tok-nb">&gt;</span> <span class="tok-mi">6</span> <span class="tok-mi">7</span><span class="tok-p">)</span>
-<span class="tok-p">(</span><span class="tok-nb">&lt;=</span> <span class="tok-mi">30</span> <span class="tok-mi">40</span><span class="tok-p">)</span>
-<span class="tok-p">(</span><span class="tok-nb">&gt;=</span> <span class="tok-mi">30</span> <span class="tok-mi">40</span><span class="tok-p">)</span></code></pre>
-</div>
-</div>
 </div>
 </div>
 <div class="sect1">
@@ -794,7 +786,28 @@ quad can be called from Rust&#8217;s eval, and it calls double internally.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_bitwise_operations">7. Bitwise Operations</h2>
+<h2 id="_comparison">7. Comparison</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="title">comparison</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; (t t) Bool))</span>
+<span class="tok-p">(</span><span class="tok-nb">=</span> <span class="tok-mi">4</span> <span class="tok-mi">4</span><span class="tok-p">)</span>               <span class="tok-c1">; true</span>
+<span class="tok-p">(</span><span class="tok-nb">=</span> <span class="tok-s">&quot;Hello&quot;</span> <span class="tok-s">&quot;Hello&quot;</span><span class="tok-p">)</span>   <span class="tok-c1">; true</span>
+<span class="tok-p">(</span><span class="tok-nb">=</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">1</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">2</span><span class="tok-p">))</span> <span class="tok-c1">; false</span>
+
+<span class="tok-c1">; (Pure (-&gt; (Int Int) Bool))</span>
+<span class="tok-c1">; to be fixed</span>
+<span class="tok-p">(</span><span class="tok-nb">&lt;</span> <span class="tok-mi">6</span> <span class="tok-mi">7</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nb">&gt;</span> <span class="tok-mi">6</span> <span class="tok-mi">7</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nb">&lt;=</span> <span class="tok-mi">30</span> <span class="tok-mi">40</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nb">&gt;=</span> <span class="tok-mi">30</span> <span class="tok-mi">40</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_bitwise_operations">8. Bitwise Operations</h2>
 <div class="sectionbody">
 <div class="listingblock">
 <div class="content">
@@ -808,7 +821,7 @@ quad can be called from Rust&#8217;s eval, and it calls double internally.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_mathematical_operations">8. Mathematical Operations</h2>
+<h2 id="_mathematical_operations">9. Mathematical Operations</h2>
 <div class="sectionbody">
 <div class="listingblock">
 <div class="content">
@@ -828,7 +841,7 @@ quad can be called from Rust&#8217;s eval, and it calls double internally.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_algebraic_data_type">9. Algebraic Data Type</h2>
+<h2 id="_algebraic_data_type">10. Algebraic Data Type</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Algebraic data type can be defined as follows.</p>
@@ -887,7 +900,7 @@ This is equivalent to Rust&#8217;s following code.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_generics">10. Generics</h2>
+<h2 id="_generics">11. Generics</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Option and Result types are defined internally.</p>
@@ -943,7 +956,7 @@ This code is equivalent to Rust&#8217;s following code.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_generic_function">11. Generic Function</h2>
+<h2 id="_generic_function">12. Generic Function</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p><em>car</em> and <em>cdr</em> are internally defined generic functions.
@@ -977,7 +990,7 @@ These definitions are as follows.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_if_expression">12. If Expression</h2>
+<h2 id="_if_expression">13. If Expression</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Straightforward.</p>
@@ -992,7 +1005,7 @@ These definitions are as follows.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_match_expression">13. Match Expression</h2>
+<h2 id="_match_expression">14. Match Expression</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>A list can be matched as follows.</p>
@@ -1062,7 +1075,7 @@ So, following code will be rejected.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_let_expression">14. Let Expression</h2>
+<h2 id="_let_expression">15. Let Expression</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Let expression is used to bind variables as follows.</p>
@@ -1091,7 +1104,7 @@ So, following code will be rejected.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_lambda_expression">15. Lambda Expression</h2>
+<h2 id="_lambda_expression">16. Lambda Expression</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Lambda expression is defined as follows.</p>
@@ -1165,7 +1178,7 @@ For example, summation can be computed as follows.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_foreign_function_interface">16. Foreign Function Interface</h2>
+<h2 id="_foreign_function_interface">17. Foreign Function Interface</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p><em>call-rust</em> is a function to call Rust&#8217;s function.
@@ -1230,10 +1243,10 @@ In order to call Rust&#8217;s function, setting a callback function is required 
 </div>
 </div>
 <div class="sect1">
-<h2 id="_examples">17. Examples</h2>
+<h2 id="_examples">18. Examples</h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_reverse">17.1. Reverse</h3>
+<h3 id="_reverse">18.1. Reverse</h3>
 <div class="paragraph">
 <p><em>reverse</em> is a internally defined function. It reverses order of a list.</p>
 </div>
@@ -1252,7 +1265,7 @@ In order to call Rust&#8217;s function, setting a callback function is required 
 </div>
 </div>
 <div class="sect2">
-<h3 id="_filter">17.2. Filter</h3>
+<h3 id="_filter">18.2. Filter</h3>
 <div class="paragraph">
 <p><em>filter</em> is a internally defined function. It filters the elements in a list.</p>
 </div>
@@ -1282,7 +1295,7 @@ In order to call Rust&#8217;s function, setting a callback function is required 
 </div>
 </div>
 <div class="sect2">
-<h3 id="_factorial">17.3. Factorial</h3>
+<h3 id="_factorial">18.3. Factorial</h3>
 <div class="paragraph">
 <p>Tail call factorial can be coded as follows.</p>
 </div>
@@ -1321,8 +1334,8 @@ In order to call Rust&#8217;s function, setting a callback function is required 
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 0.3.4<br>
-Last updated 2021-02-27 18:06:20 +0900
+Version 0.3.5<br>
+Last updated 2021-03-17 00:06:54 +0900
 </div>
 </div>
 <script type="text/x-mathjax-config">

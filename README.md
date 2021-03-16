@@ -70,6 +70,18 @@ version = "0.3.4"
 
 ## Version History
 
+### 0.3.5
+
+- add string type and literal
+  - String
+  - "Hello World!"
+- make equal function generics
+  - it can be used for non-integer types
+  - (= "Hello" "Hello")
+  - (= (Some 1) (Some 2))
+- fix a bug on typing
+  - (= (Some 1) (Some 2)) could not be typed properly
+
 ### 0.3.4
 
 - fix bugs on typing

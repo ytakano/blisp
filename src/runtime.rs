@@ -177,6 +177,84 @@ impl RTData {
     }
 }
 
+/// check equality
+fn rtdata_eq(lhs: &RTData, rhs: &RTData, pos: Pos) -> Result<bool, RuntimeErr> {
+    match (lhs, rhs) {
+        (RTData::Str(ptr1), RTData::Str(ptr2)) => {
+            let s1 = unsafe { &(**ptr1).0 };
+            let s2 = unsafe { &(**ptr2).0 };
+            Ok(s1 == s2)
+        }
+        (RTData::Int(ptr1), RTData::Int(ptr2)) => {
+            let s1 = unsafe { &(**ptr1).0 };
+            let s2 = unsafe { &(**ptr2).0 };
+            Ok(s1 == s2)
+        }
+        (RTData::Lambda(ptr1), RTData::Lambda(ptr2)) => {
+            let s1 = unsafe { &(**ptr1).0 };
+            let s2 = unsafe { &(**ptr2).0 };
+            if s1.ident != s2.ident {
+                return Ok(false);
+            }
+
+            match (&s1.data, &s2.data) {
+                (None, None) => Ok(true),
+                (Some(t1), Some(t2)) => {
+                    if t1.len() != t2.len() {
+                        return Ok(false);
+                    }
+
+                    for (k, v) in t1 {
+                        if let Some(v2) = t2.get(k) {
+                            if !rtdata_eq(v, v2, pos)? {
+                                return Ok(false);
+                            }
+                        } else {
+                            return Ok(false);
+                        }
+                    }
+
+                    Ok(true)
+                }
+                _ => Ok(false),
+            }
+        }
+        (RTData::LData(ptr1), RTData::LData(ptr2)) => {
+            let s1 = unsafe { &(**ptr1).0 };
+            let s2 = unsafe { &(**ptr2).0 };
+            if s1.label != s2.label {
+                return Ok(false);
+            }
+
+            match (&s1.data, &s2.data) {
+                (None, None) => Ok(true),
+                (Some(v1), Some(v2)) => {
+                    if v1.len() != v2.len() {
+                        return Ok(false);
+                    }
+
+                    for (d1, d2) in v1.iter().zip(v2.iter()) {
+                        if !rtdata_eq(d1, d2, pos)? {
+                            return Ok(false);
+                        }
+                    }
+
+                    Ok(true)
+                }
+                _ => Ok(false),
+            }
+        }
+        (RTData::Bool(b1), RTData::Bool(b2)) => Ok(b1 == b2),
+        (RTData::Defun(b1), RTData::Defun(b2)) => Ok(b1 == b2),
+        _ => {
+            return Err(RuntimeErr {
+                msg: "could not apply =".to_string(),
+                pos: pos,
+            });
+        }
+    }
+}
+
 #[derive(Debug)]
 struct LabeledData {
     label: String,
@@ -494,7 +572,7 @@ fn eval_apply(
                     let data = eval_expr(&e, lambda, ctx, root, vars)?;
                     v.push(data);
                 }
-                return eval_built_in(fun_name, v, expr.pos, root, ctx);
+                return eval_built_in(fun_name, &v, expr.pos, root, ctx);
             }
 
             // look up defun
@@ -574,7 +652,7 @@ fn eval_tail_call<'a>(
     }
 }
 
-fn get_int(args: Vec<RTData>, pos: Pos) -> Result<*const BigInt, RuntimeErr> {
+fn get_int(args: &Vec<RTData>, pos: Pos) -> Result<*const BigInt, RuntimeErr> {
     match &args[0] {
         RTData::Int(n) => unsafe { Ok(&(**n).0) },
         _ => Err(RuntimeErr {
@@ -584,7 +662,7 @@ fn get_int(args: Vec<RTData>, pos: Pos) -> Result<*const BigInt, RuntimeErr> {
     }
 }
 
-fn get_int_int(args: Vec<RTData>, pos: Pos) -> Result<(*const BigInt, *const BigInt), RuntimeErr> {
+fn get_int_int(args: &Vec<RTData>, pos: Pos) -> Result<(*const BigInt, *const BigInt), RuntimeErr> {
     match (&args[0], &args[1]) {
         (RTData::Int(n1), RTData::Int(n2)) => unsafe { Ok((&(**n1).0, &(**n2).0)) },
         _ => Err(RuntimeErr {
@@ -595,7 +673,7 @@ fn get_int_int(args: Vec<RTData>, pos: Pos) -> Result<(*const BigInt, *const Big
 }
 
 fn get_int_int_int(
-    args: Vec<RTData>,
+    args: &Vec<RTData>,
     pos: Pos,
 ) -> Result<(*const BigInt, *const BigInt, *const BigInt), RuntimeErr> {
     match (&args[0], &args[1], &args[2]) {
@@ -609,7 +687,7 @@ fn get_int_int_int(
     }
 }
 
-fn get_bool_bool(args: Vec<RTData>, pos: Pos) -> Result<(bool, bool), RuntimeErr> {
+fn get_bool_bool(args: &Vec<RTData>, pos: Pos) -> Result<(bool, bool), RuntimeErr> {
     match (args[0].clone(), args[1].clone()) {
         (RTData::Bool(n1), RTData::Bool(n2)) => Ok((n1, n2)),
         _ => Err(RuntimeErr {
@@ -619,7 +697,7 @@ fn get_bool_bool(args: Vec<RTData>, pos: Pos) -> Result<(bool, bool), RuntimeErr
     }
 }
 
-fn get_bool(args: Vec<RTData>, pos: Pos) -> Result<bool, RuntimeErr> {
+fn get_bool(args: &Vec<RTData>, pos: Pos) -> Result<bool, RuntimeErr> {
     match args[0].clone() {
         RTData::Bool(n) => Ok(n),
         _ => Err(RuntimeErr {
@@ -631,7 +709,7 @@ fn get_bool(args: Vec<RTData>, pos: Pos) -> Result<bool, RuntimeErr> {
 
 fn eval_built_in(
     fun_name: String,
-    args: Vec<RTData>,
+    args: &Vec<RTData>,
     pos: Pos,
     root: &mut RootObject,
     ctx: &semantics::Context,
@@ -672,11 +750,7 @@ fn eval_built_in(
             let b = unsafe { &*n1 > &*n2 };
             Ok(RTData::Bool(b))
         }
-        "=" => {
-            let (n1, n2) = get_int_int(args, pos)?;
-            let b = unsafe { &*n1 == &*n2 };
-            Ok(RTData::Bool(b))
-        }
+        "=" => Ok(RTData::Bool(rtdata_eq(&args[0], &args[1], pos)?)),
         "<=" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let b = unsafe { &*n1 <= &*n2 };

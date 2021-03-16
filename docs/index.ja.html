@@ -521,8 +521,8 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <div class="details">
 <span id="author" class="author">Yuuki Takano</span><br>
 <span id="email" class="email"><a href="mailto:ytakano@wide.ad.jp">ytakano@wide.ad.jp</a></span><br>
-<span id="revnumber">version 0.3.4,</span>
-<span id="revdate">2021-02</span>
+<span id="revnumber">version 0.3.5,</span>
+<span id="revdate">2021-03</span>
 </div>
 <div id="toc" class="toc">
 <div id="toctitle">Table of Contents</div>
@@ -533,21 +533,22 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <li><a href="#_関数定義">4. 関数定義</a></li>
 <li><a href="#_算術演算">5. 算術演算</a></li>
 <li><a href="#_真偽値演算">6. 真偽値演算</a></li>
-<li><a href="#_ビット演算">7. ビット演算</a></li>
-<li><a href="#_数学的演算">8. 数学的演算</a></li>
-<li><a href="#_代数的データ型">9. 代数的データ型</a></li>
-<li><a href="#_ジェネリクス">10. ジェネリクス</a></li>
-<li><a href="#_ジェネリック関数">11. ジェネリック関数</a></li>
-<li><a href="#_if式">12. If式</a></li>
-<li><a href="#_match式">13. Match式</a></li>
-<li><a href="#_let式">14. Let式</a></li>
-<li><a href="#_ラムダ式">15. ラムダ式</a></li>
-<li><a href="#_外部関数呼び出し">16. 外部関数呼び出し</a></li>
-<li><a href="#_例">17. 例</a>
+<li><a href="#_比較演算">7. 比較演算</a></li>
+<li><a href="#_ビット演算">8. ビット演算</a></li>
+<li><a href="#_数学的演算">9. 数学的演算</a></li>
+<li><a href="#_代数的データ型">10. 代数的データ型</a></li>
+<li><a href="#_ジェネリクス">11. ジェネリクス</a></li>
+<li><a href="#_ジェネリック関数">12. ジェネリック関数</a></li>
+<li><a href="#_if式">13. If式</a></li>
+<li><a href="#_match式">14. Match式</a></li>
+<li><a href="#_let式">15. Let式</a></li>
+<li><a href="#_ラムダ式">16. ラムダ式</a></li>
+<li><a href="#_外部関数呼び出し">17. 外部関数呼び出し</a></li>
+<li><a href="#_例">18. 例</a>
 <ul class="sectlevel2">
-<li><a href="#_リバース">17.1. リバース</a></li>
-<li><a href="#_filter">17.2. Filter</a></li>
-<li><a href="#_階乗">17.3. 階乗</a></li>
+<li><a href="#_リバース">18.1. リバース</a></li>
+<li><a href="#_filter">18.2. Filter</a></li>
+<li><a href="#_階乗">18.3. 階乗</a></li>
 </ul>
 </li>
 </ul>
@@ -614,7 +615,8 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <div class="listingblock">
 <div class="title">values</div>
 <div class="content">
-<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-mi">144</span>       <span class="tok-c1">; 整数値</span>
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-s">&quot;Hello&quot;</span>   <span class="tok-c1">; 文字列リテラル</span>
+<span class="tok-mi">144</span>       <span class="tok-c1">; 整数値</span>
 <span class="tok-nv">0xabcDEF</span>  <span class="tok-c1">; 16進数</span>
 <span class="tok-nv">0o777</span>     <span class="tok-c1">; 8進数</span>
 <span class="tok-nv">0b1001</span>    <span class="tok-c1">; 2進数</span>
@@ -634,7 +636,8 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <div class="listingblock">
 <div class="title">types</div>
 <div class="content">
-<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-nv">Int</span>        <span class="tok-c1">; 整数型</span>
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-nv">String</span>     <span class="tok-c1">; 文字列型</span>
+<span class="tok-nv">Int</span>        <span class="tok-c1">; 整数型</span>
 <span class="tok-nv">Bool</span>       <span class="tok-c1">; 真偽値型</span>
 <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-nv">Int</span><span class="tok-p">)</span>     <span class="tok-c1">; Int型のリスト型</span>
 <span class="tok-nv">[Int</span> <span class="tok-nv">Bool]</span> <span class="tok-c1">; Int型とBool型のタプル型</span>
@@ -752,17 +755,6 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <span class="tok-p">(</span><span class="tok-nv">%</span> <span class="tok-mi">10</span> <span class="tok-mi">3</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
-<div class="listingblock">
-<div class="title">比較</div>
-<div class="content">
-<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; (Int Int) Bool))</span>
-<span class="tok-p">(</span><span class="tok-nb">=</span> <span class="tok-mi">4</span> <span class="tok-mi">4</span><span class="tok-p">)</span>
-<span class="tok-p">(</span><span class="tok-nb">&lt;</span> <span class="tok-mi">6</span> <span class="tok-mi">7</span><span class="tok-p">)</span>
-<span class="tok-p">(</span><span class="tok-nb">&gt;</span> <span class="tok-mi">6</span> <span class="tok-mi">7</span><span class="tok-p">)</span>
-<span class="tok-p">(</span><span class="tok-nb">&lt;=</span> <span class="tok-mi">30</span> <span class="tok-mi">40</span><span class="tok-p">)</span>
-<span class="tok-p">(</span><span class="tok-nb">&gt;=</span> <span class="tok-mi">30</span> <span class="tok-mi">40</span><span class="tok-p">)</span></code></pre>
-</div>
-</div>
 </div>
 </div>
 <div class="sect1">
@@ -787,7 +779,28 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 </div>
 </div>
 <div class="sect1">
-<h2 id="_ビット演算">7. ビット演算</h2>
+<h2 id="_比較演算">7. 比較演算</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="title">比較</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; (t t) Bool))</span>
+<span class="tok-p">(</span><span class="tok-nb">=</span> <span class="tok-mi">4</span> <span class="tok-mi">4</span><span class="tok-p">)</span>               <span class="tok-c1">; true</span>
+<span class="tok-p">(</span><span class="tok-nb">=</span> <span class="tok-s">&quot;Hello&quot;</span> <span class="tok-s">&quot;Hello&quot;</span><span class="tok-p">)</span>   <span class="tok-c1">; true</span>
+<span class="tok-p">(</span><span class="tok-nb">=</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">1</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">2</span><span class="tok-p">))</span> <span class="tok-c1">; false</span>
+
+<span class="tok-c1">; (Pure (-&gt; (Int Int) Bool))</span>
+<span class="tok-c1">; to be fixed</span>
+<span class="tok-p">(</span><span class="tok-nb">&lt;</span> <span class="tok-mi">6</span> <span class="tok-mi">7</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nb">&gt;</span> <span class="tok-mi">6</span> <span class="tok-mi">7</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nb">&lt;=</span> <span class="tok-mi">30</span> <span class="tok-mi">40</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nb">&gt;=</span> <span class="tok-mi">30</span> <span class="tok-mi">40</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_ビット演算">8. ビット演算</h2>
 <div class="sectionbody">
 <div class="listingblock">
 <div class="content">
@@ -801,7 +814,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 </div>
 </div>
 <div class="sect1">
-<h2 id="_数学的演算">8. 数学的演算</h2>
+<h2 id="_数学的演算">9. 数学的演算</h2>
 <div class="sectionbody">
 <div class="listingblock">
 <div class="content">
@@ -821,7 +834,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 </div>
 </div>
 <div class="sect1">
-<h2 id="_代数的データ型">9. 代数的データ型</h2>
+<h2 id="_代数的データ型">10. 代数的データ型</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>代数的データ型は以下のように定義できます。</p>
@@ -879,7 +892,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 </div>
 </div>
 <div class="sect1">
-<h2 id="_ジェネリクス">10. ジェネリクス</h2>
+<h2 id="_ジェネリクス">11. ジェネリクス</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Option型とResult型は内部で定義されています。</p>
@@ -934,7 +947,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 </div>
 </div>
 <div class="sect1">
-<h2 id="_ジェネリック関数">11. ジェネリック関数</h2>
+<h2 id="_ジェネリック関数">12. ジェネリック関数</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p><em>car</em> と <em>cdr</em> は内部的に定義されたジェネリック関数です。これらの定義は以下の通りです。</p>
@@ -967,7 +980,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 </div>
 </div>
 <div class="sect1">
-<h2 id="_if式">12. If式</h2>
+<h2 id="_if式">13. If式</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>単純です.</p>
@@ -982,7 +995,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 </div>
 </div>
 <div class="sect1">
-<h2 id="_match式">13. Match式</h2>
+<h2 id="_match式">14. Match式</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>リストは以下のようにマッチさせることができます。</p>
@@ -1051,7 +1064,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 </div>
 </div>
 <div class="sect1">
-<h2 id="_let式">14. Let式</h2>
+<h2 id="_let式">15. Let式</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>変数のバインドには、以下のようにLet式を使用します。</p>
@@ -1080,7 +1093,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 </div>
 </div>
 <div class="sect1">
-<h2 id="_ラムダ式">15. ラムダ式</h2>
+<h2 id="_ラムダ式">16. ラムダ式</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>ラムダ式は以下のように定義されます。</p>
@@ -1151,7 +1164,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 </div>
 </div>
 <div class="sect1">
-<h2 id="_外部関数呼び出し">16. 外部関数呼び出し</h2>
+<h2 id="_外部関数呼び出し">17. 外部関数呼び出し</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p><em>call-rust</em> はRustの関数を呼び出すための関数です。
@@ -1216,10 +1229,10 @@ Rustの関数を呼び出すためには、以下のようにコールバック�
 </div>
 </div>
 <div class="sect1">
-<h2 id="_例">17. 例</h2>
+<h2 id="_例">18. 例</h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_リバース">17.1. リバース</h3>
+<h3 id="_リバース">18.1. リバース</h3>
 <div class="paragraph">
 <p><em>reverse</em> は内部で定義されている関数です。この関数はリストを反転します。</p>
 </div>
@@ -1238,7 +1251,7 @@ Rustの関数を呼び出すためには、以下のようにコールバック�
 </div>
 </div>
 <div class="sect2">
-<h3 id="_filter">17.2. Filter</h3>
+<h3 id="_filter">18.2. Filter</h3>
 <div class="paragraph">
 <p><em>filter</em> は内部で定義されている関数です。この関数はリストの中身をフィルターします。</p>
 </div>
@@ -1268,7 +1281,7 @@ Rustの関数を呼び出すためには、以下のようにコールバック�
 </div>
 </div>
 <div class="sect2">
-<h3 id="_階乗">17.3. 階乗</h3>
+<h3 id="_階乗">18.3. 階乗</h3>
 <div class="paragraph">
 <p>末尾呼び出し版の階乗関数は、以下のように実装できます。</p>
 </div>
@@ -1307,8 +1320,8 @@ Rustの関数を呼び出すためには、以下のようにコールバック�
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 0.3.4<br>
-Last updated 2021-02-27 18:11:35 +0900
+Version 0.3.5<br>
+Last updated 2021-03-17 00:06:05 +0900
 </div>
 </div>
 <script type="text/x-mathjax-config">

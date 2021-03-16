@@ -1,6 +1,6 @@
 = BLisp: A Statically Typed Lisp Like Language
 Yuuki Takano <ytakano@wide.ad.jp>
-v0.3.4, 2021-02
+v0.3.5, 2021-03
 :doctype: article
 :toc:
 :sectnums:
@@ -38,6 +38,7 @@ image:https://cdn-ak.f.st-hatena.com/images/fotolife/y/ytakano/20210221/20210221
 .values
 [source, lisp]
 ----
+"Hello"   ; string literal
 144       ; integer value
 0xabcDEF  ; hexadecimal
 0o777     ; octal
@@ -55,6 +56,7 @@ false     ; boolean value
 .types
 [source, lisp]
 ----
+String     ; string
 Int        ; signed integer
 Bool       ; boolean
 '(Int)     ; list of Int
@@ -162,17 +164,6 @@ This code output as follows.
 (% 10 3)
 ----
 
-.comparison
-[source, lisp]
-----
-; (Pure (-> (Int Int) Bool))
-(= 4 4)
-(< 6 7)
-(> 6 7)
-(<= 30 40)
-(>= 30 40)
-----
-
 == Boolean Operations
 
 .logical
@@ -189,6 +180,24 @@ This code output as follows.
 ----
 ; (Pure (-> (Bool) Bool))
 (not true)
+----
+
+== Comparison
+
+.comparison
+[source, lisp]
+----
+; (Pure (-> (t t) Bool))
+(= 4 4)               ; true
+(= "Hello" "Hello")   ; true
+(= (Some 1) (Some 2)) ; false
+
+; (Pure (-> (Int Int) Bool))
+; to be fixed
+(< 6 7)
+(> 6 7)
+(<= 30 40)
+(>= 30 40)
 ----
 
 == Bitwise Operations

@@ -1037,9 +1037,10 @@ impl Context {
             sbst = compose(&s1, &sbst);
         }
 
-        expr.ty = Some(data_type.clone());
+        let ty = data_type.apply_sbst(&sbst);
+        expr.ty = Some(ty.clone());
 
-        Ok((data_type, sbst))
+        Ok((ty, sbst))
     }
 
     fn typing_app(
@@ -1289,8 +1290,13 @@ impl Context {
                             "+" | "-" | "*" | "/" | "%" | "band" | "bor" | "bxor" => {
                                 ty = ty_fun(&Effect::Pure, vec![ty_int(), ty_int()], ty_int());
                             }
-                            "<" | ">" | "=" | "<=" | ">=" => {
+                            "<" | ">" | "<=" | ">=" => {
                                 ty = ty_fun(&Effect::Pure, vec![ty_int(), ty_int()], ty_bool());
+                            }
+                            "=" => {
+                                let tv = ty_var(*num_tv);
+                                *num_tv += 1;
+                                ty = ty_fun(&Effect::Pure, vec![tv.clone(), tv], ty_bool());
                             }
                             "and" | "or" | "xor" => {
                                 ty = ty_fun(&Effect::Pure, vec![ty_bool(), ty_bool()], ty_bool());

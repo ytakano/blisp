@@ -1,6 +1,6 @@
 = BLisp: Lispっぽい静的型付け言語
 Yuuki Takano <ytakano@wide.ad.jp>
-v0.3.4, 2021-02
+v0.3.5, 2021-03
 :doctype: article
 :toc:
 :sectnums:
@@ -36,6 +36,7 @@ image:https://cdn-ak.f.st-hatena.com/images/fotolife/y/ytakano/20210221/20210221
 .values
 [source, lisp]
 ----
+"Hello"   ; 文字列リテラル
 144       ; 整数値
 0xabcDEF  ; 16進数
 0o777     ; 8進数
@@ -53,6 +54,7 @@ false     ; 真偽値
 .types
 [source, lisp]
 ----
+String     ; 文字列型
 Int        ; 整数型
 Bool       ; 真偽値型
 '(Int)     ; Int型のリスト型
@@ -156,17 +158,6 @@ fn main() {
 (% 10 3)
 ----
 
-.比較
-[source, lisp]
-----
-; (Pure (-> (Int Int) Bool))
-(= 4 4)
-(< 6 7)
-(> 6 7)
-(<= 30 40)
-(>= 30 40)
-----
-
 == 真偽値演算
 
 .logical
@@ -183,6 +174,24 @@ fn main() {
 ----
 ; (Pure (-> (Bool) Bool))
 (not true)
+----
+
+== 比較演算
+
+.比較
+[source, lisp]
+----
+; (Pure (-> (t t) Bool))
+(= 4 4)               ; true
+(= "Hello" "Hello")   ; true
+(= (Some 1) (Some 2)) ; false
+
+; (Pure (-> (Int Int) Bool))
+; to be fixed
+(< 6 7)
+(> 6 7)
+(<= 30 40)
+(>= 30 40)
 ----
 
 == ビット演算
