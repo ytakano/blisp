@@ -768,6 +768,11 @@ impl Context {
         built_in.insert("=".to_string());
         built_in.insert("<=".to_string());
         built_in.insert(">=".to_string());
+        built_in.insert("lt".to_string());
+        built_in.insert("gt".to_string());
+        built_in.insert("eq".to_string());
+        built_in.insert("leq".to_string());
+        built_in.insert("geq".to_string());
         built_in.insert("and".to_string());
         built_in.insert("or".to_string());
         built_in.insert("xor".to_string());
@@ -1290,13 +1295,17 @@ impl Context {
                             "+" | "-" | "*" | "/" | "%" | "band" | "bor" | "bxor" => {
                                 ty = ty_fun(&Effect::Pure, vec![ty_int(), ty_int()], ty_int());
                             }
-                            "<" | ">" | "<=" | ">=" => {
-                                ty = ty_fun(&Effect::Pure, vec![ty_int(), ty_int()], ty_bool());
-                            }
-                            "=" => {
+                            "=" | "<" | ">" | "<=" | ">=" => {
                                 let tv = ty_var(*num_tv);
                                 *num_tv += 1;
                                 ty = ty_fun(&Effect::Pure, vec![tv.clone(), tv], ty_bool());
+                            }
+                            "eq" | "lt" | "gt" | "leq" | "geq" => {
+                                let tv1 = ty_var(*num_tv);
+                                *num_tv += 1;
+                                let tv2 = ty_var(*num_tv);
+                                *num_tv += 1;
+                                ty = ty_fun(&Effect::Pure, vec![tv1, tv2], ty_bool());
                             }
                             "and" | "or" | "xor" => {
                                 ty = ty_fun(&Effect::Pure, vec![ty_bool(), ty_bool()], ty_bool());

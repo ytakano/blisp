@@ -222,6 +222,12 @@ mod tests {
         eval_result("\"Hello, World!\"", &ctx);
         eval_result("(= \"Hello, World!\" \"Hello, World!\")", &ctx);
         eval_result("(= (Some 1) (Some 2))", &ctx);
+        eval_result("(< (Some 1) (Some 2))", &ctx);
+        eval_result("(> (Some 1) (Some 2))", &ctx);
+        eval_result("(= \"Hello\" \"Hel\")", &ctx);
+        eval_result("(eq \"Hello\" 10)", &ctx);
+        eval_result("(lt \"Hello\" 10)", &ctx);
+        eval_result("(lt 5 10)", &ctx);
         eval_result("(+ 0x10 0x20)", &ctx);
         eval_result("(+ 0b111 0b101)", &ctx);
         eval_result("(+ 0o777 0o444)", &ctx);

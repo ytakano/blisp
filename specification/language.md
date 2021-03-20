@@ -134,6 +134,7 @@ example:
 - band, bor, bxor: (Pure (-> (Int Int) Int))
 - pow: (Pure (-> (Int Int) (Some Int)))
 - sqrt: (Pure (-> (Int) (Some Int)))
-- <, >, <=, >=, =: (Pure (-> (Int Int) Bool))
+- <, >, <=, >=, =: (Pure (-> (t t) Bool))
+- lt, gt, leq, geq, eq: (Pure (-> (t1 t2) Bool))
 - and, or, xor: (Pure (-> (Bool Bool) Bool))
 - not: (Pure (-> (Bool) Bool))

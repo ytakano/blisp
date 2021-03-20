@@ -1,6 +1,6 @@
 = BLisp: A Statically Typed Lisp Like Language
 Yuuki Takano <ytakano@wide.ad.jp>
-v0.3.5, 2021-03
+v0.3.6, 2021-03
 :doctype: article
 :toc:
 :sectnums:
@@ -184,20 +184,33 @@ This code output as follows.
 
 == Comparison
 
-.comparison
+=, <, >, <=, >= can be used for 2 values whose types are same.
+
+.comparison between 2 values whose types are same
 [source, lisp]
 ----
 ; (Pure (-> (t t) Bool))
 (= 4 4)               ; true
 (= "Hello" "Hello")   ; true
 (= (Some 1) (Some 2)) ; false
-
-; (Pure (-> (Int Int) Bool))
-; to be fixed
 (< 6 7)
 (> 6 7)
 (<= 30 40)
 (>= 30 40)
+(< "Hello" "World")
+(<= (Some 1) (Some 2))
+----
+
+eq, lt, gt, leq, geq can be used for any 2 values
+
+.comparison between any 2 values
+[source, lisp]
+----
+; (Pure (-> (t1 t1) Bool))
+(geq (Some 1) "Hello")
+(eq "Hello" 100)
+(lt 100 (Some 20))
+(gt 200 "Hello")
 ----
 
 == Bitwise Operations

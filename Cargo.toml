@@ -1,6 +1,6 @@
 [package]
 name = "blisp"
-version = "0.3.5"
+version = "0.3.6"
 authors = ["Yuuki Takano <ytakanoster@gmail.com>"]
 edition = "2018"
 description = "A lisp like statically typed programing language for no_std."
@@ -16,7 +16,7 @@ homepage = "https://ytakano.github.io/blisp/"
 [dependencies]
 
 [dependencies.num-bigint]
-version = "0.3.1"
+version = "0.4.0"
 default-features = false
 
 [dependencies.num-traits]

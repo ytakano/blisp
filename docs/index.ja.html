@@ -521,7 +521,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <div class="details">
 <span id="author" class="author">Yuuki Takano</span><br>
 <span id="email" class="email"><a href="mailto:ytakano@wide.ad.jp">ytakano@wide.ad.jp</a></span><br>
-<span id="revnumber">version 0.3.5,</span>
+<span id="revnumber">version 0.3.6,</span>
 <span id="revdate">2021-03</span>
 </div>
 <div id="toc" class="toc">
@@ -781,20 +781,35 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <div class="sect1">
 <h2 id="_比較演算">7. 比較演算</h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>=, &lt;, &gt;, &#8656;, &gt;= といった関数は、同じ型の2つの値に対して適用できます。</p>
+</div>
 <div class="listingblock">
-<div class="title">比較</div>
+<div class="title">comparison between 2 values whose types are same</div>
 <div class="content">
 <pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; (t t) Bool))</span>
 <span class="tok-p">(</span><span class="tok-nb">=</span> <span class="tok-mi">4</span> <span class="tok-mi">4</span><span class="tok-p">)</span>               <span class="tok-c1">; true</span>
 <span class="tok-p">(</span><span class="tok-nb">=</span> <span class="tok-s">&quot;Hello&quot;</span> <span class="tok-s">&quot;Hello&quot;</span><span class="tok-p">)</span>   <span class="tok-c1">; true</span>
 <span class="tok-p">(</span><span class="tok-nb">=</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">1</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">2</span><span class="tok-p">))</span> <span class="tok-c1">; false</span>
-
-<span class="tok-c1">; (Pure (-&gt; (Int Int) Bool))</span>
-<span class="tok-c1">; to be fixed</span>
 <span class="tok-p">(</span><span class="tok-nb">&lt;</span> <span class="tok-mi">6</span> <span class="tok-mi">7</span><span class="tok-p">)</span>
 <span class="tok-p">(</span><span class="tok-nb">&gt;</span> <span class="tok-mi">6</span> <span class="tok-mi">7</span><span class="tok-p">)</span>
 <span class="tok-p">(</span><span class="tok-nb">&lt;=</span> <span class="tok-mi">30</span> <span class="tok-mi">40</span><span class="tok-p">)</span>
-<span class="tok-p">(</span><span class="tok-nb">&gt;=</span> <span class="tok-mi">30</span> <span class="tok-mi">40</span><span class="tok-p">)</span></code></pre>
+<span class="tok-p">(</span><span class="tok-nb">&gt;=</span> <span class="tok-mi">30</span> <span class="tok-mi">40</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nb">&lt;</span> <span class="tok-s">&quot;Hello&quot;</span> <span class="tok-s">&quot;World&quot;</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nb">&lt;=</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">1</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">2</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>eq, lt, gt, leq, geq といった関数は、異なる型同士の値でも比較可能です。</p>
+</div>
+<div class="listingblock">
+<div class="title">comparison between any 2 values</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; (t1 t1) Bool))</span>
+<span class="tok-p">(</span><span class="tok-nv">geq</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">1</span><span class="tok-p">)</span> <span class="tok-s">&quot;Hello&quot;</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nb">eq</span> <span class="tok-s">&quot;Hello&quot;</span> <span class="tok-mi">100</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nv">lt</span> <span class="tok-mi">100</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">20</span><span class="tok-p">))</span>
+<span class="tok-p">(</span><span class="tok-nv">gt</span> <span class="tok-mi">200</span> <span class="tok-s">&quot;Hello&quot;</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 </div>
@@ -1320,8 +1335,8 @@ Rustの関数を呼び出すためには、以下のようにコールバック�
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 0.3.5<br>
-Last updated 2021-03-17 00:06:05 +0900
+Version 0.3.6<br>
+Last updated 2021-03-21 01:04:02 +0900
 </div>
 </div>
 <script type="text/x-mathjax-config">

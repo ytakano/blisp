@@ -50,13 +50,13 @@ Cargo.toml
 
 ```toml
 [dependencies.blisp]
-version = "0.3.4"
+version = "0.3.6"
 ```
 
 ## Examples
 
 ```lisp
-"Hello, World!" ; string
+"Hello, World!" ; "Hello, World!"
 (+ 0x10 0x20)   ; 48
 (+ 0b111 0b101) ; 12
 (+ 0o777 0o444) ; 803
@@ -69,6 +69,18 @@ version = "0.3.4"
 ```
 
 ## Version History
+
+### 0.3.6
+
+- make <, >, <=, >= functions' type (Pure (-> (t t) Bool))
+  - perform comparison between 2 values whose types are same
+  - (< "Hello" "World")
+  - (>= (Some 5) (Some 19))
+- add lt, gt, leq, geq functions
+  - perform comparison between any 2 values
+  - function type is (Pure (-> (t t) Bool))
+  - (eq "Hello" 10)
+  - (lt (Some 6) "Hello")
 
 ### 0.3.5
 

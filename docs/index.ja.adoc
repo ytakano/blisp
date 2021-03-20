@@ -1,6 +1,6 @@
 = BLisp: Lispっぽい静的型付け言語
 Yuuki Takano <ytakano@wide.ad.jp>
-v0.3.5, 2021-03
+v0.3.6, 2021-03
 :doctype: article
 :toc:
 :sectnums:
@@ -178,20 +178,33 @@ fn main() {
 
 == 比較演算
 
-.比較
+=, <, >, <=, >= といった関数は、同じ型の2つの値に対して適用できます。
+
+.comparison between 2 values whose types are same
 [source, lisp]
 ----
 ; (Pure (-> (t t) Bool))
 (= 4 4)               ; true
 (= "Hello" "Hello")   ; true
 (= (Some 1) (Some 2)) ; false
-
-; (Pure (-> (Int Int) Bool))
-; to be fixed
 (< 6 7)
 (> 6 7)
 (<= 30 40)
 (>= 30 40)
+(< "Hello" "World")
+(<= (Some 1) (Some 2))
+----
+
+eq, lt, gt, leq, geq といった関数は、異なる型同士の値でも比較可能です。
+
+.comparison between any 2 values
+[source, lisp]
+----
+; (Pure (-> (t1 t1) Bool))
+(geq (Some 1) "Hello")
+(eq "Hello" 100)
+(lt 100 (Some 20))
+(gt 200 "Hello")
 ----
 
 == ビット演算
