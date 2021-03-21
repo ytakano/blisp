@@ -219,6 +219,12 @@ mod tests {
     fn ops() {
         let exprs = init("").unwrap();
         let ctx = typing(&exprs).unwrap();
+        eval_result("(chars \"Hello, World!\")", &ctx);
+        eval_result("(str '(`H` `e` `l` `l` `o`))", &ctx);
+        eval_result("`\\``", &ctx);
+        eval_result("(= `h` `h`)", &ctx);
+        eval_result("(<< 8 4)", &ctx);
+        eval_result("(>> 128 4)", &ctx);
         eval_result("\"Hello, World!\"", &ctx);
         eval_result("(= \"Hello, World!\" \"Hello, World!\")", &ctx);
         eval_result("(= (Some 1) (Some 2))", &ctx);

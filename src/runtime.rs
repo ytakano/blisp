@@ -3,14 +3,18 @@ use super::semantics;
 use super::{LispErr, Pos};
 
 use alloc::boxed::Box;
-use alloc::collections::btree_map::BTreeMap;
-use alloc::collections::linked_list::LinkedList;
-use alloc::collections::vec_deque::VecDeque;
-use alloc::string::{String, ToString};
-use alloc::vec::Vec;
-use core::cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd};
-use core::pin::Pin;
-use core::ptr::{read_volatile, write_volatile};
+use alloc::{
+    collections::{btree_map::BTreeMap, linked_list::LinkedList, vec_deque::VecDeque},
+    string::{String, ToString},
+    vec::Vec,
+};
+use core::{
+    cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd},
+    ops::{Shl, Shr},
+    pin::Pin,
+    ptr::{read_volatile, write_volatile},
+};
+
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Zero};
 
@@ -222,6 +226,7 @@ impl PartialEq for LDataType {
 #[derive(Debug, Clone, Ord, PartialOrd, PartialEq, Eq)]
 enum RTData {
     Str(StrType),
+    Char(char),
     Int(IntType),
     Bool(bool),
     Defun(String),
@@ -230,35 +235,38 @@ enum RTData {
     TailCall(TCall, Variables),
 }
 
+fn escape_char(c: char) -> String {
+    match c {
+        '\n' => "\\n".to_string(),
+        '\r' => "\\r".to_string(),
+        '\t' => "\\t".to_string(),
+        '\0' => "\\0".to_string(),
+        _ => c.to_string(),
+    }
+}
+
 impl RTData {
     fn get_in_lisp(&self, list_head: bool) -> String {
         match self {
             RTData::Str(n) => {
                 let mut str = "\"".to_string();
                 for s in n.get_string().chars() {
-                    match s {
-                        '\n' => {
-                            str.push_str("\\n");
-                        }
-                        '\r' => {
-                            str.push_str("\\r");
-                        }
-                        '\t' => {
-                            str.push_str("\\t");
-                        }
-                        '\0' => {
-                            str.push_str("\\0");
-                        }
-                        '"' => {
-                            str.push_str("\\\"");
-                        }
-                        _ => {
-                            str.push(s);
-                        }
+                    if s == '"' {
+                        str.push_str("\\\"");
+                    } else {
+                        str.push_str(&escape_char(s));
                     }
                 }
                 str.push('"');
                 str
+            }
+            RTData::Char(c) => {
+                if *c == '`' {
+                    format!("`\\``")
+                } else {
+                    let s = escape_char(*c);
+                    format!("`{}`", s)
+                }
             }
             RTData::Int(n) => {
                 format!("{}", n.get_int())
@@ -479,6 +487,7 @@ fn eval_expr(
     match expr {
         Expr::LitStr(e) => Ok(RTData::Str(root.make_str(e.str.clone()))),
         Expr::LitNum(e) => Ok(RTData::Int(root.make_int(e.num.clone()))),
+        Expr::LitChar(e) => Ok(RTData::Char(e.c)),
         Expr::LitBool(e) => Ok(RTData::Bool(e.val)),
         Expr::IfExpr(e) => eval_if(&e, lambda, ctx, root, vars),
         Expr::DataExpr(e) => eval_data(&e, lambda, ctx, root, vars),
@@ -884,6 +893,80 @@ fn eval_built_in(
                 Ok(RTData::LData(ptr))
             }
         }
+        ">>" => {
+            let (n1, n2) = get_int_int(args, pos)?;
+            if let Some(e) = unsafe { (*n2).to_u64() } {
+                let n = unsafe { (*n1).clone() };
+                let n = n.shr(e);
+                let n = RTData::Int(root.make_int(n));
+                let ptr = root.make_obj("Some".to_string(), Some(vec![n]));
+                Ok(RTData::LData(ptr))
+            } else {
+                let ptr = root.make_obj("None".to_string(), None);
+                Ok(RTData::LData(ptr))
+            }
+        }
+        "<<" => {
+            let (n1, n2) = get_int_int(args, pos)?;
+            if let Some(e) = unsafe { (*n2).to_u64() } {
+                let n = unsafe { (*n1).clone() };
+                let n = n.shl(e);
+                let n = RTData::Int(root.make_int(n));
+                let ptr = root.make_obj("Some".to_string(), Some(vec![n]));
+                Ok(RTData::LData(ptr))
+            } else {
+                let ptr = root.make_obj("None".to_string(), None);
+                Ok(RTData::LData(ptr))
+            }
+        }
+        "chars" => {
+            let mut tail = RTData::LData(root.make_obj("Nil".to_string(), None));
+            if let RTData::Str(st) = &args[0] {
+                let s = st.get_string();
+                for c in s.chars().rev() {
+                    let c = RTData::Char(c);
+                    let cons =
+                        RTData::LData(root.make_obj("Cons".to_string(), Some(vec![c, tail])));
+                    tail = cons;
+                }
+            }
+            Ok(tail)
+        }
+        "str" => {
+            let mut head = &args[0];
+            let mut s = "".to_string();
+            loop {
+                if let RTData::LData(data) = head {
+                    if data.get_ldata().label == "Cons" {
+                        if let Some(d) = &data.get_ldata().data {
+                            if let RTData::Char(c) = &d[0] {
+                                s.push(*c);
+                                head = &d[1];
+                            } else {
+                                return Err(RuntimeErr {
+                                    msg: "not char".to_string(),
+                                    pos: pos,
+                                });
+                            }
+                        } else {
+                            return Err(RuntimeErr {
+                                msg: "invalid cons".to_string(),
+                                pos: pos,
+                            });
+                        }
+                    } else if data.get_ldata().label == "Nil" {
+                        break;
+                    } else {
+                        return Err(RuntimeErr {
+                            msg: "not list".to_string(),
+                            pos: pos,
+                        });
+                    }
+                }
+            }
+            let ptr = root.make_str(s);
+            Ok(RTData::Str(ptr))
+        }
         "call-rust" => {
             let (n1, n2, n3) = get_int_int_int(args, pos)?;
             let n = unsafe { (ctx.callback)(&*n1, &*n2, &*n3) };
@@ -1035,6 +1118,10 @@ fn eval_pat(pat: &Pattern, data: RTData, vars: &mut VecDeque<Variables>) -> bool
         }
         Pattern::PatStr(p) => match data {
             RTData::Str(n) => n.get_string() == &p.str,
+            _ => false,
+        },
+        Pattern::PatChar(p) => match data {
+            RTData::Char(n) => n == p.c,
             _ => false,
         },
         Pattern::PatNum(p) => match data {

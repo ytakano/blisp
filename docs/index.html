@@ -521,7 +521,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <div class="details">
 <span id="author" class="author">Yuuki Takano</span><br>
 <span id="email" class="email"><a href="mailto:ytakano@wide.ad.jp">ytakano@wide.ad.jp</a></span><br>
-<span id="revnumber">version 0.3.6,</span>
+<span id="revnumber">version 0.3.7,</span>
 <span id="revdate">2021-03</span>
 </div>
 <div id="toc" class="toc">
@@ -543,12 +543,13 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <li><a href="#_match_expression">14. Match Expression</a></li>
 <li><a href="#_let_expression">15. Let Expression</a></li>
 <li><a href="#_lambda_expression">16. Lambda Expression</a></li>
-<li><a href="#_foreign_function_interface">17. Foreign Function Interface</a></li>
-<li><a href="#_examples">18. Examples</a>
+<li><a href="#_string_and_character">17. String and Character</a></li>
+<li><a href="#_foreign_function_interface">18. Foreign Function Interface</a></li>
+<li><a href="#_examples">19. Examples</a>
 <ul class="sectlevel2">
-<li><a href="#_reverse">18.1. Reverse</a></li>
-<li><a href="#_filter">18.2. Filter</a></li>
-<li><a href="#_factorial">18.3. Factorial</a></li>
+<li><a href="#_reverse">19.1. Reverse</a></li>
+<li><a href="#_filter">19.2. Filter</a></li>
+<li><a href="#_factorial">19.3. Factorial</a></li>
 </ul>
 </li>
 </ul>
@@ -618,7 +619,8 @@ and <a href="https://github.com/ytakano/baremetalisp">baremetalisp</a> which is 
 <div class="listingblock">
 <div class="title">values</div>
 <div class="content">
-<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-s">&quot;Hello&quot;</span>   <span class="tok-c1">; string literal</span>
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-o">`</span><span class="tok-nv">A</span><span class="tok-o">`</span>       <span class="tok-c1">; character literal</span>
+<span class="tok-s">&quot;Hello&quot;</span>   <span class="tok-c1">; string literal</span>
 <span class="tok-mi">144</span>       <span class="tok-c1">; integer value</span>
 <span class="tok-nv">0xabcDEF</span>  <span class="tok-c1">; hexadecimal</span>
 <span class="tok-nv">0o777</span>     <span class="tok-c1">; octal</span>
@@ -639,7 +641,8 @@ and <a href="https://github.com/ytakano/baremetalisp">baremetalisp</a> which is 
 <div class="listingblock">
 <div class="title">types</div>
 <div class="content">
-<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-nv">String</span>     <span class="tok-c1">; string</span>
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-nv">Char</span>       <span class="tok-c1">; character</span>
+<span class="tok-nv">String</span>     <span class="tok-c1">; string</span>
 <span class="tok-nv">Int</span>        <span class="tok-c1">; signed integer</span>
 <span class="tok-nv">Bool</span>       <span class="tok-c1">; boolean</span>
 <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-nv">Int</span><span class="tok-p">)</span>     <span class="tok-c1">; list of Int</span>
@@ -789,7 +792,7 @@ quad can be called from Rust&#8217;s eval, and it calls double internally.</p>
 <h2 id="_comparison">7. Comparison</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>=, &lt;, &gt;, &#8656;, &gt;= can be used for 2 values whose types are same.</p>
+<p>=, &lt;, &gt;, &lt;=, &gt;= can be used for 2 values whose types are same.</p>
 </div>
 <div class="listingblock">
 <div class="title">comparison between 2 values whose types are same</div>
@@ -807,7 +810,7 @@ quad can be called from Rust&#8217;s eval, and it calls double internally.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>eq, lt, gt, leq, geq can be used for any 2 values</p>
+<p><em>eq</em>, <em>lt</em>, <em>gt</em>, <em>leq</em>, <em>geq</em> can be used for any 2 values</p>
 </div>
 <div class="listingblock">
 <div class="title">comparison between any 2 values</div>
@@ -833,6 +836,18 @@ quad can be called from Rust&#8217;s eval, and it calls double internally.</p>
 <span class="tok-p">(</span><span class="tok-nv">bxor</span> <span class="tok-mi">1</span> <span class="tok-mi">0</span><span class="tok-p">)</span> <span class="tok-c1">; bitwise xor</span></code></pre>
 </div>
 </div>
+<div class="listingblock">
+<div class="title">bit shift</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; (Int Int) (Option Int)))</span>
+<span class="tok-p">(</span><span class="tok-nv">&lt;&lt;</span> <span class="tok-mi">8</span> <span class="tok-mi">4</span><span class="tok-p">)</span>   <span class="tok-c1">; (Some 128)</span>
+<span class="tok-p">(</span><span class="tok-nv">&gt;&gt;</span> <span class="tok-mi">128</span> <span class="tok-mi">4</span><span class="tok-p">)</span> <span class="tok-c1">; (Some 8)</span>
+<span class="tok-p">(</span><span class="tok-nv">&gt;&gt;</span> <span class="tok-mi">-128</span> <span class="tok-mi">4</span><span class="tok-p">)</span> <span class="tok-c1">; (Some -8)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If 2nd argument is greater or equal to 2<sup>64</sup>, then these function return None.</p>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -848,7 +863,7 @@ quad can be called from Rust&#8217;s eval, and it calls double internally.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>If <em>pow</em>'s exponent portion is greater or equal to 2^32, then <em>pow</em> returns None.</p>
+<p>If <em>pow</em>'s exponent portion is greater or equal to 2<sup>32</sup>, then <em>pow</em> returns None.</p>
 </div>
 <div class="paragraph">
 <p>If <em>sqrt</em>'s argument is less than 0. then <em>sqrt</em> returns None.</p>
@@ -1193,7 +1208,30 @@ For example, summation can be computed as follows.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_foreign_function_interface">17. Foreign Function Interface</h2>
+<h2 id="_string_and_character">17. String and Character</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><em>chars</em> converts String to (List Char).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; (String) (List Char)))</span>
+<span class="tok-p">(</span><span class="tok-nv">chars</span> <span class="tok-s">&quot;Hello&quot;</span><span class="tok-p">)</span> <span class="tok-c1">; &#39;(`H` `e` `l` `l` `o`)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>str</em> converts (List Char) to String.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; ((List Char)) String))</span>
+<span class="tok-p">(</span><span class="tok-nv">str</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-o">`</span><span class="tok-nv">H</span><span class="tok-o">`</span> <span class="tok-o">`</span><span class="tok-nv">e</span><span class="tok-o">`</span> <span class="tok-o">`</span><span class="tok-nv">l</span><span class="tok-o">`</span> <span class="tok-o">`</span><span class="tok-nv">l</span><span class="tok-o">`</span> <span class="tok-o">`</span><span class="tok-nv">o</span><span class="tok-o">`</span><span class="tok-p">))</span> <span class="tok-c1">; &quot;Hello&quot;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_foreign_function_interface">18. Foreign Function Interface</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p><em>call-rust</em> is a function to call Rust&#8217;s function.
@@ -1258,10 +1296,10 @@ In order to call Rust&#8217;s function, setting a callback function is required 
 </div>
 </div>
 <div class="sect1">
-<h2 id="_examples">18. Examples</h2>
+<h2 id="_examples">19. Examples</h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_reverse">18.1. Reverse</h3>
+<h3 id="_reverse">19.1. Reverse</h3>
 <div class="paragraph">
 <p><em>reverse</em> is a internally defined function. It reverses order of a list.</p>
 </div>
@@ -1280,7 +1318,7 @@ In order to call Rust&#8217;s function, setting a callback function is required 
 </div>
 </div>
 <div class="sect2">
-<h3 id="_filter">18.2. Filter</h3>
+<h3 id="_filter">19.2. Filter</h3>
 <div class="paragraph">
 <p><em>filter</em> is a internally defined function. It filters the elements in a list.</p>
 </div>
@@ -1310,7 +1348,7 @@ In order to call Rust&#8217;s function, setting a callback function is required 
 </div>
 </div>
 <div class="sect2">
-<h3 id="_factorial">18.3. Factorial</h3>
+<h3 id="_factorial">19.3. Factorial</h3>
 <div class="paragraph">
 <p>Tail call factorial can be coded as follows.</p>
 </div>
@@ -1349,8 +1387,8 @@ In order to call Rust&#8217;s function, setting a callback function is required 
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 0.3.6<br>
-Last updated 2021-03-21 01:04:09 +0900
+Version 0.3.7<br>
+Last updated 2021-03-21 22:18:06 +0900
 </div>
 </div>
 <script type="text/x-mathjax-config">

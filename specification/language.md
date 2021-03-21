@@ -2,7 +2,7 @@
 
 ## Literal
 
-- $LITERAL := $HEX | $OCT | $BIN | $DECIMAL | $BOOL | $STRING
+- $LITERAL := $HEX | $OCT | $BIN | $DECIMAL | $BOOL | $STRING | $CHAR
 - $DECIMAL
   - decimal number
   - examples: 0, 100, 224, -130, 4457, 0007
@@ -22,7 +22,17 @@
     - \t
     - \0
     - \\\\
-    - \"
+    - \\"
+- $CHAR
+  - character literal
+  - example: \`H\`
+  - escape sequences
+    - \r
+    - \n
+    - \t
+    - \0
+    - \\\\
+    - \\\`
 
 ## Identifier
 
@@ -37,7 +47,7 @@
 
 ## Type
 
-- $TYPE := Int | Bool | $TYPE_LIST | $TYPE_TUPLE | $TYPE_FUN | $TYPE_DATA | $ID
+- $TYPE := Int | Bool | String | Char | $TYPE_LIST | $TYPE_TUPLE | $TYPE_FUN | $TYPE_DATA | $ID
 - $TYPE_LIST := '( $TYPE )
 - $TYPE_TUPLE := \[ $TYPE* \]
 - $TYPE_DATA := $TID | ( $TID $TYPE* )
@@ -132,9 +142,11 @@ example:
 
 - +, -, *, /, %: (Pure (-> (Int Int) Int))
 - band, bor, bxor: (Pure (-> (Int Int) Int))
-- pow: (Pure (-> (Int Int) (Some Int)))
+- pow, <<, >>: (Pure (-> (Int Int) (Some Int)))
 - sqrt: (Pure (-> (Int) (Some Int)))
 - <, >, <=, >=, =: (Pure (-> (t t) Bool))
 - lt, gt, leq, geq, eq: (Pure (-> (t1 t2) Bool))
 - and, or, xor: (Pure (-> (Bool Bool) Bool))
 - not: (Pure (-> (Bool) Bool))
+- chars: (Pure (-> (String) (List Char)))
+- str: (Pure (-> ((List Char)) String))

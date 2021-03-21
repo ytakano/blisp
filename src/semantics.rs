@@ -22,7 +22,7 @@ enum Type {
 #[derive(Clone, Debug)]
 struct Tycon {
     id: String,
-    args: Vec<Type>,
+    args: Option<Vec<Type>>,
 }
 
 impl fmt::Display for Type {
@@ -36,28 +36,30 @@ impl fmt::Display for Type {
 
 impl fmt::Display for Tycon {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.args.is_empty() {
+        if let Some(args) = &self.args {
+            if self.id == "->" {
+                let mut iter = args.iter();
+                let e = format!("{}", iter.next().unwrap());
+                let args_str = format!("{}", iter.next().unwrap());
+                let ret = format!("{}", iter.next().unwrap());
+                write!(f, "({} (-> {} {}))", e, args_str, ret)
+            } else {
+                let mut s = "".to_string();
+                for it in args {
+                    s = format!("{} {}", s, it);
+                }
+
+                if self.id == "Arguments" {
+                    write!(f, "({})", &s[1..])
+                } else {
+                    write!(f, "({}{})", self.id, s)
+                }
+            }
+        } else {
             if self.id == "Arguments" {
                 write!(f, "()")
             } else {
                 write!(f, "{}", self.id)
-            }
-        } else if self.id == "->" {
-            let mut iter = self.args.iter();
-            let e = format!("{}", iter.next().unwrap());
-            let args = format!("{}", iter.next().unwrap());
-            let ret = format!("{}", iter.next().unwrap());
-            write!(f, "({} (-> {} {}))", e, args, ret)
-        } else {
-            let mut s = "".to_string();
-            for it in &self.args {
-                s = format!("{} {}", s, it);
-            }
-
-            if self.id == "Arguments" {
-                write!(f, "({})", &s[1..])
-            } else {
-                write!(f, "({}{})", self.id, s)
             }
         }
     }
@@ -66,21 +68,28 @@ impl fmt::Display for Tycon {
 fn ty_bool() -> Type {
     Type::TCon(Tycon {
         id: "Bool".to_string(),
-        args: Vec::new(),
+        args: None,
     })
 }
 
 fn ty_int() -> Type {
     Type::TCon(Tycon {
         id: "Int".to_string(),
-        args: Vec::new(),
+        args: None,
     })
 }
 
 fn ty_string() -> Type {
     Type::TCon(Tycon {
         id: "String".to_string(),
-        args: Vec::new(),
+        args: None,
+    })
+}
+
+fn ty_char() -> Type {
+    Type::TCon(Tycon {
+        id: "Char".to_string(),
+        args: None,
     })
 }
 
@@ -91,22 +100,29 @@ fn ty_var(n: ID) -> Type {
 fn ty_tuple(types: Vec<Type>) -> Type {
     Type::TCon(Tycon {
         id: "Tuple".to_string(),
-        args: types,
+        args: Some(types),
     })
 }
 
 fn ty_list(ty: Type) -> Type {
     Type::TCon(Tycon {
         id: "List".to_string(),
-        args: vec![ty],
+        args: Some(vec![ty]),
     })
 }
 
 fn ty_args(types: Vec<Type>) -> Type {
-    Type::TCon(Tycon {
-        id: "Arguments".to_string(),
-        args: types,
-    })
+    if types.is_empty() {
+        Type::TCon(Tycon {
+            id: "Arguments".to_string(),
+            args: None,
+        })
+    } else {
+        Type::TCon(Tycon {
+            id: "Arguments".to_string(),
+            args: Some(types),
+        })
+    }
 }
 
 fn ty_fun(effect: &Effect, args: Vec<Type>, ret: Type) -> Type {
@@ -114,16 +130,16 @@ fn ty_fun(effect: &Effect, args: Vec<Type>, ret: Type) -> Type {
     let ty_effect = match effect {
         Effect::Pure => Type::TCon(Tycon {
             id: "Pure".to_string(),
-            args: Vec::new(),
+            args: None,
         }),
         Effect::IO => Type::TCon(Tycon {
             id: "IO".to_string(),
-            args: Vec::new(),
+            args: None,
         }),
     };
     Type::TCon(Tycon {
         id: "->".to_string(),
-        args: vec![ty_effect, tuple, ret],
+        args: Some(vec![ty_effect, tuple, ret]),
     })
 }
 
@@ -132,7 +148,7 @@ fn ty_fun_gen_effect(n: ID, args: Vec<Type>, ret: Type) -> Type {
     let ty_effect = ty_var(n);
     Type::TCon(Tycon {
         id: "->".to_string(),
-        args: vec![ty_effect, tuple, ret],
+        args: Some(vec![ty_effect, tuple, ret]),
     })
 }
 
@@ -251,6 +267,7 @@ pub(crate) enum LangExpr {
     IfExpr(Box<IfNode>),
     LetExpr(Box<LetNode>),
     LitStr(StrNode),
+    LitChar(CharNode),
     LitNum(NumNode),
     LitBool(BoolNode),
     IDExpr(IDNode),
@@ -268,6 +285,7 @@ impl LangExpr {
             LangExpr::IfExpr(e) => e.pos,
             LangExpr::LetExpr(e) => e.pos,
             LangExpr::LitStr(e) => e.pos,
+            LangExpr::LitChar(e) => e.pos,
             LangExpr::LitNum(e) => e.pos,
             LangExpr::LitBool(e) => e.pos,
             LangExpr::IDExpr(e) => e.pos,
@@ -302,9 +320,10 @@ impl LangExpr {
                 e.expr.apply_sbst(sbst);
                 e.ty = app(&e.ty);
             }
-            LangExpr::LitStr(_) => (),
-            LangExpr::LitNum(_) => (),
-            LangExpr::LitBool(_) => (),
+            LangExpr::LitStr(_)
+            | LangExpr::LitChar(_)
+            | LangExpr::LitNum(_)
+            | LangExpr::LitBool(_) => (),
             LangExpr::IDExpr(e) => {
                 e.ty = app(&e.ty);
             }
@@ -365,6 +384,13 @@ pub(crate) struct Lambda {
 #[derive(Clone, Debug)]
 pub(crate) struct StrNode {
     pub(crate) str: String,
+    pub(crate) pos: Pos,
+    ty: Option<Type>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct CharNode {
+    pub(crate) c: char,
     pub(crate) pos: Pos,
     ty: Option<Type>,
 }
@@ -434,6 +460,7 @@ pub(crate) struct DataNode {
 #[derive(Clone, Debug)]
 pub(crate) enum Pattern {
     PatStr(StrNode),
+    PatChar(CharNode),
     PatNum(NumNode),
     PatBool(BoolNode),
     PatID(IDNode),
@@ -446,6 +473,7 @@ impl Pattern {
     pub(crate) fn get_pos(&self) -> Pos {
         match self {
             Pattern::PatStr(e) => e.pos,
+            Pattern::PatChar(e) => e.pos,
             Pattern::PatNum(e) => e.pos,
             Pattern::PatBool(e) => e.pos,
             Pattern::PatID(e) => e.pos,
@@ -458,6 +486,7 @@ impl Pattern {
     fn get_type(&self) -> &Option<Type> {
         match self {
             Pattern::PatStr(e) => &e.ty,
+            Pattern::PatChar(e) => &e.ty,
             Pattern::PatNum(e) => &e.ty,
             Pattern::PatBool(e) => &e.ty,
             Pattern::PatID(e) => &e.ty,
@@ -559,6 +588,16 @@ struct TEIntNode {
 }
 
 #[derive(Clone, Debug)]
+struct TEStringNode {
+    pub(crate) pos: Pos,
+}
+
+#[derive(Clone, Debug)]
+struct TECharNode {
+    pub(crate) pos: Pos,
+}
+
+#[derive(Clone, Debug)]
 struct DataType {
     name: DataTypeName,
     members: Vec<DataTypeMem>,
@@ -583,6 +622,8 @@ struct DataTypeMem {
 enum TypeExpr {
     TEBool(TEBoolNode),
     TEInt(TEIntNode),
+    TEString(TEStringNode),
+    TEChar(TECharNode),
     TEList(TEListNode),
     TETuple(TETupleNode),
     TEFun(TEFunNode),
@@ -757,11 +798,15 @@ impl Context {
         built_in.insert("-".to_string());
         built_in.insert("*".to_string());
         built_in.insert("/".to_string());
+        built_in.insert(">>".to_string());
+        built_in.insert("<<".to_string());
         built_in.insert("band".to_string());
         built_in.insert("bor".to_string());
         built_in.insert("bxor".to_string());
         built_in.insert("pow".to_string());
         built_in.insert("sqrt".to_string());
+        built_in.insert("chars".to_string());
+        built_in.insert("str".to_string());
         built_in.insert("%".to_string());
         built_in.insert("<".to_string());
         built_in.insert(">".to_string());
@@ -923,6 +968,7 @@ impl Context {
     ) -> Result<(Type, Sbst), TypingErr> {
         match expr {
             LangExpr::LitStr(_) => Ok((ty_string(), sbst)),
+            LangExpr::LitChar(_) => Ok((ty_char(), sbst)),
             LangExpr::LitBool(_) => Ok((ty_bool(), sbst)),
             LangExpr::LitNum(_) => Ok((ty_int(), sbst)),
             LangExpr::IfExpr(e) => self.typing_if(e, sbst, var_type, num_tv),
@@ -1319,19 +1365,41 @@ impl Context {
                                     vec![ty_int()],
                                     Type::TCon(Tycon {
                                         id: "Option".to_string(),
-                                        args: vec![ty_int()],
+                                        args: Some(vec![ty_int()]),
                                     }),
                                 );
                             }
-                            "pow" => {
+                            "pow" | "<<" | ">>" => {
                                 // (Pure (-> (Int Int) (Option Int)))
                                 ty = ty_fun(
                                     &Effect::Pure,
                                     vec![ty_int(), ty_int()],
                                     Type::TCon(Tycon {
                                         id: "Option".to_string(),
-                                        args: vec![ty_int()],
+                                        args: Some(vec![ty_int()]),
                                     }),
+                                );
+                            }
+                            "chars" => {
+                                // (Pure (-> (String) (List Char)))
+                                ty = ty_fun(
+                                    &Effect::Pure,
+                                    vec![ty_string()],
+                                    Type::TCon(Tycon {
+                                        id: "List".to_string(),
+                                        args: Some(vec![ty_char()]),
+                                    }),
+                                );
+                            }
+                            "str" => {
+                                // (Pure (-> ((List Char)) String))
+                                ty = ty_fun(
+                                    &Effect::Pure,
+                                    vec![Type::TCon(Tycon {
+                                        id: "List".to_string(),
+                                        args: Some(vec![ty_char()]),
+                                    })],
+                                    ty_string(),
                                 );
                             }
                             "call-rust" => {
@@ -1341,7 +1409,7 @@ impl Context {
                                     vec![ty_int(), ty_int(), ty_int()],
                                     Type::TCon(Tycon {
                                         id: "Option".to_string(),
-                                        args: vec![ty_int()],
+                                        args: Some(vec![ty_int()]),
                                     }),
                                 );
                             }
@@ -1471,6 +1539,7 @@ impl Context {
     ) -> Result<(Type, Sbst), TypingErr> {
         match expr {
             Pattern::PatStr(_) => Ok((ty_string(), sbst)),
+            Pattern::PatChar(_) => Ok((ty_char(), sbst)),
             Pattern::PatBool(_) => Ok((ty_bool(), sbst)),
             Pattern::PatNum(_) => Ok((ty_int(), sbst)),
             Pattern::PatID(e) => self.typing_pat_id(e, sbst, var_type, num_tv),
@@ -1726,7 +1795,7 @@ impl Context {
                 // the type of the data
                 let data_type = Type::TCon(Tycon {
                     id: data_name.to_string(),
-                    args: types,
+                    args: if types.is_empty() { None } else { Some(types) },
                 });
 
                 Ok((data_type, label_types))
@@ -1752,6 +1821,8 @@ impl Context {
         tv2type: &BTreeMap<String, Type>,
     ) -> Result<Type, String> {
         match type_expr {
+            TypeExpr::TEChar(_) => Ok(ty_char()),
+            TypeExpr::TEString(_) => Ok(ty_string()),
             TypeExpr::TEBool(_) => Ok(ty_bool()),
             TypeExpr::TEInt(_) => Ok(ty_int()),
             TypeExpr::TEList(list) => {
@@ -1781,7 +1852,7 @@ impl Context {
 
                 Ok(Type::TCon(Tycon {
                     id: data.id.id.to_string(),
-                    args: v,
+                    args: if v.is_empty() { None } else { Some(v) },
                 }))
             }
             TypeExpr::TEID(id) => match tv2type.get(&id.id) {
@@ -2151,7 +2222,10 @@ impl Context {
                 self.check_data_type(&e, fun_types, vars, sbst, effect, chk_rec)
             }
             LangExpr::LambdaExpr(e) => self.check_lambda_type(&e, fun_types, vars, sbst, chk_rec),
-            LangExpr::LitNum(_) | LangExpr::LitBool(_) | LangExpr::LitStr(_) => Ok(()),
+            LangExpr::LitNum(_)
+            | LangExpr::LitBool(_)
+            | LangExpr::LitStr(_)
+            | LangExpr::LitChar(_) => Ok(()),
         }
     }
 
@@ -2508,7 +2582,9 @@ fn get_free_var_expr(
         LangExpr::LambdaExpr(e) => {
             get_free_var_lambda(e, funs, local_vars, ext_vars, ident, lambda)
         }
-        LangExpr::LitNum(_) | LangExpr::LitBool(_) | LangExpr::LitStr(_) => (),
+        LangExpr::LitNum(_) | LangExpr::LitBool(_) | LangExpr::LitStr(_) | LangExpr::LitChar(_) => {
+            ()
+        }
     }
 }
 
@@ -2701,7 +2777,11 @@ fn get_free_var_pattern(pat: &Pattern, local_vars: &mut VarType) {
                 get_free_var_pattern(it, local_vars);
             }
         }
-        Pattern::PatNum(_) | Pattern::PatBool(_) | Pattern::PatNil(_) | Pattern::PatStr(_) => (),
+        Pattern::PatNum(_)
+        | Pattern::PatBool(_)
+        | Pattern::PatNil(_)
+        | Pattern::PatStr(_)
+        | Pattern::PatChar(_) => (),
     }
 }
 
@@ -2764,9 +2844,11 @@ fn has_io(ty: &Type) -> bool {
                 return true;
             }
 
-            for arg in &t.args {
-                if has_io(arg) {
-                    return true;
+            if let Some(args) = &t.args {
+                for arg in args {
+                    if has_io(arg) {
+                        return true;
+                    }
                 }
             }
 
@@ -2780,9 +2862,11 @@ fn has_io(ty: &Type) -> bool {
 fn has_tvar(ty: &Type) -> bool {
     match ty {
         Type::TCon(t) => {
-            for arg in &t.args {
-                if has_tvar(arg) {
-                    return true;
+            if let Some(args) = &t.args {
+                for arg in args {
+                    if has_tvar(arg) {
+                        return true;
+                    }
                 }
             }
             false
@@ -3240,26 +3324,28 @@ fn expr2types(expr: &parser::Expr) -> Result<Vec<TypeExpr>, TypingErr> {
     }
 }
 
-/// $TYPE := Int | Bool | $TYPE_LIST | $TYPE_TUPLE | $TYPE_FUN | $TYPE_DATA | $ID
+/// $TYPE := Int | Bool | String | Char | $TYPE_LIST | $TYPE_TUPLE | $TYPE_FUN | $TYPE_DATA | $ID
 fn expr2type(expr: &parser::Expr) -> Result<TypeExpr, TypingErr> {
     match expr {
         parser::Expr::ID(id, pos) => {
-            // Int | Bool | $TID
-            if id == "Int" {
-                Ok(TypeExpr::TEInt(TEIntNode { pos: *pos }))
-            } else if id == "Bool" {
-                Ok(TypeExpr::TEBool(TEBoolNode { pos: *pos }))
-            } else {
-                let c = id.chars().nth(0).unwrap();
-                if 'A' <= c && c <= 'Z' {
-                    let tid = expr2type_id(expr)?;
-                    Ok(TypeExpr::TEData(TEDataNode {
-                        id: tid,
-                        type_args: Vec::new(),
-                        pos: *pos,
-                    }))
-                } else {
-                    Ok(TypeExpr::TEID(expr2id(expr)?))
+            // Int | Bool | String | $TID
+            match id.as_ref() {
+                "Int" => Ok(TypeExpr::TEInt(TEIntNode { pos: *pos })),
+                "Bool" => Ok(TypeExpr::TEBool(TEBoolNode { pos: *pos })),
+                "String" => Ok(TypeExpr::TEString(TEStringNode { pos: *pos })),
+                "Char" => Ok(TypeExpr::TEChar(TECharNode { pos: *pos })),
+                _ => {
+                    let c = id.chars().nth(0).unwrap();
+                    if 'A' <= c && c <= 'Z' {
+                        let tid = expr2type_id(expr)?;
+                        Ok(TypeExpr::TEData(TEDataNode {
+                            id: tid,
+                            type_args: Vec::new(),
+                            pos: *pos,
+                        }))
+                    } else {
+                        Ok(TypeExpr::TEID(expr2id(expr)?))
+                    }
                 }
             }
         }
@@ -3344,6 +3430,11 @@ fn list_types2vec_types(exprs: &LinkedList<parser::Expr>) -> Result<Vec<TypeExpr
 /// $EXPR := $LITERAL | $ID | $TID | $LET | $IF | $LAMBDA | $MATCH | $LIST | $TUPLE | $GENDATA | $APPLY
 fn expr2typed_expr(expr: &parser::Expr) -> Result<LangExpr, TypingErr> {
     match expr {
+        parser::Expr::Char(c, pos) => Ok(LangExpr::LitChar(CharNode {
+            c: *c,
+            pos: *pos,
+            ty: Some(ty_string()),
+        })),
         parser::Expr::Str(str, pos) => Ok(LangExpr::LitStr(StrNode {
             str: str.clone(),
             pos: *pos,
@@ -3666,6 +3757,14 @@ fn expr2mpat(expr: &parser::Expr) -> Result<Pattern, TypingErr> {
                 Ok(Pattern::PatID(id_node))
             }
         }
+        parser::Expr::Char(c, pos) => {
+            // $LITERAL
+            Ok(Pattern::PatChar(CharNode {
+                c: *c,
+                pos: *pos,
+                ty: Some(ty_string()),
+            }))
+        }
         parser::Expr::Str(str, pos) => {
             // $LITERAL
             Ok(Pattern::PatStr(StrNode {
@@ -3876,9 +3975,11 @@ impl Type {
 
 impl Tycon {
     fn has_tvar(&self, id: ID) -> bool {
-        for t in &self.args {
-            if t.has_tvar(id) {
-                return true;
+        if let Some(args) = &self.args {
+            for t in args {
+                if t.has_tvar(id) {
+                    return true;
+                }
             }
         }
 
@@ -3887,13 +3988,15 @@ impl Tycon {
 
     fn apply_sbst(&self, sbst: &Sbst) -> Type {
         let mut v = Vec::new();
-        for t in &self.args {
-            v.push(t.apply_sbst(sbst));
+        if let Some(args) = &self.args {
+            for t in args {
+                v.push(t.apply_sbst(sbst));
+            }
         }
 
         Type::TCon(Tycon {
             id: self.id.clone(),
-            args: v,
+            args: if v.is_empty() { None } else { Some(v) },
         })
     }
 }
@@ -3922,16 +4025,22 @@ fn unify(lhs: &Type, rhs: &Type) -> Option<Sbst> {
             Some(sbst)
         }
         (Type::TCon(ty_lhs), Type::TCon(ty_rhs)) => {
-            if ty_lhs.id != ty_rhs.id || ty_lhs.args.len() != ty_rhs.args.len() {
+            if ty_lhs.id != ty_rhs.id {
                 return None;
             }
 
-            for (t1, t2) in ty_lhs.args.iter().zip(ty_rhs.args.iter()) {
-                let s = unify(&t1.apply_sbst(&sbst), &t2.apply_sbst(&sbst))?;
-                sbst = compose(&s, &sbst);
+            match (&ty_lhs.args, &ty_rhs.args) {
+                (None, Some(_)) => None,
+                (Some(_), None) => None,
+                (None, None) => Some(sbst),
+                (Some(args1), Some(args2)) => {
+                    for (t1, t2) in args1.iter().zip(args2.iter()) {
+                        let s = unify(&t1.apply_sbst(&sbst), &t2.apply_sbst(&sbst))?;
+                        sbst = compose(&s, &sbst);
+                    }
+                    Some(sbst)
+                }
             }
-
-            Some(sbst)
         }
     }
 }
@@ -4132,6 +4241,10 @@ fn check_pattern_exhaustive(
                 }
                 "String" => {
                     // string type must be matched by general pattern
+                    pat.insert("'dummy".to_string());
+                }
+                "Char" => {
+                    // char type must be matched by general pattern
                     pat.insert("'dummy".to_string());
                 }
                 _ => match ctx.data.get(&tc.id) {

@@ -70,6 +70,20 @@ version = "0.3.6"
 
 ## Version History
 
+### 0.3.7
+
+- add bit shift operators
+  - (<< 8 4)   ; shift left
+  - (>> 128 4) ; shift right
+- add Char type
+- add character literal
+  - \`H\`
+- add chars and str functions
+  - chars converts String to (List Char)
+    - (chars "Hello, World!")
+  - str converts (List Char) to String
+    - (str '(\`H\` \`e\` \`l\` \`l\` \`o\`))
+
 ### 0.3.6
 
 - make <, >, <=, >= functions' type (Pure (-> (t t) Bool))
@@ -78,7 +92,7 @@ version = "0.3.6"
   - (>= (Some 5) (Some 19))
 - add lt, gt, leq, geq functions
   - perform comparison between any 2 values
-  - function type is (Pure (-> (t t) Bool))
+  - function type is (Pure (-> (t1 t2) Bool))
   - (eq "Hello" 10)
   - (lt (Some 6) "Hello")
 
