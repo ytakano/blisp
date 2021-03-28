@@ -11,6 +11,15 @@
 //!
 //! [Homepage](https://ytakano.github.io/blisp/) is here.
 //!
+//! ## Features
+//!
+//! - Algebraic data type
+//! - Generics
+//! - Hindley–Milner based type inference
+//! - Effect system to separate side effects from pure functions
+//! - Big integer
+//! - Supporting no_std environments
+//!
 //! ## Examples
 //!
 //! ### Simple Eval
@@ -71,15 +80,6 @@
 //! (reverse '(1 2 3 4 5 6 7 8 9))       ; '(9 8 7 6 5 4 3 2 1)
 //! (filter (lambda (x) (= (% x 2) 0)) '(1 2 3 4 5 6 7 8 9)) ; '(2 4 6 8)
 //! ```
-//!
-//! ## Features
-//!
-//! - Algebraic data type
-//! - Generics
-//! - Hindley–Milner based type inference
-//! - Effect system to separate side effects from pure functions
-//! - Big integer
-//! - Supporting no_std environments
 
 #![no_std]
 
@@ -219,6 +219,7 @@ mod tests {
     fn ops() {
         let exprs = init("").unwrap();
         let ctx = typing(&exprs).unwrap();
+        eval_result("(neq (Some \"Hello\") 10)", &ctx);
         eval_result("(chars \"Hello, World!\")", &ctx);
         eval_result("(str '(`H` `e` `l` `l` `o`))", &ctx);
         eval_result("`\\``", &ctx);

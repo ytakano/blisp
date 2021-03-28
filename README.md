@@ -50,7 +50,7 @@ Cargo.toml
 
 ```toml
 [dependencies.blisp]
-version = "0.3.6"
+version = "0.3"
 ```
 
 ## Examples
@@ -69,6 +69,15 @@ version = "0.3.6"
 ```
 
 ## Version History
+
+### 0.3.8
+
+- fix a bug on typing
+  - check the number of arguments
+  - (+ 10) was passed typing rule
+- add != and neq
+  - (!= 10 10)
+  - (neq (Some "Hello") 10)
 
 ### 0.3.7
 

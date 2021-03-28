@@ -811,11 +811,13 @@ impl Context {
         built_in.insert("<".to_string());
         built_in.insert(">".to_string());
         built_in.insert("=".to_string());
+        built_in.insert("!=".to_string());
         built_in.insert("<=".to_string());
         built_in.insert(">=".to_string());
         built_in.insert("lt".to_string());
         built_in.insert("gt".to_string());
         built_in.insert("eq".to_string());
+        built_in.insert("neq".to_string());
         built_in.insert("leq".to_string());
         built_in.insert("geq".to_string());
         built_in.insert("and".to_string());
@@ -1341,12 +1343,12 @@ impl Context {
                             "+" | "-" | "*" | "/" | "%" | "band" | "bor" | "bxor" => {
                                 ty = ty_fun(&Effect::Pure, vec![ty_int(), ty_int()], ty_int());
                             }
-                            "=" | "<" | ">" | "<=" | ">=" => {
+                            "=" | "<" | ">" | "<=" | ">=" | "!=" => {
                                 let tv = ty_var(*num_tv);
                                 *num_tv += 1;
                                 ty = ty_fun(&Effect::Pure, vec![tv.clone(), tv], ty_bool());
                             }
-                            "eq" | "lt" | "gt" | "leq" | "geq" => {
+                            "eq" | "lt" | "gt" | "leq" | "geq" | "neq" => {
                                 let tv1 = ty_var(*num_tv);
                                 *num_tv += 1;
                                 let tv2 = ty_var(*num_tv);
@@ -4034,6 +4036,10 @@ fn unify(lhs: &Type, rhs: &Type) -> Option<Sbst> {
                 (Some(_), None) => None,
                 (None, None) => Some(sbst),
                 (Some(args1), Some(args2)) => {
+                    if args1.len() != args2.len() {
+                        return None;
+                    }
+
                     for (t1, t2) in args1.iter().zip(args2.iter()) {
                         let s = unify(&t1.apply_sbst(&sbst), &t2.apply_sbst(&sbst))?;
                         sbst = compose(&s, &sbst);

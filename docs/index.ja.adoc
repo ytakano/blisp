@@ -1,6 +1,6 @@
 = BLisp: Lispっぽい静的型付け言語
 Yuuki Takano <ytakano@wide.ad.jp>
-v0.3.7, 2021-03
+v0.3.8, 2021-03
 :doctype: article
 :toc:
 :sectnums:
@@ -180,13 +180,14 @@ fn main() {
 
 == 比較演算
 
-=, <, >, \<=, >= といった関数は、同じ型の2つの値に対して適用できます。
+=, !=, <, >, \<=, >= といった関数は、同じ型の2つの値に対して適用できます。
 
 .comparison between 2 values whose types are same
 [source, lisp]
 ----
 ; (Pure (-> (t t) Bool))
 (= 4 4)               ; true
+(!= 4 4)              ; false
 (= "Hello" "Hello")   ; true
 (= (Some 1) (Some 2)) ; false
 (< 6 7)
@@ -197,16 +198,17 @@ fn main() {
 (<= (Some 1) (Some 2))
 ----
 
-_eq_, _lt_, _gt_, _leq_, _geq_ といった関数は、異なる型同士の値でも比較可能です。
+_eq_, _neq_, _lt_, _gt_, _leq_, _geq_ といった関数は、異なる型同士の値でも比較可能です。
 
 .comparison between any 2 values
 [source, lisp]
 ----
 ; (Pure (-> (t1 t1) Bool))
-(geq (Some 1) "Hello")
-(eq "Hello" 100)
-(lt 100 (Some 20))
-(gt 200 "Hello")
+(geq (Some 1) "Hello") ; (Some 1)は"Hello"より大きい、もしくは等しいか？
+(eq "Hello" 100)       ; "Hello"と100は等しいか？
+(neq "Hello" 100)      ; "Hello"と100は等しくないか？
+(lt 100 (Some 20))     ; 100は(Some 20)より小さいか？
+(gt 200 "Hello")       ; 200は"Hello"より大きいか？
 ----
 
 == ビット演算

@@ -834,6 +834,7 @@ fn eval_built_in(
             Ok(RTData::Int(root.make_int(n)))
         }
         "=" | "eq" => Ok(RTData::Bool(&args[0] == &args[1])),
+        "!=" | "neq" => Ok(RTData::Bool(&args[0] != &args[1])),
         "<=" | "leq" => Ok(RTData::Bool(&args[0] <= &args[1])),
         ">=" | "geq" => Ok(RTData::Bool(&args[0] >= &args[1])),
         ">" | "gt" => Ok(RTData::Bool(&args[0] > &args[1])),
