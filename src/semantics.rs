@@ -578,22 +578,22 @@ pub(crate) struct TIDNode {
 }
 
 #[derive(Clone, Debug)]
-struct TEBoolNode {
+pub(crate) struct TEBoolNode {
     pub(crate) pos: Pos,
 }
 
 #[derive(Clone, Debug)]
-struct TEIntNode {
+pub(crate) struct TEIntNode {
     pub(crate) pos: Pos,
 }
 
 #[derive(Clone, Debug)]
-struct TEStringNode {
+pub(crate) struct TEStringNode {
     pub(crate) pos: Pos,
 }
 
 #[derive(Clone, Debug)]
-struct TECharNode {
+pub(crate) struct TECharNode {
     pub(crate) pos: Pos,
 }
 
@@ -619,7 +619,7 @@ struct DataTypeMem {
 }
 
 #[derive(Clone, Debug)]
-enum TypeExpr {
+pub(crate) enum TypeExpr {
     TEBool(TEBoolNode),
     TEInt(TEIntNode),
     TEString(TEStringNode),
@@ -632,13 +632,13 @@ enum TypeExpr {
 }
 
 #[derive(Clone, Debug)]
-struct TEListNode {
-    ty: Box<TypeExpr>,
+pub(crate) struct TEListNode {
+    pub(crate) ty: Box<TypeExpr>,
     pub(crate) pos: Pos,
 }
 
 #[derive(Clone, Debug)]
-struct TETupleNode {
+pub(crate) struct TETupleNode {
     ty: Vec<TypeExpr>,
     pub(crate) pos: Pos,
 }
@@ -650,7 +650,7 @@ enum Effect {
 }
 
 #[derive(Clone, Debug)]
-struct TEFunNode {
+pub(crate) struct TEFunNode {
     effect: Effect,
     args: Vec<TypeExpr>,
     ret: Box<TypeExpr>,
@@ -658,7 +658,7 @@ struct TEFunNode {
 }
 
 #[derive(Clone, Debug)]
-struct TEDataNode {
+pub(crate) struct TEDataNode {
     id: TIDNode,
     type_args: Vec<TypeExpr>,
     pub(crate) pos: Pos,

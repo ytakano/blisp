@@ -92,6 +92,7 @@ use alloc::string::String;
 pub mod parser;
 pub mod runtime;
 pub mod semantics;
+pub mod coq;
 
 const FILE_ID_PRELUD: usize = 0;
 const FILE_ID_USER: usize = 1;
