@@ -652,24 +652,24 @@ enum Effect {
 #[derive(Clone, Debug)]
 pub(crate) struct TEFunNode {
     effect: Effect,
-    args: Vec<TypeExpr>,
-    ret: Box<TypeExpr>,
+    pub(crate) args: Vec<TypeExpr>,
+    pub(crate) ret: Box<TypeExpr>,
     pub(crate) pos: Pos,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct TEDataNode {
-    id: TIDNode,
-    type_args: Vec<TypeExpr>,
+    pub(crate) id: TIDNode,
+    pub(crate) type_args: Vec<TypeExpr>,
     pub(crate) pos: Pos,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct Defun {
     exported: bool,
-    id: IDNode,
+    pub(crate) id: IDNode,
     pub(crate) args: Vec<IDNode>,
-    fun_type: TypeExpr,
+    pub(crate) fun_type: TypeExpr,
     effect: Effect,
     pub(crate) expr: LangExpr,
     pub(crate) pos: Pos,

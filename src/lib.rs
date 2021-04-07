@@ -208,6 +208,10 @@ pub fn transpile(ctx: &semantics::Context) -> String {
         s = format!("{}{}\n", s, coq::to_coq_data(d));
     }
 
+    for (_, f) in ctx.funs.iter() {
+        s = format!("{}{}\n", s, coq::to_coq_func(f));
+    }
+
     format!("{}\n\n{}", coq::import(), s)
 }
 
