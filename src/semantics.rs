@@ -598,23 +598,23 @@ pub(crate) struct TECharNode {
 }
 
 #[derive(Clone, Debug)]
-struct DataType {
-    name: DataTypeName,
-    members: Vec<DataTypeMem>,
+pub(crate) struct DataType {
+    pub(crate) name: DataTypeName,
+    pub(crate) members: Vec<DataTypeMem>,
     pub(crate) pos: Pos,
 }
 
 #[derive(Clone, Debug)]
-struct DataTypeName {
-    id: TIDNode,
-    type_args: Vec<IDNode>,
+pub(crate) struct DataTypeName {
+    pub(crate) id: TIDNode,
+    pub(crate) type_args: Vec<IDNode>,
     pub(crate) pos: Pos,
 }
 
 #[derive(Clone, Debug)]
-struct DataTypeMem {
-    id: TIDNode,
-    types: Vec<TypeExpr>,
+pub(crate) struct DataTypeMem {
+    pub(crate) id: TIDNode,
+    pub(crate) types: Vec<TypeExpr>,
     pub(crate) pos: Pos,
 }
 
@@ -639,7 +639,7 @@ pub(crate) struct TEListNode {
 
 #[derive(Clone, Debug)]
 pub(crate) struct TETupleNode {
-    ty: Vec<TypeExpr>,
+    pub(crate) ty: Vec<TypeExpr>,
     pub(crate) pos: Pos,
 }
 
@@ -784,7 +784,7 @@ pub struct Context {
     pub(crate) funs: BTreeMap<String, Defun>,
     pub(crate) lambda: BTreeMap<u64, Lambda>,
     pub(crate) lambda_ident: u64,
-    data: BTreeMap<String, DataType>,
+    pub(crate) data: BTreeMap<String, DataType>,
     pub(crate) built_in: BTreeSet<String>,
     label2data: BTreeMap<String, String>,
     pub callback: Box<dyn Fn(&BigInt, &BigInt, &BigInt) -> Option<BigInt>>,

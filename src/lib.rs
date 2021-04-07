@@ -87,12 +87,12 @@
 extern crate alloc;
 
 use alloc::collections::linked_list::LinkedList;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 
+pub mod coq;
 pub mod parser;
 pub mod runtime;
 pub mod semantics;
-pub mod coq;
 
 const FILE_ID_PRELUD: usize = 0;
 const FILE_ID_USER: usize = 1;
@@ -202,13 +202,22 @@ pub fn eval(
     runtime::eval(code, ctx)
 }
 
+pub fn transpile(ctx: &semantics::Context) -> String {
+    let mut s = "".to_string();
+    for (_, d) in ctx.data.iter() {
+        s = format!("{}{}\n", s, coq::to_coq_data(d));
+    }
+
+    format!("{}\n\n{}", coq::import(), s)
+}
+
 #[cfg(test)]
 #[macro_use]
 extern crate std;
 
 #[cfg(test)]
 mod tests {
-    use crate::{eval, init, semantics, typing};
+    use crate::{eval, init, semantics, transpile, typing};
 
     fn eval_result(code: &str, ctx: &semantics::Context) {
         for r in eval(code, &ctx).unwrap() {
@@ -361,5 +370,14 @@ mod tests {
 
         let e = "(callback 100 2000 30000)";
         eval_result(e, &ctx);
+    }
+
+    #[test]
+    fn do_transpile() {
+        let expr = "(data D (A []) (B [Int Int]) (C '(Int)))";
+        let exprs = init(expr).unwrap();
+        let ctx = typing(&exprs).unwrap();
+
+        println!("{}", transpile(&ctx));
     }
 }
