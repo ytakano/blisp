@@ -65,7 +65,7 @@ impl<'a> Parser<'a> {
     pub fn new(code: &'a str, file_id: usize) -> Parser<'a> {
         Parser {
             pos: Pos {
-                file_id: file_id,
+                file_id,
                 line: 0,
                 column: 0,
             },

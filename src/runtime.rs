@@ -292,12 +292,10 @@ impl RTData {
                         } else {
                             format!("'({} {})", e1, e2)
                         }
+                    } else if e2 == "" {
+                        e1
                     } else {
-                        if e2 == "" {
-                            e1
-                        } else {
-                            format!("{} {}", e1, e2)
-                        }
+                        format!("{} {}", e1, e2)
                     }
                 } else if label == "Nil" {
                     if list_head {
@@ -392,20 +390,14 @@ impl RootObject {
     }
 
     fn make_obj(&mut self, label: String, data: Option<Vec<RTData>>) -> LDataType {
-        let obj = LabeledData {
-            label: label,
-            data: data,
-        };
+        let obj = LabeledData { label, data };
         self.objects.push_back(Box::pin((obj, false)));
         let ptr = self.objects.back_mut().unwrap();
         LDataType(unsafe { ptr.as_mut().get_unchecked_mut() as *mut (LabeledData, bool) })
     }
 
     fn make_clojure(&mut self, ident: u64, data: Option<BTreeMap<String, RTData>>) -> ClojureType {
-        let obj = Clojure {
-            ident: ident,
-            data: data,
-        };
+        let obj = Clojure { ident, data };
         self.clojure.push_back(Box::pin((obj, false)));
         let ptr = self.clojure.back_mut().unwrap();
         ClojureType(unsafe { ptr.as_mut().get_unchecked_mut() as *mut (Clojure, bool) })
@@ -424,10 +416,7 @@ pub(crate) fn eval(
         }
         Err(e) => {
             let msg = format!("Syntax Error: {}", e.msg);
-            return Err(LispErr {
-                msg: msg,
-                pos: e.pos,
-            });
+            return Err(LispErr { msg, pos: e.pos });
         }
     }
 
@@ -439,10 +428,7 @@ pub(crate) fn eval(
             }
             Err(e) => {
                 let msg = format!("Typing Error: {}", e.msg);
-                return Err(LispErr {
-                    msg: msg,
-                    pos: e.pos,
-                });
+                return Err(LispErr { msg, pos: e.pos });
             }
         }
     }
@@ -550,7 +536,7 @@ fn get_fun<'a>(
         None => {
             let pos = expr.get_pos();
             let msg = format!("{} is not defined", fun_name);
-            return Err(RuntimeErr { msg: msg, pos: pos });
+            return Err(RuntimeErr { msg, pos });
         }
     }
 
@@ -575,7 +561,7 @@ fn get_lambda<'a>(
             None => {
                 let pos = expr.get_pos();
                 let msg = format!("could not find (Lambda {})", id);
-                return Err(RuntimeErr { msg: msg, pos: pos });
+                return Err(RuntimeErr { msg, pos });
             }
         },
     }
@@ -642,7 +628,7 @@ fn eval_apply(
             let pos = expr.pos;
             return Err(RuntimeErr {
                 msg: "empty application".to_string(),
-                pos: pos,
+                pos,
             });
         }
     }
@@ -698,7 +684,7 @@ fn eval_apply(
                 // could not find such function
                 let pos = fun_expr.get_pos();
                 let msg = format!("{} is not defined", fun_name);
-                Err(RuntimeErr { msg: msg, pos: pos })
+                Err(RuntimeErr { msg, pos })
             }
         }
         RTData::Lambda(f) => {
@@ -709,7 +695,7 @@ fn eval_apply(
             let pos = fun_expr.get_pos();
             return Err(RuntimeErr {
                 msg: "not function".to_string(),
-                pos: pos,
+                pos,
             });
         }
     }
@@ -750,7 +736,7 @@ fn get_int(args: &Vec<RTData>, pos: Pos) -> Result<*const BigInt, RuntimeErr> {
         RTData::Int(n) => Ok(n.get_int()),
         _ => Err(RuntimeErr {
             msg: "there must be exactly 2 integers".to_string(),
-            pos: pos,
+            pos,
         }),
     }
 }
@@ -760,7 +746,7 @@ fn get_int_int(args: &Vec<RTData>, pos: Pos) -> Result<(*const BigInt, *const Bi
         (RTData::Int(n1), RTData::Int(n2)) => Ok((n1.get_int(), n2.get_int())),
         _ => Err(RuntimeErr {
             msg: "there must be exactly 2 integers".to_string(),
-            pos: pos,
+            pos,
         }),
     }
 }
@@ -775,7 +761,7 @@ fn get_int_int_int(
         }
         _ => Err(RuntimeErr {
             msg: "there must be exactly 3 integers".to_string(),
-            pos: pos,
+            pos,
         }),
     }
 }
@@ -785,7 +771,7 @@ fn get_bool_bool(args: &Vec<RTData>, pos: Pos) -> Result<(bool, bool), RuntimeEr
         (RTData::Bool(n1), RTData::Bool(n2)) => Ok((n1, n2)),
         _ => Err(RuntimeErr {
             msg: "there must be exactly 2 boolean values".to_string(),
-            pos: pos,
+            pos,
         }),
     }
 }
@@ -795,7 +781,7 @@ fn get_bool(args: &Vec<RTData>, pos: Pos) -> Result<bool, RuntimeErr> {
         RTData::Bool(n) => Ok(n),
         _ => Err(RuntimeErr {
             msg: "there must be exactly 1 boolean value".to_string(),
-            pos: pos,
+            pos,
         }),
     }
 }
@@ -946,13 +932,13 @@ fn eval_built_in(
                             } else {
                                 return Err(RuntimeErr {
                                     msg: "not char".to_string(),
-                                    pos: pos,
+                                    pos,
                                 });
                             }
                         } else {
                             return Err(RuntimeErr {
                                 msg: "invalid cons".to_string(),
-                                pos: pos,
+                                pos,
                             });
                         }
                     } else if data.get_ldata().label == "Nil" {
@@ -960,7 +946,7 @@ fn eval_built_in(
                     } else {
                         return Err(RuntimeErr {
                             msg: "not list".to_string(),
-                            pos: pos,
+                            pos,
                         });
                     }
                 }
@@ -982,7 +968,7 @@ fn eval_built_in(
         }
         _ => Err(RuntimeErr {
             msg: "unknown built-in function".to_string(),
-            pos: pos,
+            pos,
         }),
     }
 }
@@ -1009,7 +995,7 @@ fn eval_match(
     let pos = expr.pos;
     Err(RuntimeErr {
         msg: "pattern-matching is not exhaustive".to_string(),
-        pos: pos,
+        pos,
     })
 }
 
@@ -1051,7 +1037,7 @@ fn eval_if(
             let pos = expr.cond_expr.get_pos();
             return Err(RuntimeErr {
                 msg: "type mismatched".to_string(),
-                pos: pos,
+                pos,
             });
         }
     }
@@ -1100,7 +1086,7 @@ fn eval_let(
             let pos = def.pattern.get_pos();
             return Err(RuntimeErr {
                 msg: "failed pattern matching".to_string(),
-                pos: pos,
+                pos,
             });
         }
     }

@@ -55,12 +55,10 @@ impl fmt::Display for Tycon {
                     write!(f, "({}{})", self.id, s)
                 }
             }
+        } else if self.id == "Arguments" {
+            write!(f, "()")
         } else {
-            if self.id == "Arguments" {
-                write!(f, "()")
-            } else {
-                write!(f, "{}", self.id)
-            }
+            write!(f, "{}", self.id)
         }
     }
 }
@@ -827,9 +825,9 @@ impl Context {
         built_in.insert("call-rust".to_string());
 
         Context {
-            funs: funs,
-            data: data,
-            built_in: built_in,
+            funs,
+            data,
+            built_in,
             label2data: BTreeMap::new(),
             lambda: BTreeMap::new(),
             lambda_ident: 0,
@@ -877,7 +875,7 @@ impl Context {
                 if self.label2data.contains_key(&mem.id.id) {
                     let msg = format!("{} is multiply defined", mem.id.id);
                     return Err(TypingErr {
-                        msg: msg,
+                        msg,
                         pos: mem.id.pos,
                     });
                 }
@@ -938,7 +936,7 @@ impl Context {
                     fun_type2, fun_type1
                 );
                 return Err(TypingErr {
-                    msg: msg,
+                    msg,
                     pos: defun.pos,
                 });
             }
@@ -1046,10 +1044,7 @@ impl Context {
                 label_types = m;
             }
             Err(msg) => {
-                return Err(TypingErr {
-                    msg: msg,
-                    pos: expr.pos,
-                });
+                return Err(TypingErr { msg, pos: expr.pos });
             }
         }
 
@@ -1061,10 +1056,7 @@ impl Context {
                 label_types.len(),
                 expr.exprs.len()
             );
-            return Err(TypingErr {
-                msg: msg,
-                pos: expr.pos,
-            });
+            return Err(TypingErr { msg, pos: expr.pos });
         }
 
         // check types of the elements and arguments
@@ -1082,7 +1074,7 @@ impl Context {
                 None => {
                     let msg = format!("mismatched type\n  expected: {}\n    actual: {}", t0, t1);
                     return Err(TypingErr {
-                        msg: msg,
+                        msg,
                         pos: e.get_pos(),
                     });
                 }
@@ -1149,10 +1141,7 @@ impl Context {
                     "mismatched type\n  expected: {}\n    actual: {}",
                     fun_ty, t1
                 );
-                return Err(TypingErr {
-                    msg: msg,
-                    pos: expr.pos,
-                });
+                return Err(TypingErr { msg, pos: expr.pos });
             }
         }
 
@@ -1209,7 +1198,7 @@ impl Context {
                             let msg =
                                 format!("mismatched type\n  expected: {}\n    actual: {}", t0, t);
                             return Err(TypingErr {
-                                msg: msg,
+                                msg,
                                 pos: e.get_pos(),
                             });
                         }
@@ -1270,7 +1259,7 @@ impl Context {
                         type_head, pat_ty
                     );
                     return Err(TypingErr {
-                        msg: msg,
+                        msg,
                         pos: cs.pattern.get_pos(),
                     });
                 }
@@ -1295,10 +1284,7 @@ impl Context {
                                 "mismatched type\n  expected: {}\n    actual: {}",
                                 t_prev, ty
                             );
-                            return Err(TypingErr {
-                                msg: msg,
-                                pos: cs.pos,
-                            });
+                            return Err(TypingErr { msg, pos: cs.pos });
                         }
                     }
 
@@ -1417,10 +1403,7 @@ impl Context {
                             }
                             _ => {
                                 let msg = format!("{} is not defined", expr.id);
-                                return Err(TypingErr {
-                                    msg: msg,
-                                    pos: expr.pos,
-                                });
+                                return Err(TypingErr { msg, pos: expr.pos });
                             }
                         }
                     }
@@ -1455,7 +1438,7 @@ impl Context {
                     ty_cond
                 );
                 return Err(TypingErr {
-                    msg: msg,
+                    msg,
                     pos: expr.cond_expr.get_pos(),
                 });
             }
@@ -1479,7 +1462,7 @@ impl Context {
                     ty_then, ty_else
                 );
                 return Err(TypingErr {
-                    msg: msg,
+                    msg,
                     pos: expr.else_expr.get_pos(),
                 });
             }
@@ -1514,10 +1497,7 @@ impl Context {
                 }
                 None => {
                     let msg = format!("mismatched type\n   left: {}\n  right: {}", t2, t1);
-                    return Err(TypingErr {
-                        msg: msg,
-                        pos: dv.pos,
-                    });
+                    return Err(TypingErr { msg, pos: dv.pos });
                 }
             }
             sbst = compose(&s1, &sbst);
@@ -1607,7 +1587,7 @@ impl Context {
             }
             Err(msg) => {
                 return Err(TypingErr {
-                    msg: msg,
+                    msg,
                     pos: expr.label.pos,
                 });
             }
@@ -1622,7 +1602,7 @@ impl Context {
                 expr.pattern.len()
             );
             return Err(TypingErr {
-                msg: msg,
+                msg,
                 pos: expr.label.pos,
             });
         }
@@ -1640,7 +1620,7 @@ impl Context {
                 None => {
                     let msg = format!("mismatched type\n  expected: {}\n    actual: {}", lt, r.0);
                     return Err(TypingErr {
-                        msg: msg,
+                        msg,
                         pos: pat.get_pos(),
                     });
                 }
@@ -1880,10 +1860,7 @@ impl Context {
         for arg in data.name.type_args.iter() {
             if args.contains(&arg.id) {
                 let msg = format!("{} is multiply used", arg.id);
-                return Err(TypingErr {
-                    msg: msg,
-                    pos: arg.pos,
-                });
+                return Err(TypingErr { msg, pos: arg.pos });
             }
 
             args.insert(arg.id.clone());
@@ -1918,10 +1895,7 @@ impl Context {
                 Some(m) => {
                     if !m.contains(&id.id) {
                         let msg = format!("{} is undefined", id.id);
-                        return Err(TypingErr {
-                            msg: msg,
-                            pos: id.pos,
-                        });
+                        return Err(TypingErr { msg, pos: id.pos });
                     }
                 }
                 None => (),
@@ -1945,7 +1919,7 @@ impl Context {
                                 data.type_args.len()
                             );
                             return Err(TypingErr {
-                                msg: msg,
+                                msg,
                                 pos: data.id.pos,
                             });
                         }
@@ -1953,7 +1927,7 @@ impl Context {
                     None => {
                         let msg = format!("{} is unkown type", data.id.id);
                         return Err(TypingErr {
-                            msg: msg,
+                            msg,
                             pos: data.id.pos,
                         });
                     }
@@ -1986,7 +1960,7 @@ impl Context {
             if self.check_data_rec_data(d, &mut visited, &mut checked, &mut inst)? {
                 let msg = format!("{}'s definition is infinitely recursive", d.name.id.id);
                 return Err(TypingErr {
-                    msg: msg,
+                    msg,
                     pos: d.name.id.pos,
                 });
             }
@@ -2111,10 +2085,7 @@ impl Context {
                 dt.name.type_args.len(),
                 data.type_args.len()
             );
-            return Err(TypingErr {
-                msg: msg,
-                pos: data.pos,
-            });
+            return Err(TypingErr { msg, pos: data.pos });
         }
 
         let mut map = BTreeMap::new();
@@ -2343,40 +2314,28 @@ impl Context {
         check_type_has_io(&expr.ty, &expr.pos, sbst, effect)?;
         match vars.get(&expr.id.to_string()) {
             Some(_) => (),
-            None => {
-                match self.funs.get(&expr.id.to_string()) {
-                    Some(defun) => {
-                        if !chk_rec && !defun.exported {
-                            let msg = format!("{} is not defined", expr.id);
-                            return Err(TypingErr {
-                                msg: msg,
-                                pos: expr.pos,
-                            });
-                        }
-
-                        let call_ty = expr.ty.as_ref().unwrap().apply_sbst(sbst);
-                        self.check_defun_type_recur(&call_ty, defun, fun_types, true)?;
+            None => match self.funs.get(&expr.id.to_string()) {
+                Some(defun) => {
+                    if !chk_rec && !defun.exported {
+                        let msg = format!("{} is not defined", expr.id);
+                        return Err(TypingErr { msg, pos: expr.pos });
                     }
-                    None => {
-                        if self.built_in.contains(&expr.id) {
-                            if !chk_rec && expr.id == "call-rust" {
-                                let msg = format!("{} is not defined", expr.id);
-                                return Err(TypingErr {
-                                    msg: msg,
-                                    pos: expr.pos,
-                                });
-                            }
-                        } else {
+
+                    let call_ty = expr.ty.as_ref().unwrap().apply_sbst(sbst);
+                    self.check_defun_type_recur(&call_ty, defun, fun_types, true)?;
+                }
+                None => {
+                    if self.built_in.contains(&expr.id) {
+                        if !chk_rec && expr.id == "call-rust" {
                             let msg = format!("{} is not defined", expr.id);
-                            return Err(TypingErr {
-                                msg: msg,
-                                pos: expr.pos,
-                            });
+                            return Err(TypingErr { msg, pos: expr.pos });
                         }
+                    } else {
+                        let msg = format!("{} is not defined", expr.id);
+                        return Err(TypingErr { msg, pos: expr.pos });
                     }
                 }
-                ()
-            }
+            },
         }
         Ok(())
     }
@@ -2426,7 +2385,7 @@ impl Context {
                     call_ty, defun_ty
                 );
                 return Err(TypingErr {
-                    msg: msg,
+                    msg,
                     pos: defun.pos,
                 });
             }
@@ -2792,10 +2751,7 @@ fn check_type_has_no_tvars(ty: &Option<Type>, pos: &Pos, sbst: &Sbst) -> Result<
         Some(t) => {
             if has_tvar(&t.apply_sbst(sbst)) {
                 let msg = format!("inferred type still contains type variables\n  type: {}", t);
-                return Err(TypingErr {
-                    msg: msg,
-                    pos: *pos,
-                });
+                return Err(TypingErr { msg, pos: *pos });
             }
         }
         None => {
@@ -2819,10 +2775,7 @@ fn check_type_has_io(
             Effect::Pure => {
                 if has_io(&t.apply_sbst(sbst)) {
                     let msg = format!("Pure function contains an IO function\n type: {}", t);
-                    return Err(TypingErr {
-                        msg: msg,
-                        pos: *pos,
-                    });
+                    return Err(TypingErr { msg, pos: *pos });
                 }
             }
             _ => (),
@@ -2941,10 +2894,7 @@ pub fn exprs2context(exprs: &LinkedList<parser::Expr>) -> Result<Context, Typing
 
                             if funs.contains_key(&f.id.id.to_string()) {
                                 let msg = format!("function {} is multiply defined", f.id.id);
-                                return Err(TypingErr {
-                                    msg: msg,
-                                    pos: f.id.pos,
-                                });
+                                return Err(TypingErr { msg, pos: f.id.pos });
                             }
 
                             funs.insert(f.id.id.to_string(), f);
@@ -2953,7 +2903,7 @@ pub fn exprs2context(exprs: &LinkedList<parser::Expr>) -> Result<Context, Typing
                             if data.contains_key(&d.name.id.id) {
                                 let msg = format!("data type {} is multiply defined", d.name.id.id);
                                 return Err(TypingErr {
-                                    msg: msg,
+                                    msg,
                                     pos: d.name.pos,
                                 });
                             }
@@ -3063,7 +3013,7 @@ fn expr2type_id(expr: &parser::Expr) -> Result<TIDNode, TypingErr> {
     match expr {
         parser::Expr::ID(id, pos) => match id.chars().nth(0) {
             Some(c) => {
-                if 'A' <= c && c <= 'Z' {
+                if ('A'..='Z').contains(&c) {
                     Ok(TIDNode {
                         id: id.to_string(),
                         pos: *pos,
@@ -3134,7 +3084,7 @@ fn expr2data_mem(expr: &parser::Expr) -> Result<DataTypeMem, TypingErr> {
 
             Ok(DataTypeMem {
                 id: tid,
-                types: types,
+                types,
                 pos: *pos,
             })
         }
@@ -3216,11 +3166,11 @@ fn expr2defun(expr: &parser::Expr) -> Result<Defun, TypingErr> {
                 }
             }
             Ok(Defun {
-                exported: exported,
-                id: id,
-                args: args,
+                exported,
+                id,
+                args,
                 fun_type: fun,
-                effect: effect,
+                effect,
                 expr: body,
                 pos: *pos,
                 ty: None,
@@ -3305,8 +3255,8 @@ fn expr2type_fun(expr: &parser::Expr) -> Result<TypeExpr, TypingErr> {
             }
 
             Ok(TypeExpr::TEFun(TEFunNode {
-                effect: effect,
-                args: args,
+                effect,
+                args,
                 ret: Box::new(ret),
                 pos: *pos,
             }))
@@ -3337,8 +3287,8 @@ fn expr2type(expr: &parser::Expr) -> Result<TypeExpr, TypingErr> {
                 "String" => Ok(TypeExpr::TEString(TEStringNode { pos: *pos })),
                 "Char" => Ok(TypeExpr::TEChar(TECharNode { pos: *pos })),
                 _ => {
-                    let c = id.chars().nth(0).unwrap();
-                    if 'A' <= c && c <= 'Z' {
+                    let c = id.chars().next().unwrap();
+                    if ('A'..='Z').contains(&c) {
                         let tid = expr2type_id(expr)?;
                         Ok(TypeExpr::TEData(TEDataNode {
                             id: tid,
@@ -3364,7 +3314,7 @@ fn expr2type(expr: &parser::Expr) -> Result<TypeExpr, TypingErr> {
                 Some(e) => {
                     let ty = Box::new(expr2type(e)?);
                     Ok(TypeExpr::TEList(TEListNode {
-                        ty: ty,
+                        ty,
                         pos: e.get_pos(),
                     }))
                 }
@@ -3580,12 +3530,8 @@ fn expr2if(expr: &parser::Expr) -> Result<LangExpr, TypingErr> {
     iter.next(); // must be "if"
 
     let f = |next, msg| match next {
-        Some(e) => {
-            return expr2typed_expr(e);
-        }
-        _ => {
-            return Err(TypingErr::new(msg, expr));
-        }
+        Some(e) => expr2typed_expr(e),
+        _ => Err(TypingErr::new(msg, expr)),
     };
 
     let cond = f(iter.next(), "if requires condition")?;
@@ -3595,7 +3541,7 @@ fn expr2if(expr: &parser::Expr) -> Result<LangExpr, TypingErr> {
     Ok(LangExpr::IfExpr(Box::new(IfNode {
         cond_expr: cond,
         then_expr: then,
-        else_expr: else_expr,
+        else_expr,
         pos: expr.get_pos(),
         ty: None,
     })))
@@ -3621,7 +3567,7 @@ fn expr2let(expr: &parser::Expr) -> Result<LangExpr, TypingErr> {
     let e = iter.next();
     match e {
         Some(parser::Expr::Apply(dvs, _)) => {
-            if dvs.len() == 0 {
+            if dvs.is_empty() {
                 return Err(TypingErr::new("require variable binding", e.unwrap()));
             }
 
@@ -3647,7 +3593,7 @@ fn expr2let(expr: &parser::Expr) -> Result<LangExpr, TypingErr> {
     }
 
     Ok(LangExpr::LetExpr(Box::new(LetNode {
-        def_vars: def_vars,
+        def_vars,
         expr: body,
         pos: expr.get_pos(),
         ty: None,
@@ -3659,7 +3605,7 @@ fn expr2letpat(expr: &parser::Expr) -> Result<Pattern, TypingErr> {
     match expr {
         parser::Expr::ID(id, pos) => {
             // $ID
-            let c = id.chars().nth(0).unwrap();
+            let c = id.chars().next().unwrap();
             if 'A' <= c && c <= 'Z' {
                 Err(TypingErr::new("invalid pattern", expr))
             } else {
@@ -3672,7 +3618,7 @@ fn expr2letpat(expr: &parser::Expr) -> Result<Pattern, TypingErr> {
         }
         parser::Expr::Tuple(tuple, pos) => {
             // [ $LETPAT+ ]
-            if tuple.len() == 0 {
+            if tuple.is_empty() {
                 return Err(TypingErr::new("require at least one pattern", expr));
             }
 
@@ -3682,7 +3628,7 @@ fn expr2letpat(expr: &parser::Expr) -> Result<Pattern, TypingErr> {
             }
 
             Ok(Pattern::PatTuple(PatTupleNode {
-                pattern: pattern,
+                pattern,
                 pos: *pos,
                 ty: None,
             }))
@@ -3729,7 +3675,7 @@ fn expr2def_vars(expr: &parser::Expr) -> Result<DefVar, TypingErr> {
             let body = expr2typed_expr(iter.next().unwrap())?; // $EXPR
 
             Ok(DefVar {
-                pattern: pattern,
+                pattern,
                 expr: body,
                 pos: *pos,
                 ty: None,
@@ -3743,8 +3689,8 @@ fn expr2def_vars(expr: &parser::Expr) -> Result<DefVar, TypingErr> {
 fn expr2mpat(expr: &parser::Expr) -> Result<Pattern, TypingErr> {
     match expr {
         parser::Expr::ID(id, pos) => {
-            let c = id.chars().nth(0).unwrap();
-            if 'A' <= c && c <= 'Z' {
+            let c = id.chars().next().unwrap();
+            if ('A'..='Z').contains(&c) {
                 // $TID
                 let tid = expr2type_id(expr)?;
                 Ok(Pattern::PatData(PatDataNode {
@@ -3799,7 +3745,7 @@ fn expr2mpat(expr: &parser::Expr) -> Result<Pattern, TypingErr> {
             }
 
             Ok(Pattern::PatTuple(PatTupleNode {
-                pattern: pattern,
+                pattern,
                 pos: *pos,
                 ty: None,
             }))
@@ -3823,13 +3769,13 @@ fn expr2mpat(expr: &parser::Expr) -> Result<Pattern, TypingErr> {
 
             Ok(Pattern::PatData(PatDataNode {
                 label: tid,
-                pattern: pattern,
+                pattern,
                 pos: *pos,
                 ty: None,
             }))
         }
         parser::Expr::List(list, pos) => {
-            if list.len() > 0 {
+            if !list.is_empty() {
                 return Err(TypingErr::new("list pattern is not supported", expr));
             }
 
@@ -3854,7 +3800,7 @@ fn expr2case(expr: &parser::Expr) -> Result<MatchCase, TypingErr> {
             let body = expr2typed_expr(iter.next().unwrap())?;
 
             Ok(MatchCase {
-                pattern: pattern,
+                pattern,
                 expr: body,
                 pos: *pos,
                 ty: None,
@@ -3886,13 +3832,13 @@ fn expr2match(expr: &parser::Expr) -> Result<LangExpr, TypingErr> {
                 cases.push(expr2case(it)?);
             }
 
-            if cases.len() == 0 {
+            if cases.is_empty() {
                 return Err(TypingErr::new("require at least one case", expr));
             }
 
             let node = MatchNode {
                 expr: cond,
-                cases: cases,
+                cases,
                 pos: *pos,
                 ty: None,
             };
@@ -4070,7 +4016,7 @@ fn compose(s1: &Sbst, s2: &Sbst) -> Sbst {
     }
 
     for (x, t) in s1.iter() {
-        sbst.entry(*x).or_insert(t.clone());
+        sbst.entry(*x).or_insert_with(|| t.clone());
     }
 
     sbst
@@ -4081,9 +4027,8 @@ fn tail_call(expr: &mut LangExpr) {
     let l = tail_call_expr(expr);
 
     for e in l {
-        match e {
-            LangExpr::ApplyExpr(app) => app.is_tail = true,
-            _ => (),
+        if let LangExpr::ApplyExpr(app) = e {
+            app.is_tail = true
         }
     }
 }
@@ -4182,15 +4127,15 @@ impl<'a> Patterns<'a> {
         }
     }
 
-    fn insert(&mut self, label: &String, idx: usize, p: &'a Pattern) {
-        match self.pat.get_mut(&(label.clone(), idx)) {
+    fn insert(&mut self, label: &str, idx: usize, p: &'a Pattern) {
+        match self.pat.get_mut(&(label.to_string(), idx)) {
             Some(lst) => {
                 lst.push_back(p);
             }
             None => {
                 let mut lst = LinkedList::new();
                 lst.push_back(p);
-                self.pat.insert((label.clone(), idx), lst);
+                self.pat.insert((label.to_string(), idx), lst);
             }
         }
     }
@@ -4204,7 +4149,7 @@ fn check_pattern_exhaustive(
     if patterns.is_empty() {
         return Err(TypingErr {
             msg: "no pattern".to_string(),
-            pos: pos.clone(),
+            pos: *pos,
         });
     }
 
@@ -4262,10 +4207,7 @@ fn check_pattern_exhaustive(
                     }
                     None => {
                         let msg = format!("could not found \"{}\" type", ty);
-                        return Err(TypingErr {
-                            msg: msg,
-                            pos: pos.clone(),
-                        });
+                        return Err(TypingErr { msg, pos: *pos });
                     }
                 },
             }
@@ -4333,24 +4275,20 @@ fn check_pattern_exhaustive(
         for p in patterns {
             match p {
                 Pattern::PatData(e) => {
-                    let mut i = 0;
-                    for p2 in &e.pattern {
+                    for (i, p2) in e.pattern.iter().enumerate() {
                         ps.insert(&e.label.id, i, p2);
-                        i += 1;
                     }
                 }
                 Pattern::PatTuple(e) => {
-                    let mut i = 0;
-                    for p2 in &e.pattern {
+                    for (i, p2) in e.pattern.iter().enumerate() {
                         ps.insert(&"Tuple".to_string(), i, p2);
-                        i += 1;
                     }
                 }
                 _ => {}
             }
         }
 
-        for (_, plst) in &ps.pat {
+        for plst in ps.pat.values() {
             check_pattern_exhaustive(&plst, ctx, pos)?;
         }
 
@@ -4359,7 +4297,7 @@ fn check_pattern_exhaustive(
         // fail
         Err(TypingErr {
             msg: "pattern is not exhaustive".to_string(),
-            pos: pos.clone(),
+            pos: *pos,
         })
     }
 }

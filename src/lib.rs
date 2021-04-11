@@ -115,7 +115,7 @@ pub struct LispErr {
 
 impl LispErr {
     fn new(msg: String, pos: Pos) -> LispErr {
-        LispErr { msg: msg, pos: pos }
+        LispErr { msg, pos }
     }
 }
 
