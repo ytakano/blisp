@@ -1,8 +1,8 @@
 use super::semantics as S;
 
 use alloc::collections::LinkedList;
+use alloc::format;
 use alloc::string::{String, ToString};
-use alloc::vec::Vec;
 
 pub(crate) fn to_coq_type(
     expr: &S::TypeExpr,
@@ -32,7 +32,7 @@ pub(crate) fn to_coq_type(
             e.id.clone()
         }
         S::TypeExpr::TETuple(e) => {
-            if e.ty.len() == 0 {
+            if e.ty.is_empty() {
                 return "unit".to_string();
             }
 
@@ -62,7 +62,7 @@ pub(crate) fn to_coq_type(
             }
         }
         S::TypeExpr::TEData(e) => {
-            if e.type_args.len() == 0 {
+            if e.type_args.is_empty() {
                 e.id.id.clone()
             } else {
                 let mut args = "".to_string();
@@ -80,14 +80,12 @@ pub(crate) fn to_coq_type(
         S::TypeExpr::TEFun(e) => {
             let mut s = "".to_string();
 
-            let mut i = 0;
-            for arg in e.args.iter() {
+            for (i, arg) in e.args.iter().enumerate() {
                 if i == 0 {
-                    s = format!("{}", to_coq_type(arg, depth + 1, targs));
+                    s = to_coq_type(arg, depth + 1, targs);
                 } else {
                     s = format!("{} -> {}", s, to_coq_type(arg, depth + 1, targs));
                 }
-                i += 1;
             }
 
             if depth > 0 {
@@ -130,7 +128,7 @@ fn to_coq_data_def(expr: &S::DataTypeName) -> String {
         }
     }
 
-    if expr.type_args.len() > 0 {
+    if !expr.type_args.is_empty() {
         format!("{} {}: Type :=", expr.id.id, args)
     } else {
         format!("{}: Type :=", expr.id.id)
@@ -138,19 +136,17 @@ fn to_coq_data_def(expr: &S::DataTypeName) -> String {
 }
 
 fn to_coq_data_mem(expr: &S::DataTypeMem) -> String {
-    let mut i = 0;
     let mut mem = "".to_string();
-    for t in expr.types.iter() {
+    for (i, t) in expr.types.iter().enumerate() {
         let mut targs = LinkedList::new();
         if expr.types.len() == i + 1 {
             mem = format!("{}(x{}: {})", mem, i, to_coq_type(t, 0, &mut targs));
         } else {
             mem = format!("{}(x{}: {}) ", mem, i, to_coq_type(t, 0, &mut targs));
         }
-        i += 1;
     }
 
-    if expr.types.len() > 0 {
+    if !expr.types.is_empty() {
         format!("| {} {}", expr.id.id, mem)
     } else {
         format!("| {}", expr.id.id)
@@ -194,7 +190,7 @@ pub(crate) fn to_coq_func(expr: &S::Defun) -> String {
     let mut prev = "".to_string();
     for (arg, t) in expr.args.iter().zip(fun_type.args.iter()) {
         let ta = to_coq_type(t, 0, &mut targs);
-        if prev == "" {
+        if prev.is_empty() {
             prev = ta.clone();
         }
 
@@ -216,7 +212,7 @@ pub(crate) fn to_coq_func(expr: &S::Defun) -> String {
     let ret = to_coq_type(&fun_type.ret, 0, &mut targs);
 
     // if there is no type argument, then return
-    if targs.len() == 0 {
+    if targs.is_empty() {
         return format!("{}{}: {} :=\n", head, args, ret);
     }
 
@@ -241,7 +237,7 @@ fn is_recursive(expr: &S::Defun) -> bool {
     is_recursive_expr(&expr.expr, &expr.id.id)
 }
 
-fn is_recursive_expr(expr: &S::LangExpr, id: &String) -> bool {
+fn is_recursive_expr(expr: &S::LangExpr, id: &str) -> bool {
     match expr {
         S::LangExpr::IfExpr(e) => {
             is_recursive_expr(&e.cond_expr, id)
@@ -275,7 +271,7 @@ fn is_recursive_expr(expr: &S::LangExpr, id: &String) -> bool {
     }
 }
 
-fn is_recursive_exprs(exprs: &Vec<S::LangExpr>, id: &String) -> bool {
+fn is_recursive_exprs(exprs: &[S::LangExpr], id: &str) -> bool {
     for e in exprs.iter() {
         if is_recursive_expr(e, id) {
             return true;

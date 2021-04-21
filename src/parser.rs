@@ -78,7 +78,7 @@ impl<'a> Parser<'a> {
 
         loop {
             self.skip_spaces();
-            if self.remain.len() == 0 {
+            if self.remain.is_empty() {
                 return Ok(exprs);
             }
 
@@ -122,7 +122,7 @@ impl<'a> Parser<'a> {
         let mut i = 0;
 
         for c in self.remain.chars() {
-            let m = if '0' <= c && c <= '7' {
+            let m = if ('0'..='7').contains(&c) {
                 c as u32 - '0' as u32
             } else {
                 break;
@@ -152,11 +152,11 @@ impl<'a> Parser<'a> {
         let mut i = 0;
 
         for c in self.remain.chars() {
-            let m = if '0' <= c && c <= '9' {
+            let m = if ('0'..='9').contains(&c) {
                 c as u32 - '0' as u32
-            } else if 'a' <= c && c <= 'f' {
+            } else if ('a'..='f').contains(&c) {
                 c as u32 - 'a' as u32 + 10
-            } else if 'A' <= c && c <= 'F' {
+            } else if ('A'..='F').contains(&c) {
                 c as u32 - 'A' as u32 + 10
             } else {
                 break;
@@ -182,11 +182,11 @@ impl<'a> Parser<'a> {
     }
 
     fn check_eof(&self, expr: Expr) -> Result<Expr, SyntaxErr> {
-        if self.remain.len() == 0 {
+        if self.remain.is_empty() {
             return Ok(expr);
         }
 
-        match self.remain.chars().nth(0) {
+        match self.remain.chars().next() {
             Some(c0) => {
                 if is_paren(c0) || is_space(c0) {
                     Ok(expr)
@@ -241,8 +241,8 @@ impl<'a> Parser<'a> {
         let is_minus;
 
         let mut cs = self.remain.chars();
-        let c0 = cs.nth(0);
-        let c1 = cs.nth(0);
+        let c0 = cs.next();
+        let c1 = cs.next();
         let c = match (c0, c1) {
             (Some('-'), _) => {
                 is_minus = true;
@@ -274,7 +274,7 @@ impl<'a> Parser<'a> {
         let mut n = Zero::zero();
 
         for a in c.chars() {
-            if '0' <= a && a <= '9' {
+            if ('0'..='9').contains(&a) {
                 n *= 10;
                 n += a as usize - '0' as usize;
                 i += 1;
@@ -336,8 +336,8 @@ impl<'a> Parser<'a> {
 
         loop {
             self.skip_spaces();
-            let c0 = self.remain.chars().nth(0);
-            if self.remain.len() == 0 || c0 == Some(')') || c0 == Some(']') {
+            let c0 = self.remain.chars().next();
+            if self.remain.is_empty() || c0 == Some(')') || c0 == Some(']') {
                 break;
             }
             exprs.push_back(self.parse_expr()?);
@@ -348,7 +348,7 @@ impl<'a> Parser<'a> {
 
     fn parse_expr(&mut self) -> Result<Expr, SyntaxErr> {
         self.skip_spaces();
-        match self.remain.chars().nth(0) {
+        match self.remain.chars().next() {
             Some('(') => self.parse_apply(),
             Some('\'') => self.parse_list(),
             Some('[') => self.parse_tuple(),
@@ -360,12 +360,12 @@ impl<'a> Parser<'a> {
                         pos: self.pos,
                         msg: "invalid )",
                     })
-                } else if '0' <= a && a <= '9' {
+                } else if ('0'..='9').contains(&a) {
                     self.parse_num()
                 } else if a == '-' {
                     match self.remain.chars().nth(1) {
                         Some(b) => {
-                            if '0' <= b && b <= '9' {
+                            if ('0'..='9').contains(&b) {
                                 self.parse_num()
                             } else {
                                 self.parse_id_bool()
@@ -389,7 +389,7 @@ impl<'a> Parser<'a> {
         let pos = self.pos;
         self.pos.column += 1;
 
-        if let Some(c) = self.remain.chars().nth(0) {
+        if let Some(c) = self.remain.chars().next() {
             match c {
                 '\\' => {
                     if let Some(c1) = self.remain.chars().nth(1) {
@@ -424,10 +424,10 @@ impl<'a> Parser<'a> {
                             })
                         }
                     } else {
-                        return Err(SyntaxErr {
+                        Err(SyntaxErr {
                             pos: self.pos,
                             msg: "expected escape character",
-                        });
+                        })
                     }
                 }
                 '\r' | '\n' => Err(SyntaxErr {
@@ -464,7 +464,7 @@ impl<'a> Parser<'a> {
         let mut prev = ' ';
         let mut str = "".to_string();
         loop {
-            if let Some(c) = self.remain.chars().nth(0) {
+            if let Some(c) = self.remain.chars().next() {
                 match c {
                     '"' => {
                         self.pos.column += 1;
@@ -528,7 +528,7 @@ impl<'a> Parser<'a> {
         self.pos.column += 1;
 
         let exprs = self.parse_exprs()?;
-        if self.remain.chars().nth(0) == Some(')') {
+        if self.remain.starts_with(')') {
             self.remain = &self.remain[1..];
             self.pos.column += 1;
             Ok(Expr::Apply(exprs, pos))
@@ -545,11 +545,11 @@ impl<'a> Parser<'a> {
         let pos = self.pos;
         self.pos.column += 1;
 
-        match c.chars().nth(0) {
+        match c.chars().next() {
             Some('(') => {
                 self.remain = &c[1..];
                 let exprs = self.parse_exprs()?;
-                if self.remain.chars().nth(0) == Some(')') {
+                if self.remain.starts_with(')') {
                     self.remain = &self.remain[1..];
                     self.pos.column += 1;
                     Ok(Expr::List(exprs, pos))
@@ -573,7 +573,7 @@ impl<'a> Parser<'a> {
         self.pos.column += 1;
 
         let exprs = self.parse_exprs()?;
-        if self.remain.chars().nth(0) == Some(']') {
+        if self.remain.starts_with(']') {
             self.remain = &self.remain[1..];
             self.pos.column += 1;
             Ok(Expr::Tuple(exprs, pos))

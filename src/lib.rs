@@ -83,10 +83,10 @@
 
 #![no_std]
 
-#[macro_use]
 extern crate alloc;
 
 use alloc::collections::linked_list::LinkedList;
+use alloc::format;
 use alloc::string::{String, ToString};
 
 pub mod coq;

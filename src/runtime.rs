@@ -5,7 +5,9 @@ use super::{LispErr, Pos};
 use alloc::boxed::Box;
 use alloc::{
     collections::{btree_map::BTreeMap, linked_list::LinkedList, vec_deque::VecDeque},
+    format,
     string::{String, ToString},
+    vec,
     vec::Vec,
 };
 use core::{
@@ -51,7 +53,7 @@ impl Variables {
         m.insert(id, data);
     }
 
-    fn get(&mut self, id: &String) -> Option<&RTData> {
+    fn get(&mut self, id: &str) -> Option<&RTData> {
         for m in self.vars.iter().rev() {
             if let Some(val) = m.get(id) {
                 return Some(val);
@@ -262,7 +264,7 @@ impl RTData {
             }
             RTData::Char(c) => {
                 if *c == '`' {
-                    format!("`\\``")
+                    "`\\``".to_string()
                 } else {
                     let s = escape_char(*c);
                     format!("`{}`", s)
@@ -271,8 +273,8 @@ impl RTData {
             RTData::Int(n) => {
                 format!("{}", n.get_int())
             }
-            RTData::Bool(n) => format!("{}", n),
-            RTData::Defun(n) => format!("{}", n),
+            RTData::Bool(n) => n.to_string(),
+            RTData::Defun(n) => n.to_string(),
             RTData::Lambda(n) => format!("(Lambda {})", n.get_clojure().ident),
             RTData::LData(n) => {
                 let label = &n.get_ldata().label;
@@ -287,12 +289,12 @@ impl RTData {
                         None => panic!("invalid list"),
                     }
                     if list_head {
-                        if e2 == "" {
+                        if e2.is_empty() {
                             format!("'({})", e1)
                         } else {
                             format!("'({} {})", e1, e2)
                         }
-                    } else if e2 == "" {
+                    } else if e2.is_empty() {
                         e1
                     } else {
                         format!("{} {}", e1, e2)
@@ -330,7 +332,7 @@ impl RTData {
                             }
                             format!("{})", msg)
                         }
-                        None => format!("{}", label),
+                        None => label.to_string(),
                     }
                 }
             }
@@ -456,7 +458,7 @@ pub(crate) fn eval(
     Ok(result)
 }
 
-fn get_data_of_id(id: &String, vars: &mut VecDeque<Variables>) -> RTData {
+fn get_data_of_id(id: &str, vars: &mut VecDeque<Variables>) -> RTData {
     match vars.back_mut().unwrap().get(id) {
         Some(data) => data.clone(),
         None => RTData::Defun(id.to_string()),
@@ -480,10 +482,10 @@ fn eval_expr(
         Expr::ListExpr(e) => eval_list(&e, lambda, ctx, root, vars),
         Expr::LetExpr(e) => eval_let(&e, lambda, ctx, root, vars),
         Expr::MatchExpr(e) => eval_match(&e, lambda, ctx, root, vars),
-        Expr::IDExpr(e) => eval_id(&e, vars),
+        Expr::IDExpr(e) => Ok(eval_id(&e, vars)),
         Expr::ApplyExpr(e) => eval_apply(&e, lambda, ctx, root, vars),
         Expr::TupleExpr(e) => eval_tuple(&e, lambda, ctx, root, vars),
-        Expr::LambdaExpr(e) => eval_lambda(&e, root, vars),
+        Expr::LambdaExpr(e) => Ok(eval_lambda(&e, root, vars)),
     }
 }
 
@@ -491,8 +493,8 @@ fn eval_lambda(
     expr: &semantics::Lambda,
     root: &mut RootObject,
     vars: &mut VecDeque<Variables>,
-) -> Result<RTData, RuntimeErr> {
-    let data = if expr.vars.len() > 0 {
+) -> RTData {
+    let data = if !expr.vars.is_empty() {
         let mut m = BTreeMap::new();
         for v in &expr.vars {
             m.insert(v.to_string(), get_data_of_id(v, vars));
@@ -503,7 +505,7 @@ fn eval_lambda(
     };
 
     let ptr = root.make_clojure(expr.ident, data);
-    Ok(RTData::Lambda(ptr))
+    RTData::Lambda(ptr)
 }
 
 fn eval_tuple(
@@ -525,7 +527,7 @@ fn eval_tuple(
 
 fn get_fun<'a>(
     ctx: &'a semantics::Context,
-    fun_name: &String,
+    fun_name: &str,
     expr: &Expr,
 ) -> Result<&'a semantics::Defun, RuntimeErr> {
     let fun;
@@ -665,20 +667,18 @@ fn eval_apply(
                 }
             } else {
                 // call clojure
-                if let Some(f) = vars.back_mut().unwrap().get(&fun_name) {
-                    if let RTData::Lambda(cloj) = f {
-                        let c = cloj.clone();
-                        return call_lambda(
-                            expr,
-                            lambda,
-                            ctx,
-                            root,
-                            vars,
-                            c.get_clojure(),
-                            iter,
-                            fun_expr,
-                        );
-                    }
+                if let Some(RTData::Lambda(cloj)) = vars.back_mut().unwrap().get(&fun_name) {
+                    let c = cloj.clone();
+                    return call_lambda(
+                        expr,
+                        lambda,
+                        ctx,
+                        root,
+                        vars,
+                        c.get_clojure(),
+                        iter,
+                        fun_expr,
+                    );
                 }
 
                 // could not find such function
@@ -693,10 +693,10 @@ fn eval_apply(
         }
         _ => {
             let pos = fun_expr.get_pos();
-            return Err(RuntimeErr {
+            Err(RuntimeErr {
                 msg: "not function".to_string(),
                 pos,
-            });
+            })
         }
     }
 }
@@ -731,7 +731,7 @@ fn eval_tail_call<'a>(
     }
 }
 
-fn get_int(args: &Vec<RTData>, pos: Pos) -> Result<*const BigInt, RuntimeErr> {
+fn get_int(args: &[RTData], pos: Pos) -> Result<*const BigInt, RuntimeErr> {
     match &args[0] {
         RTData::Int(n) => Ok(n.get_int()),
         _ => Err(RuntimeErr {
@@ -741,7 +741,7 @@ fn get_int(args: &Vec<RTData>, pos: Pos) -> Result<*const BigInt, RuntimeErr> {
     }
 }
 
-fn get_int_int(args: &Vec<RTData>, pos: Pos) -> Result<(*const BigInt, *const BigInt), RuntimeErr> {
+fn get_int_int(args: &[RTData], pos: Pos) -> Result<(*const BigInt, *const BigInt), RuntimeErr> {
     match (&args[0], &args[1]) {
         (RTData::Int(n1), RTData::Int(n2)) => Ok((n1.get_int(), n2.get_int())),
         _ => Err(RuntimeErr {
@@ -752,7 +752,7 @@ fn get_int_int(args: &Vec<RTData>, pos: Pos) -> Result<(*const BigInt, *const Bi
 }
 
 fn get_int_int_int(
-    args: &Vec<RTData>,
+    args: &[RTData],
     pos: Pos,
 ) -> Result<(*const BigInt, *const BigInt, *const BigInt), RuntimeErr> {
     match (&args[0], &args[1], &args[2]) {
@@ -766,7 +766,7 @@ fn get_int_int_int(
     }
 }
 
-fn get_bool_bool(args: &Vec<RTData>, pos: Pos) -> Result<(bool, bool), RuntimeErr> {
+fn get_bool_bool(args: &[RTData], pos: Pos) -> Result<(bool, bool), RuntimeErr> {
     match (args[0].clone(), args[1].clone()) {
         (RTData::Bool(n1), RTData::Bool(n2)) => Ok((n1, n2)),
         _ => Err(RuntimeErr {
@@ -776,7 +776,7 @@ fn get_bool_bool(args: &Vec<RTData>, pos: Pos) -> Result<(bool, bool), RuntimeEr
     }
 }
 
-fn get_bool(args: &Vec<RTData>, pos: Pos) -> Result<bool, RuntimeErr> {
+fn get_bool(args: &[RTData], pos: Pos) -> Result<bool, RuntimeErr> {
     match args[0].clone() {
         RTData::Bool(n) => Ok(n),
         _ => Err(RuntimeErr {
@@ -788,7 +788,7 @@ fn get_bool(args: &Vec<RTData>, pos: Pos) -> Result<bool, RuntimeErr> {
 
 fn eval_built_in(
     fun_name: String,
-    args: &Vec<RTData>,
+    args: &[RTData],
     pos: Pos,
     root: &mut RootObject,
     ctx: &semantics::Context,
@@ -819,12 +819,12 @@ fn eval_built_in(
             let n = unsafe { &*n1 % &*n2 };
             Ok(RTData::Int(root.make_int(n)))
         }
-        "=" | "eq" => Ok(RTData::Bool(&args[0] == &args[1])),
-        "!=" | "neq" => Ok(RTData::Bool(&args[0] != &args[1])),
-        "<=" | "leq" => Ok(RTData::Bool(&args[0] <= &args[1])),
-        ">=" | "geq" => Ok(RTData::Bool(&args[0] >= &args[1])),
-        ">" | "gt" => Ok(RTData::Bool(&args[0] > &args[1])),
-        "<" | "lt" => Ok(RTData::Bool(&args[0] < &args[1])),
+        "=" | "eq" => Ok(RTData::Bool(args[0] == args[1])),
+        "!=" | "neq" => Ok(RTData::Bool(args[0] != args[1])),
+        "<=" | "leq" => Ok(RTData::Bool(args[0] <= args[1])),
+        ">=" | "geq" => Ok(RTData::Bool(args[0] >= args[1])),
+        ">" | "gt" => Ok(RTData::Bool(args[0] > args[1])),
+        "<" | "lt" => Ok(RTData::Bool(args[0] < args[1])),
         "and" => {
             let (n1, n2) = get_bool_bool(args, pos)?;
             Ok(RTData::Bool(n1 && n2))
@@ -999,9 +999,9 @@ fn eval_match(
     })
 }
 
-fn eval_id(expr: &semantics::IDNode, vars: &mut VecDeque<Variables>) -> Result<RTData, RuntimeErr> {
+fn eval_id(expr: &semantics::IDNode, vars: &mut VecDeque<Variables>) -> RTData {
     let id = expr.id.to_string();
-    Ok(get_data_of_id(&id, vars))
+    get_data_of_id(&id, vars)
 }
 
 fn eval_list(
@@ -1056,7 +1056,7 @@ fn eval_data(
     root: &mut RootObject,
     vars: &mut VecDeque<Variables>,
 ) -> Result<RTData, RuntimeErr> {
-    let data = if expr.exprs.len() == 0 {
+    let data = if expr.exprs.is_empty() {
         None
     } else {
         let mut v = Vec::new();
@@ -1217,7 +1217,7 @@ fn mark_obj(data: &mut RTData) {
             }
         },
         RTData::LData(ptr) => unsafe {
-            if !!read_volatile(ptr.get_ref()) {
+            if !read_volatile(ptr.get_ref()) {
                 write_volatile(ptr.get_ref(), true);
                 if let Some(data) = &mut ptr.get_ldata_mut().data {
                     for v in data.iter_mut() {
