@@ -70,6 +70,10 @@ version = "0.3"
 
 ## Version History
 
+### 0.3.9
+
+- fix a bug on the garbage collector
+
 ### 0.3.8
 
 - fix a bug on typing
