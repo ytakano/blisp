@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.12">
+<meta name="author" content="Yuuki Takano">
+<title>BLisp: Lispっぽい静的型付け言語</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
+<style>
+/* Asciidoctor default stylesheet | MIT License | https://asciidoctor.org */
+/* Uncomment @import statement to use as custom stylesheet */
+/*@import "https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700";*/
+article,aside,details,figcaption,figure,footer,header,hgroup,main,nav,section{display:block}
+audio,video{display:inline-block}
+audio:not([controls]){display:none;height:0}
+html{font-family:sans-serif;-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%}
+a{background:none}
+a:focus{outline:thin dotted}
+a:active,a:hover{outline:0}
+h1{font-size:2em;margin:.67em 0}
+abbr[title]{border-bottom:1px dotted}
+b,strong{font-weight:bold}
+dfn{font-style:italic}
+hr{-moz-box-sizing:content-box;box-sizing:content-box;height:0}
+mark{background:#ff0;color:#000}
+code,kbd,pre,samp{font-family:monospace;font-size:1em}
+pre{white-space:pre-wrap}
+q{quotes:"\201C" "\201D" "\2018" "\2019"}
+small{font-size:80%}
+sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}
+sup{top:-.5em}
+sub{bottom:-.25em}
+img{border:0}
+svg:not(:root){overflow:hidden}
+figure{margin:0}
+fieldset{border:1px solid silver;margin:0 2px;padding:.35em .625em .75em}
+legend{border:0;padding:0}
+button,input,select,textarea{font-family:inherit;font-size:100%;margin:0}
+button,input{line-height:normal}
+button,select{text-transform:none}
+button,html input[type="button"],input[type="reset"],input[type="submit"]{-webkit-appearance:button;cursor:pointer}
+button[disabled],html input[disabled]{cursor:default}
+input[type="checkbox"],input[type="radio"]{box-sizing:border-box;padding:0}
+button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0}
+textarea{overflow:auto;vertical-align:top}
+table{border-collapse:collapse;border-spacing:0}
+*,*::before,*::after{-moz-box-sizing:border-box;-webkit-box-sizing:border-box;box-sizing:border-box}
+html,body{font-size:100%}
+body{background:#fff;color:rgba(0,0,0,.8);padding:0;margin:0;font-family:"Noto Serif","DejaVu Serif",serif;font-weight:400;font-style:normal;line-height:1;position:relative;cursor:auto;tab-size:4;word-wrap:anywhere;-moz-osx-font-smoothing:grayscale;-webkit-font-smoothing:antialiased}
+a:hover{cursor:pointer}
+img,object,embed{max-width:100%;height:auto}
+object,embed{height:100%}
+img{-ms-interpolation-mode:bicubic}
+.left{float:left!important}
+.right{float:right!important}
+.text-left{text-align:left!important}
+.text-right{text-align:right!important}
+.text-center{text-align:center!important}
+.text-justify{text-align:justify!important}
+.hide{display:none}
+img,object,svg{display:inline-block;vertical-align:middle}
+textarea{height:auto;min-height:50px}
+select{width:100%}
+.subheader,.admonitionblock td.content>.title,.audioblock>.title,.exampleblock>.title,.imageblock>.title,.listingblock>.title,.literalblock>.title,.stemblock>.title,.openblock>.title,.paragraph>.title,.quoteblock>.title,table.tableblock>.title,.verseblock>.title,.videoblock>.title,.dlist>.title,.olist>.title,.ulist>.title,.qlist>.title,.hdlist>.title{line-height:1.45;color:#7a2518;font-weight:400;margin-top:0;margin-bottom:.25em}
+div,dl,dt,dd,ul,ol,li,h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6,pre,form,p,blockquote,th,td{margin:0;padding:0}
+a{color:#2156a5;text-decoration:underline;line-height:inherit}
+a:hover,a:focus{color:#1d4b8f}
+a img{border:0}
+p{font-family:inherit;font-weight:400;font-size:1em;line-height:1.6;margin-bottom:1.25em;text-rendering:optimizeLegibility}
+p aside{font-size:.875em;line-height:1.35;font-style:italic}
+h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6{font-family:"Open Sans","DejaVu Sans",sans-serif;font-weight:300;font-style:normal;color:#ba3925;text-rendering:optimizeLegibility;margin-top:1em;margin-bottom:.5em;line-height:1.0125em}
+h1 small,h2 small,h3 small,#toctitle small,.sidebarblock>.content>.title small,h4 small,h5 small,h6 small{font-size:60%;color:#e99b8f;line-height:0}
+h1{font-size:2.125em}
+h2{font-size:1.6875em}
+h3,#toctitle,.sidebarblock>.content>.title{font-size:1.375em}
+h4,h5{font-size:1.125em}
+h6{font-size:1em}
+hr{border:solid #dddddf;border-width:1px 0 0;clear:both;margin:1.25em 0 1.1875em;height:0}
+em,i{font-style:italic;line-height:inherit}
+strong,b{font-weight:bold;line-height:inherit}
+small{font-size:60%;line-height:inherit}
+code{font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;font-weight:400;color:rgba(0,0,0,.9)}
+ul,ol,dl{font-size:1em;line-height:1.6;margin-bottom:1.25em;list-style-position:outside;font-family:inherit}
+ul,ol{margin-left:1.5em}
+ul li ul,ul li ol{margin-left:1.25em;margin-bottom:0;font-size:1em}
+ul.square li ul,ul.circle li ul,ul.disc li ul{list-style:inherit}
+ul.square{list-style-type:square}
+ul.circle{list-style-type:circle}
+ul.disc{list-style-type:disc}
+ol li ul,ol li ol{margin-left:1.25em;margin-bottom:0}
+dl dt{margin-bottom:.3125em;font-weight:bold}
+dl dd{margin-bottom:1.25em}
+abbr,acronym{text-transform:uppercase;font-size:90%;color:rgba(0,0,0,.8);border-bottom:1px dotted #ddd;cursor:help}
+abbr{text-transform:none}
+blockquote{margin:0 0 1.25em;padding:.5625em 1.25em 0 1.1875em;border-left:1px solid #ddd}
+blockquote cite{display:block;font-size:.9375em;color:rgba(0,0,0,.6)}
+blockquote cite::before{content:"\2014 \0020"}
+blockquote cite a,blockquote cite a:visited{color:rgba(0,0,0,.6)}
+blockquote,blockquote p{line-height:1.6;color:rgba(0,0,0,.85)}
+@media screen and (min-width:768px){h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6{line-height:1.2}
+h1{font-size:2.75em}
+h2{font-size:2.3125em}
+h3,#toctitle,.sidebarblock>.content>.title{font-size:1.6875em}
+h4{font-size:1.4375em}}
+table{background:#fff;margin-bottom:1.25em;border:solid 1px #dedede;word-wrap:normal}
+table thead,table tfoot{background:#f7f8f7}
+table thead tr th,table thead tr td,table tfoot tr th,table tfoot tr td{padding:.5em .625em .625em;font-size:inherit;color:rgba(0,0,0,.8);text-align:left}
+table tr th,table tr td{padding:.5625em .625em;font-size:inherit;color:rgba(0,0,0,.8)}
+table tr.even,table tr.alt{background:#f8f8f7}
+table thead tr th,table tfoot tr th,table tbody tr td,table tr td,table tfoot tr td{line-height:1.6}
+h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6{line-height:1.2;word-spacing:-.05em}
+h1 strong,h2 strong,h3 strong,#toctitle strong,.sidebarblock>.content>.title strong,h4 strong,h5 strong,h6 strong{font-weight:400}
+.center{margin-left:auto;margin-right:auto}
+.stretch{width:100%}
+.clearfix::before,.clearfix::after,.float-group::before,.float-group::after{content:" ";display:table}
+.clearfix::after,.float-group::after{clear:both}
+:not(pre).nobreak{word-wrap:normal}
+:not(pre).nowrap{white-space:nowrap}
+:not(pre).pre-wrap{white-space:pre-wrap}
+:not(pre):not([class^=L])>code{font-size:.9375em;font-style:normal!important;letter-spacing:0;padding:.1em .5ex;word-spacing:-.15em;background:#f7f7f8;-webkit-border-radius:4px;border-radius:4px;line-height:1.45;text-rendering:optimizeSpeed}
+pre{color:rgba(0,0,0,.9);font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;line-height:1.45;text-rendering:optimizeSpeed}
+pre code,pre pre{color:inherit;font-size:inherit;line-height:inherit}
+pre>code{display:block}
+pre.nowrap,pre.nowrap pre{white-space:pre;word-wrap:normal}
+em em{font-style:normal}
+strong strong{font-weight:400}
+.keyseq{color:rgba(51,51,51,.8)}
+kbd{font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;display:inline-block;color:rgba(0,0,0,.8);font-size:.65em;line-height:1.45;background:#f7f7f7;border:1px solid #ccc;-webkit-border-radius:3px;border-radius:3px;-webkit-box-shadow:0 1px 0 rgba(0,0,0,.2),0 0 0 .1em white inset;box-shadow:0 1px 0 rgba(0,0,0,.2),0 0 0 .1em #fff inset;margin:0 .15em;padding:.2em .5em;vertical-align:middle;position:relative;top:-.1em;white-space:nowrap}
+.keyseq kbd:first-child{margin-left:0}
+.keyseq kbd:last-child{margin-right:0}
+.menuseq,.menuref{color:#000}
+.menuseq b:not(.caret),.menuref{font-weight:inherit}
+.menuseq{word-spacing:-.02em}
+.menuseq b.caret{font-size:1.25em;line-height:.8}
+.menuseq i.caret{font-weight:bold;text-align:center;width:.45em}
+b.button::before,b.button::after{position:relative;top:-1px;font-weight:400}
+b.button::before{content:"[";padding:0 3px 0 2px}
+b.button::after{content:"]";padding:0 2px 0 3px}
+p a>code:hover{color:rgba(0,0,0,.9)}
+#header,#content,#footnotes,#footer{width:100%;margin-left:auto;margin-right:auto;margin-top:0;margin-bottom:0;max-width:62.5em;*zoom:1;position:relative;padding-left:.9375em;padding-right:.9375em}
+#header::before,#header::after,#content::before,#content::after,#footnotes::before,#footnotes::after,#footer::before,#footer::after{content:" ";display:table}
+#header::after,#content::after,#footnotes::after,#footer::after{clear:both}
+#content{margin-top:1.25em}
+#content::before{content:none}
+#header>h1:first-child{color:rgba(0,0,0,.85);margin-top:2.25rem;margin-bottom:0}
+#header>h1:first-child+#toc{margin-top:8px;border-top:1px solid #dddddf}
+#header>h1:only-child,body.toc2 #header>h1:nth-last-child(2){border-bottom:1px solid #dddddf;padding-bottom:8px}
+#header .details{border-bottom:1px solid #dddddf;line-height:1.45;padding-top:.25em;padding-bottom:.25em;padding-left:.25em;color:rgba(0,0,0,.6);display:-ms-flexbox;display:-webkit-flex;display:flex;-ms-flex-flow:row wrap;-webkit-flex-flow:row wrap;flex-flow:row wrap}
+#header .details span:first-child{margin-left:-.125em}
+#header .details span.email a{color:rgba(0,0,0,.85)}
+#header .details br{display:none}
+#header .details br+span::before{content:"\00a0\2013\00a0"}
+#header .details br+span.author::before{content:"\00a0\22c5\00a0";color:rgba(0,0,0,.85)}
+#header .details br+span#revremark::before{content:"\00a0|\00a0"}
+#header #revnumber{text-transform:capitalize}
+#header #revnumber::after{content:"\00a0"}
+#content>h1:first-child:not([class]){color:rgba(0,0,0,.85);border-bottom:1px solid #dddddf;padding-bottom:8px;margin-top:0;padding-top:1rem;margin-bottom:1.25rem}
+#toc{border-bottom:1px solid #e7e7e9;padding-bottom:.5em}
+#toc>ul{margin-left:.125em}
+#toc ul.sectlevel0>li>a{font-style:italic}
+#toc ul.sectlevel0 ul.sectlevel1{margin:.5em 0}
+#toc ul{font-family:"Open Sans","DejaVu Sans",sans-serif;list-style-type:none}
+#toc li{line-height:1.3334;margin-top:.3334em}
+#toc a{text-decoration:none}
+#toc a:active{text-decoration:underline}
+#toctitle{color:#7a2518;font-size:1.2em}
+@media screen and (min-width:768px){#toctitle{font-size:1.375em}
+body.toc2{padding-left:15em;padding-right:0}
+#toc.toc2{margin-top:0!important;background:#f8f8f7;position:fixed;width:15em;left:0;top:0;border-right:1px solid #e7e7e9;border-top-width:0!important;border-bottom-width:0!important;z-index:1000;padding:1.25em 1em;height:100%;overflow:auto}
+#toc.toc2 #toctitle{margin-top:0;margin-bottom:.8rem;font-size:1.2em}
+#toc.toc2>ul{font-size:.9em;margin-bottom:0}
+#toc.toc2 ul ul{margin-left:0;padding-left:1em}
+#toc.toc2 ul.sectlevel0 ul.sectlevel1{padding-left:0;margin-top:.5em;margin-bottom:.5em}
+body.toc2.toc-right{padding-left:0;padding-right:15em}
+body.toc2.toc-right #toc.toc2{border-right-width:0;border-left:1px solid #e7e7e9;left:auto;right:0}}
+@media screen and (min-width:1280px){body.toc2{padding-left:20em;padding-right:0}
+#toc.toc2{width:20em}
+#toc.toc2 #toctitle{font-size:1.375em}
+#toc.toc2>ul{font-size:.95em}
+#toc.toc2 ul ul{padding-left:1.25em}
+body.toc2.toc-right{padding-left:0;padding-right:20em}}
+#content #toc{border-style:solid;border-width:1px;border-color:#e0e0dc;margin-bottom:1.25em;padding:1.25em;background:#f8f8f7;-webkit-border-radius:4px;border-radius:4px}
+#content #toc>:first-child{margin-top:0}
+#content #toc>:last-child{margin-bottom:0}
+#footer{max-width:none;background:rgba(0,0,0,.8);padding:1.25em}
+#footer-text{color:rgba(255,255,255,.8);line-height:1.44}
+#content{margin-bottom:.625em}
+.sect1{padding-bottom:.625em}
+@media screen and (min-width:768px){#content{margin-bottom:1.25em}
+.sect1{padding-bottom:1.25em}}
+.sect1:last-child{padding-bottom:0}
+.sect1+.sect1{border-top:1px solid #e7e7e9}
+#content h1>a.anchor,h2>a.anchor,h3>a.anchor,#toctitle>a.anchor,.sidebarblock>.content>.title>a.anchor,h4>a.anchor,h5>a.anchor,h6>a.anchor{position:absolute;z-index:1001;width:1.5ex;margin-left:-1.5ex;display:block;text-decoration:none!important;visibility:hidden;text-align:center;font-weight:400}
+#content h1>a.anchor::before,h2>a.anchor::before,h3>a.anchor::before,#toctitle>a.anchor::before,.sidebarblock>.content>.title>a.anchor::before,h4>a.anchor::before,h5>a.anchor::before,h6>a.anchor::before{content:"\00A7";font-size:.85em;display:block;padding-top:.1em}
+#content h1:hover>a.anchor,#content h1>a.anchor:hover,h2:hover>a.anchor,h2>a.anchor:hover,h3:hover>a.anchor,#toctitle:hover>a.anchor,.sidebarblock>.content>.title:hover>a.anchor,h3>a.anchor:hover,#toctitle>a.anchor:hover,.sidebarblock>.content>.title>a.anchor:hover,h4:hover>a.anchor,h4>a.anchor:hover,h5:hover>a.anchor,h5>a.anchor:hover,h6:hover>a.anchor,h6>a.anchor:hover{visibility:visible}
+#content h1>a.link,h2>a.link,h3>a.link,#toctitle>a.link,.sidebarblock>.content>.title>a.link,h4>a.link,h5>a.link,h6>a.link{color:#ba3925;text-decoration:none}
+#content h1>a.link:hover,h2>a.link:hover,h3>a.link:hover,#toctitle>a.link:hover,.sidebarblock>.content>.title>a.link:hover,h4>a.link:hover,h5>a.link:hover,h6>a.link:hover{color:#a53221}
+details,.audioblock,.imageblock,.literalblock,.listingblock,.stemblock,.videoblock{margin-bottom:1.25em}
+details>summary:first-of-type{cursor:pointer;display:list-item;outline:none;margin-bottom:.75em}
+.admonitionblock td.content>.title,.audioblock>.title,.exampleblock>.title,.imageblock>.title,.listingblock>.title,.literalblock>.title,.stemblock>.title,.openblock>.title,.paragraph>.title,.quoteblock>.title,table.tableblock>.title,.verseblock>.title,.videoblock>.title,.dlist>.title,.olist>.title,.ulist>.title,.qlist>.title,.hdlist>.title{text-rendering:optimizeLegibility;text-align:left;font-family:"Noto Serif","DejaVu Serif",serif;font-size:1rem;font-style:italic}
+table.tableblock.fit-content>caption.title{white-space:nowrap;width:0}
+.paragraph.lead>p,#preamble>.sectionbody>[class="paragraph"]:first-of-type p{font-size:1.21875em;line-height:1.6;color:rgba(0,0,0,.85)}
+table.tableblock #preamble>.sectionbody>[class="paragraph"]:first-of-type p{font-size:inherit}
+.admonitionblock>table{border-collapse:separate;border:0;background:none;width:100%}
+.admonitionblock>table td.icon{text-align:center;width:80px}
+.admonitionblock>table td.icon img{max-width:none}
+.admonitionblock>table td.icon .title{font-weight:bold;font-family:"Open Sans","DejaVu Sans",sans-serif;text-transform:uppercase}
+.admonitionblock>table td.content{padding-left:1.125em;padding-right:1.25em;border-left:1px solid #dddddf;color:rgba(0,0,0,.6);word-wrap:anywhere}
+.admonitionblock>table td.content>:last-child>:last-child{margin-bottom:0}
+.exampleblock>.content{border-style:solid;border-width:1px;border-color:#e6e6e6;margin-bottom:1.25em;padding:1.25em;background:#fff;-webkit-border-radius:4px;border-radius:4px}
+.exampleblock>.content>:first-child{margin-top:0}
+.exampleblock>.content>:last-child{margin-bottom:0}
+.sidebarblock{border-style:solid;border-width:1px;border-color:#dbdbd6;margin-bottom:1.25em;padding:1.25em;background:#f3f3f2;-webkit-border-radius:4px;border-radius:4px}
+.sidebarblock>:first-child{margin-top:0}
+.sidebarblock>:last-child{margin-bottom:0}
+.sidebarblock>.content>.title{color:#7a2518;margin-top:0;text-align:center}
+.exampleblock>.content>:last-child>:last-child,.exampleblock>.content .olist>ol>li:last-child>:last-child,.exampleblock>.content .ulist>ul>li:last-child>:last-child,.exampleblock>.content .qlist>ol>li:last-child>:last-child,.sidebarblock>.content>:last-child>:last-child,.sidebarblock>.content .olist>ol>li:last-child>:last-child,.sidebarblock>.content .ulist>ul>li:last-child>:last-child,.sidebarblock>.content .qlist>ol>li:last-child>:last-child{margin-bottom:0}
+.literalblock pre,.listingblock>.content>pre{-webkit-border-radius:4px;border-radius:4px;overflow-x:auto;padding:1em;font-size:.8125em}
+@media screen and (min-width:768px){.literalblock pre,.listingblock>.content>pre{font-size:.90625em}}
+@media screen and (min-width:1280px){.literalblock pre,.listingblock>.content>pre{font-size:1em}}
+.literalblock pre,.listingblock>.content>pre:not(.highlight),.listingblock>.content>pre[class="highlight"],.listingblock>.content>pre[class^="highlight "]{background:#f7f7f8}
+.literalblock.output pre{color:#f7f7f8;background:rgba(0,0,0,.9)}
+.listingblock>.content{position:relative}
+.listingblock code[data-lang]::before{display:none;content:attr(data-lang);position:absolute;font-size:.75em;top:.425rem;right:.5rem;line-height:1;text-transform:uppercase;color:inherit;opacity:.5}
+.listingblock:hover code[data-lang]::before{display:block}
+.listingblock.terminal pre .command::before{content:attr(data-prompt);padding-right:.5em;color:inherit;opacity:.5}
+.listingblock.terminal pre .command:not([data-prompt])::before{content:"$"}
+.listingblock pre.highlightjs{padding:0}
+.listingblock pre.highlightjs>code{padding:1em;-webkit-border-radius:4px;border-radius:4px}
+.listingblock pre.prettyprint{border-width:0}
+.prettyprint{background:#f7f7f8}
+pre.prettyprint .linenums{line-height:1.45;margin-left:2em}
+pre.prettyprint li{background:none;list-style-type:inherit;padding-left:0}
+pre.prettyprint li code[data-lang]::before{opacity:1}
+pre.prettyprint li:not(:first-child) code[data-lang]::before{display:none}
+table.linenotable{border-collapse:separate;border:0;margin-bottom:0;background:none}
+table.linenotable td[class]{color:inherit;vertical-align:top;padding:0;line-height:inherit;white-space:normal}
+table.linenotable td.code{padding-left:.75em}
+table.linenotable td.linenos{border-right:1px solid currentColor;opacity:.35;padding-right:.5em}
+pre.pygments .lineno{border-right:1px solid currentColor;opacity:.35;display:inline-block;margin-right:.75em}
+pre.pygments .lineno::before{content:"";margin-right:-.125em}
+.quoteblock{margin:0 1em 1.25em 1.5em;display:table}
+.quoteblock:not(.excerpt)>.title{margin-left:-1.5em;margin-bottom:.75em}
+.quoteblock blockquote,.quoteblock p{color:rgba(0,0,0,.85);font-size:1.15rem;line-height:1.75;word-spacing:.1em;letter-spacing:0;font-style:italic;text-align:justify}
+.quoteblock blockquote{margin:0;padding:0;border:0}
+.quoteblock blockquote::before{content:"\201c";float:left;font-size:2.75em;font-weight:bold;line-height:.6em;margin-left:-.6em;color:#7a2518;text-shadow:0 1px 2px rgba(0,0,0,.1)}
+.quoteblock blockquote>.paragraph:last-child p{margin-bottom:0}
+.quoteblock .attribution{margin-top:.75em;margin-right:.5ex;text-align:right}
+.verseblock{margin:0 1em 1.25em}
+.verseblock pre{font-family:"Open Sans","DejaVu Sans",sans;font-size:1.15rem;color:rgba(0,0,0,.85);font-weight:300;text-rendering:optimizeLegibility}
+.verseblock pre strong{font-weight:400}
+.verseblock .attribution{margin-top:1.25rem;margin-left:.5ex}
+.quoteblock .attribution,.verseblock .attribution{font-size:.9375em;line-height:1.45;font-style:italic}
+.quoteblock .attribution br,.verseblock .attribution br{display:none}
+.quoteblock .attribution cite,.verseblock .attribution cite{display:block;letter-spacing:-.025em;color:rgba(0,0,0,.6)}
+.quoteblock.abstract blockquote::before,.quoteblock.excerpt blockquote::before,.quoteblock .quoteblock blockquote::before{display:none}
+.quoteblock.abstract blockquote,.quoteblock.abstract p,.quoteblock.excerpt blockquote,.quoteblock.excerpt p,.quoteblock .quoteblock blockquote,.quoteblock .quoteblock p{line-height:1.6;word-spacing:0}
+.quoteblock.abstract{margin:0 1em 1.25em;display:block}
+.quoteblock.abstract>.title{margin:0 0 .375em;font-size:1.15em;text-align:center}
+.quoteblock.excerpt>blockquote,.quoteblock .quoteblock{padding:0 0 .25em 1em;border-left:.25em solid #dddddf}
+.quoteblock.excerpt,.quoteblock .quoteblock{margin-left:0}
+.quoteblock.excerpt blockquote,.quoteblock.excerpt p,.quoteblock .quoteblock blockquote,.quoteblock .quoteblock p{color:inherit;font-size:1.0625rem}
+.quoteblock.excerpt .attribution,.quoteblock .quoteblock .attribution{color:inherit;text-align:left;margin-right:0}
+p.tableblock:last-child{margin-bottom:0}
+td.tableblock>.content{margin-bottom:1.25em;word-wrap:anywhere}
+td.tableblock>.content>:last-child{margin-bottom:-1.25em}
+table.tableblock,th.tableblock,td.tableblock{border:0 solid #dedede}
+table.grid-all>*>tr>*{border-width:1px}
+table.grid-cols>*>tr>*{border-width:0 1px}
+table.grid-rows>*>tr>*{border-width:1px 0}
+table.frame-all{border-width:1px}
+table.frame-ends{border-width:1px 0}
+table.frame-sides{border-width:0 1px}
+table.frame-none>colgroup+*>:first-child>*,table.frame-sides>colgroup+*>:first-child>*{border-top-width:0}
+table.frame-none>:last-child>:last-child>*,table.frame-sides>:last-child>:last-child>*{border-bottom-width:0}
+table.frame-none>*>tr>:first-child,table.frame-ends>*>tr>:first-child{border-left-width:0}
+table.frame-none>*>tr>:last-child,table.frame-ends>*>tr>:last-child{border-right-width:0}
+table.stripes-all tr,table.stripes-odd tr:nth-of-type(odd),table.stripes-even tr:nth-of-type(even),table.stripes-hover tr:hover{background:#f8f8f7}
+th.halign-left,td.halign-left{text-align:left}
+th.halign-right,td.halign-right{text-align:right}
+th.halign-center,td.halign-center{text-align:center}
+th.valign-top,td.valign-top{vertical-align:top}
+th.valign-bottom,td.valign-bottom{vertical-align:bottom}
+th.valign-middle,td.valign-middle{vertical-align:middle}
+table thead th,table tfoot th{font-weight:bold}
+tbody tr th{background:#f7f8f7}
+tbody tr th,tbody tr th p,tfoot tr th,tfoot tr th p{color:rgba(0,0,0,.8);font-weight:bold}
+p.tableblock>code:only-child{background:none;padding:0}
+p.tableblock{font-size:1em}
+ol{margin-left:1.75em}
+ul li ol{margin-left:1.5em}
+dl dd{margin-left:1.125em}
+dl dd:last-child,dl dd:last-child>:last-child{margin-bottom:0}
+ol>li p,ul>li p,ul dd,ol dd,.olist .olist,.ulist .ulist,.ulist .olist,.olist .ulist{margin-bottom:.625em}
+ul.checklist,ul.none,ol.none,ul.no-bullet,ol.no-bullet,ol.unnumbered,ul.unstyled,ol.unstyled{list-style-type:none}
+ul.no-bullet,ol.no-bullet,ol.unnumbered{margin-left:.625em}
+ul.unstyled,ol.unstyled{margin-left:0}
+ul.checklist{margin-left:.625em}
+ul.checklist li>p:first-child>.fa-square-o:first-child,ul.checklist li>p:first-child>.fa-check-square-o:first-child{width:1.25em;font-size:.8em;position:relative;bottom:.125em}
+ul.checklist li>p:first-child>input[type="checkbox"]:first-child{margin-right:.25em}
+ul.inline{display:-ms-flexbox;display:-webkit-box;display:flex;-ms-flex-flow:row wrap;-webkit-flex-flow:row wrap;flex-flow:row wrap;list-style:none;margin:0 0 .625em -1.25em}
+ul.inline>li{margin-left:1.25em}
+.unstyled dl dt{font-weight:400;font-style:normal}
+ol.arabic{list-style-type:decimal}
+ol.decimal{list-style-type:decimal-leading-zero}
+ol.loweralpha{list-style-type:lower-alpha}
+ol.upperalpha{list-style-type:upper-alpha}
+ol.lowerroman{list-style-type:lower-roman}
+ol.upperroman{list-style-type:upper-roman}
+ol.lowergreek{list-style-type:lower-greek}
+.hdlist>table,.colist>table{border:0;background:none}
+.hdlist>table>tbody>tr,.colist>table>tbody>tr{background:none}
+td.hdlist1,td.hdlist2{vertical-align:top;padding:0 .625em}
+td.hdlist1{font-weight:bold;padding-bottom:1.25em}
+td.hdlist2{word-wrap:anywhere}
+.literalblock+.colist,.listingblock+.colist{margin-top:-.5em}
+.colist td:not([class]):first-child{padding:.4em .75em 0;line-height:1;vertical-align:top}
+.colist td:not([class]):first-child img{max-width:none}
+.colist td:not([class]):last-child{padding:.25em 0}
+.thumb,.th{line-height:0;display:inline-block;border:solid 4px #fff;-webkit-box-shadow:0 0 0 1px #ddd;box-shadow:0 0 0 1px #ddd}
+.imageblock.left{margin:.25em .625em 1.25em 0}
+.imageblock.right{margin:.25em 0 1.25em .625em}
+.imageblock>.title{margin-bottom:0}
+.imageblock.thumb,.imageblock.th{border-width:6px}
+.imageblock.thumb>.title,.imageblock.th>.title{padding:0 .125em}
+.image.left,.image.right{margin-top:.25em;margin-bottom:.25em;display:inline-block;line-height:0}
+.image.left{margin-right:.625em}
+.image.right{margin-left:.625em}
+a.image{text-decoration:none;display:inline-block}
+a.image object{pointer-events:none}
+sup.footnote,sup.footnoteref{font-size:.875em;position:static;vertical-align:super}
+sup.footnote a,sup.footnoteref a{text-decoration:none}
+sup.footnote a:active,sup.footnoteref a:active{text-decoration:underline}
+#footnotes{padding-top:.75em;padding-bottom:.75em;margin-bottom:.625em}
+#footnotes hr{width:20%;min-width:6.25em;margin:-.25em 0 .75em;border-width:1px 0 0}
+#footnotes .footnote{padding:0 .375em 0 .225em;line-height:1.3334;font-size:.875em;margin-left:1.2em;margin-bottom:.2em}
+#footnotes .footnote a:first-of-type{font-weight:bold;text-decoration:none;margin-left:-1.05em}
+#footnotes .footnote:last-of-type{margin-bottom:0}
+#content #footnotes{margin-top:-.625em;margin-bottom:0;padding:.75em 0}
+.gist .file-data>table{border:0;background:#fff;width:100%;margin-bottom:0}
+.gist .file-data>table td.line-data{width:99%}
+div.unbreakable{page-break-inside:avoid}
+.big{font-size:larger}
+.small{font-size:smaller}
+.underline{text-decoration:underline}
+.overline{text-decoration:overline}
+.line-through{text-decoration:line-through}
+.aqua{color:#00bfbf}
+.aqua-background{background:#00fafa}
+.black{color:#000}
+.black-background{background:#000}
+.blue{color:#0000bf}
+.blue-background{background:#0000fa}
+.fuchsia{color:#bf00bf}
+.fuchsia-background{background:#fa00fa}
+.gray{color:#606060}
+.gray-background{background:#7d7d7d}
+.green{color:#006000}
+.green-background{background:#007d00}
+.lime{color:#00bf00}
+.lime-background{background:#00fa00}
+.maroon{color:#600000}
+.maroon-background{background:#7d0000}
+.navy{color:#000060}
+.navy-background{background:#00007d}
+.olive{color:#606000}
+.olive-background{background:#7d7d00}
+.purple{color:#600060}
+.purple-background{background:#7d007d}
+.red{color:#bf0000}
+.red-background{background:#fa0000}
+.silver{color:#909090}
+.silver-background{background:#bcbcbc}
+.teal{color:#006060}
+.teal-background{background:#007d7d}
+.white{color:#bfbfbf}
+.white-background{background:#fafafa}
+.yellow{color:#bfbf00}
+.yellow-background{background:#fafa00}
+span.icon>.fa{cursor:default}
+a span.icon>.fa{cursor:inherit}
+.admonitionblock td.icon [class^="fa icon-"]{font-size:2.5em;text-shadow:1px 1px 2px rgba(0,0,0,.5);cursor:default}
+.admonitionblock td.icon .icon-note::before{content:"\f05a";color:#19407c}
+.admonitionblock td.icon .icon-tip::before{content:"\f0eb";text-shadow:1px 1px 2px rgba(155,155,0,.8);color:#111}
+.admonitionblock td.icon .icon-warning::before{content:"\f071";color:#bf6900}
+.admonitionblock td.icon .icon-caution::before{content:"\f06d";color:#bf3400}
+.admonitionblock td.icon .icon-important::before{content:"\f06a";color:#bf0000}
+.conum[data-value]{display:inline-block;color:#fff!important;background:rgba(0,0,0,.8);-webkit-border-radius:50%;border-radius:50%;text-align:center;font-size:.75em;width:1.67em;height:1.67em;line-height:1.67em;font-family:"Open Sans","DejaVu Sans",sans-serif;font-style:normal;font-weight:bold}
+.conum[data-value] *{color:#fff!important}
+.conum[data-value]+b{display:none}
+.conum[data-value]::after{content:attr(data-value)}
+pre .conum[data-value]{position:relative;top:-.125em}
+b.conum *{color:inherit!important}
+.conum:not([data-value]):empty{display:none}
+dt,th.tableblock,td.content,div.footnote{text-rendering:optimizeLegibility}
+h1,h2,p,td.content,span.alt{letter-spacing:-.01em}
+p strong,td.content strong,div.footnote strong{letter-spacing:-.005em}
+p,blockquote,dt,td.content,span.alt{font-size:1.0625rem}
+p{margin-bottom:1.25rem}
+.sidebarblock p,.sidebarblock dt,.sidebarblock td.content,p.tableblock{font-size:1em}
+.exampleblock>.content{background:#fffef7;border-color:#e0e0dc;-webkit-box-shadow:0 1px 4px #e0e0dc;box-shadow:0 1px 4px #e0e0dc}
+.print-only{display:none!important}
+@page{margin:1.25cm .75cm}
+@media print{*{-webkit-box-shadow:none!important;box-shadow:none!important;text-shadow:none!important}
+html{font-size:80%}
+a{color:inherit!important;text-decoration:underline!important}
+a.bare,a[href^="#"],a[href^="mailto:"]{text-decoration:none!important}
+a[href^="http:"]:not(.bare)::after,a[href^="https:"]:not(.bare)::after{content:"(" attr(href) ")";display:inline-block;font-size:.875em;padding-left:.25em}
+abbr[title]::after{content:" (" attr(title) ")"}
+pre,blockquote,tr,img,object,svg{page-break-inside:avoid}
+thead{display:table-header-group}
+svg{max-width:100%}
+p,blockquote,dt,td.content{font-size:1em;orphans:3;widows:3}
+h2,h3,#toctitle,.sidebarblock>.content>.title{page-break-after:avoid}
+#header,#content,#footnotes,#footer{max-width:none}
+#toc,.sidebarblock,.exampleblock>.content{background:none!important}
+#toc{border-bottom:1px solid #dddddf!important;padding-bottom:0!important}
+body.book #header{text-align:center}
+body.book #header>h1:first-child{border:0!important;margin:2.5em 0 1em}
+body.book #header .details{border:0!important;display:block;padding:0!important}
+body.book #header .details span:first-child{margin-left:0!important}
+body.book #header .details br{display:block}
+body.book #header .details br+span::before{content:none!important}
+body.book #toc{border:0!important;text-align:left!important;padding:0!important;margin:0!important}
+body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-break-before:always}
+.listingblock code[data-lang]::before{display:block}
+#footer{padding:0 .9375em}
+.hide-on-print{display:none!important}
+.print-only{display:block!important}
+.hide-for-print{display:none!important}
+.show-for-print{display:inherit!important}}
+@media print,amzn-kf8{#header>h1:first-child{margin-top:1.25rem}
+.sect1{padding:0!important}
+.sect1+.sect1{border:0}
+#footer{background:none}
+#footer-text{color:rgba(0,0,0,.6);font-size:.9em}}
+@media amzn-kf8{#header,#content,#footnotes,#footer{padding:0}}
+</style>
+<style>
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+pre.pygments .hll { background-color: #ffffcc }
+pre.pygments { background: #f8f8f8; }
+pre.pygments .tok-c { color: #408080; font-style: italic } /* Comment */
+pre.pygments .tok-err { border: 1px solid #FF0000 } /* Error */
+pre.pygments .tok-k { color: #008000; font-weight: bold } /* Keyword */
+pre.pygments .tok-o { color: #666666 } /* Operator */
+pre.pygments .tok-ch { color: #408080; font-style: italic } /* Comment.Hashbang */
+pre.pygments .tok-cm { color: #408080; font-style: italic } /* Comment.Multiline */
+pre.pygments .tok-cp { color: #BC7A00 } /* Comment.Preproc */
+pre.pygments .tok-cpf { color: #408080; font-style: italic } /* Comment.PreprocFile */
+pre.pygments .tok-c1 { color: #408080; font-style: italic } /* Comment.Single */
+pre.pygments .tok-cs { color: #408080; font-style: italic } /* Comment.Special */
+pre.pygments .tok-gd { color: #A00000 } /* Generic.Deleted */
+pre.pygments .tok-ge { font-style: italic } /* Generic.Emph */
+pre.pygments .tok-gr { color: #FF0000 } /* Generic.Error */
+pre.pygments .tok-gh { color: #000080; font-weight: bold } /* Generic.Heading */
+pre.pygments .tok-gi { color: #00A000 } /* Generic.Inserted */
+pre.pygments .tok-go { color: #888888 } /* Generic.Output */
+pre.pygments .tok-gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+pre.pygments .tok-gs { font-weight: bold } /* Generic.Strong */
+pre.pygments .tok-gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+pre.pygments .tok-gt { color: #0044DD } /* Generic.Traceback */
+pre.pygments .tok-kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+pre.pygments .tok-kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+pre.pygments .tok-kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+pre.pygments .tok-kp { color: #008000 } /* Keyword.Pseudo */
+pre.pygments .tok-kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+pre.pygments .tok-kt { color: #B00040 } /* Keyword.Type */
+pre.pygments .tok-m { color: #666666 } /* Literal.Number */
+pre.pygments .tok-s { color: #BA2121 } /* Literal.String */
+pre.pygments .tok-na { color: #7D9029 } /* Name.Attribute */
+pre.pygments .tok-nb { color: #008000 } /* Name.Builtin */
+pre.pygments .tok-nc { color: #0000FF; font-weight: bold } /* Name.Class */
+pre.pygments .tok-no { color: #880000 } /* Name.Constant */
+pre.pygments .tok-nd { color: #AA22FF } /* Name.Decorator */
+pre.pygments .tok-ni { color: #999999; font-weight: bold } /* Name.Entity */
+pre.pygments .tok-ne { color: #D2413A; font-weight: bold } /* Name.Exception */
+pre.pygments .tok-nf { color: #0000FF } /* Name.Function */
+pre.pygments .tok-nl { color: #A0A000 } /* Name.Label */
+pre.pygments .tok-nn { color: #0000FF; font-weight: bold } /* Name.Namespace */
+pre.pygments .tok-nt { color: #008000; font-weight: bold } /* Name.Tag */
+pre.pygments .tok-nv { color: #19177C } /* Name.Variable */
+pre.pygments .tok-ow { color: #AA22FF; font-weight: bold } /* Operator.Word */
+pre.pygments .tok-w { color: #bbbbbb } /* Text.Whitespace */
+pre.pygments .tok-mb { color: #666666 } /* Literal.Number.Bin */
+pre.pygments .tok-mf { color: #666666 } /* Literal.Number.Float */
+pre.pygments .tok-mh { color: #666666 } /* Literal.Number.Hex */
+pre.pygments .tok-mi { color: #666666 } /* Literal.Number.Integer */
+pre.pygments .tok-mo { color: #666666 } /* Literal.Number.Oct */
+pre.pygments .tok-sa { color: #BA2121 } /* Literal.String.Affix */
+pre.pygments .tok-sb { color: #BA2121 } /* Literal.String.Backtick */
+pre.pygments .tok-sc { color: #BA2121 } /* Literal.String.Char */
+pre.pygments .tok-dl { color: #BA2121 } /* Literal.String.Delimiter */
+pre.pygments .tok-sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+pre.pygments .tok-s2 { color: #BA2121 } /* Literal.String.Double */
+pre.pygments .tok-se { color: #BB6622; font-weight: bold } /* Literal.String.Escape */
+pre.pygments .tok-sh { color: #BA2121 } /* Literal.String.Heredoc */
+pre.pygments .tok-si { color: #BB6688; font-weight: bold } /* Literal.String.Interpol */
+pre.pygments .tok-sx { color: #008000 } /* Literal.String.Other */
+pre.pygments .tok-sr { color: #BB6688 } /* Literal.String.Regex */
+pre.pygments .tok-s1 { color: #BA2121 } /* Literal.String.Single */
+pre.pygments .tok-ss { color: #19177C } /* Literal.String.Symbol */
+pre.pygments .tok-bp { color: #008000 } /* Name.Builtin.Pseudo */
+pre.pygments .tok-fm { color: #0000FF } /* Name.Function.Magic */
+pre.pygments .tok-vc { color: #19177C } /* Name.Variable.Class */
+pre.pygments .tok-vg { color: #19177C } /* Name.Variable.Global */
+pre.pygments .tok-vi { color: #19177C } /* Name.Variable.Instance */
+pre.pygments .tok-vm { color: #19177C } /* Name.Variable.Magic */
+pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
+</style>
+</head>
+<body class="article">
+<div id="header">
+<h1>BLisp: Lispっぽい静的型付け言語</h1>
+<div class="details">
+<span id="author" class="author">Yuuki Takano</span><br>
+<span id="email" class="email"><a href="mailto:ytakano@wide.ad.jp">ytakano@wide.ad.jp</a></span><br>
+<span id="revnumber">version 0.3.8,</span>
+<span id="revdate">2021-03</span>
+</div>
+<div id="toc" class="toc">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_特徴">1. 特徴</a></li>
+<li><a href="#_値">2. 値</a></li>
+<li><a href="#_基本型">3. 基本型</a></li>
+<li><a href="#_関数定義">4. 関数定義</a></li>
+<li><a href="#_算術演算">5. 算術演算</a></li>
+<li><a href="#_真偽値演算">6. 真偽値演算</a></li>
+<li><a href="#_比較演算">7. 比較演算</a></li>
+<li><a href="#_ビット演算">8. ビット演算</a></li>
+<li><a href="#_数学的演算">9. 数学的演算</a></li>
+<li><a href="#_代数的データ型">10. 代数的データ型</a></li>
+<li><a href="#_ジェネリクス">11. ジェネリクス</a></li>
+<li><a href="#_ジェネリック関数">12. ジェネリック関数</a></li>
+<li><a href="#_if式">13. If式</a></li>
+<li><a href="#_match式">14. Match式</a></li>
+<li><a href="#_let式">15. Let式</a></li>
+<li><a href="#_ラムダ式">16. ラムダ式</a></li>
+<li><a href="#_文字列と文字">17. 文字列と文字</a></li>
+<li><a href="#_外部関数呼び出し">18. 外部関数呼び出し</a></li>
+<li><a href="#_例">19. 例</a>
+<ul class="sectlevel2">
+<li><a href="#_リバース">19.1. リバース</a></li>
+<li><a href="#_filter">19.2. Filter</a></li>
+<li><a href="#_階乗">19.3. 階乗</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>BLispは静的型付けされたLispライクなプログラミング言語で、no_std環境用のエフェクトシステムを採用しています。BLispは関数型プログラミング言語の高階関数のような高階のRPCをサポートしています。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://github.com/ytakano/blisp">GitHubリポジトリ</a></p>
+</li>
+<li>
+<p><a href="https://crates.io/crates/blisp">BLispのcrates.io</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>本リポジトリではライブラリクレートのみを提供しています。BLispを利用するには <a href="https://github.com/ytakano/blisp-repl">blisp-repl</a> か、おもちゃのOSである <a href="https://github.com/ytakano/baremetalisp">baremetalisp</a> を参照してください。</p>
+</div>
+<div class="paragraph">
+<p><a href="https://ytakano.github.io/blisp/">English version is here.</a></p>
+</div>
+<div class="paragraph">
+<div class="title">no_stdで動くBLisp</div>
+<p><span class="image"><img src="https://cdn-ak.f.st-hatena.com/images/fotolife/y/ytakano/20210221/20210221155657.gif" alt="no_stdで動くBLisp"></span></p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_特徴">1. 特徴</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>代数的データ型</p>
+</li>
+<li>
+<p>ジェネリクス</p>
+</li>
+<li>
+<p>型推論</p>
+</li>
+<li>
+<p>IOと純粋な関数を分離するためのエフェクトシステム</p>
+</li>
+<li>
+<p>多倍長整数</p>
+</li>
+<li>
+<p>no_std環境のサポート</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_値">2. 値</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="title">values</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-o">`</span><span class="tok-nv">A</span><span class="tok-o">`</span>       <span class="tok-c1">; 文字リテラル</span>
+<span class="tok-s">&quot;Hello&quot;</span>   <span class="tok-c1">; 文字列リテラル</span>
+<span class="tok-mi">144</span>       <span class="tok-c1">; 整数値</span>
+<span class="tok-nv">0xabcDEF</span>  <span class="tok-c1">; 16進数</span>
+<span class="tok-nv">0o777</span>     <span class="tok-c1">; 8進数</span>
+<span class="tok-nv">0b1001</span>    <span class="tok-c1">; 2進数</span>
+<span class="tok-nv">true</span>      <span class="tok-c1">; 真偽値</span>
+<span class="tok-nv">false</span>     <span class="tok-c1">; 真偽値</span>
+<span class="tok-nv">[true</span> <span class="tok-nv">10]</span> <span class="tok-c1">; タプル</span>
+<span class="tok-nv">[]</span>        <span class="tok-c1">; 空のタプル</span>
+<span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span> <span class="tok-mi">3</span><span class="tok-p">)</span>  <span class="tok-c1">; リスト</span>
+<span class="tok-o">&#39;</span><span class="tok-p">()</span>       <span class="tok-c1">; 空のリスト、Nil</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_基本型">3. 基本型</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="title">types</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-nv">Char</span>       <span class="tok-c1">; 文字型</span>
+<span class="tok-nv">String</span>     <span class="tok-c1">; 文字列型</span>
+<span class="tok-nv">Int</span>        <span class="tok-c1">; 整数型</span>
+<span class="tok-nv">Bool</span>       <span class="tok-c1">; 真偽値型</span>
+<span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-nv">Int</span><span class="tok-p">)</span>     <span class="tok-c1">; Int型のリスト型</span>
+<span class="tok-nv">[Int</span> <span class="tok-nv">Bool]</span> <span class="tok-c1">; Int型とBool型のタプル型</span>
+<span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">Int</span> <span class="tok-nv">Int</span><span class="tok-p">)</span> <span class="tok-nv">Bool</span><span class="tok-p">))</span> <span class="tok-c1">; Int型の値を2つとり、Bool型の値をリターンする純粋な関数</span>
+<span class="tok-p">(</span><span class="tok-nv">IO</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">Int</span><span class="tok-p">)</span> <span class="tok-nv">[]</span><span class="tok-p">))</span> <span class="tok-c1">; Int型の値をとり[]をリターンするIOのある関数</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>PureとIOは関数の効果です。IO関数内では、Pure関数とIO関数の両方を呼び出すことができます。しかし、Pure関数内では、Pure関数の呼び出しのみ許可されています。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_関数定義">4. 関数定義</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>関数はdefunやexportで定義することができます。"defun"はRustのeval関数からは呼び出せないローカル関数を定義します。</p>
+</div>
+<div class="paragraph">
+<p>以下の2つの関数があるとしましょう。</p>
+</div>
+<div class="listingblock">
+<div class="title">defun</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nb">defun</span> <span class="tok-nv">double</span> <span class="tok-p">(</span><span class="tok-nv">x</span><span class="tok-p">)</span>         <span class="tok-c1">; 関数名がdoubleでxは引数</span>
+    <span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">Int</span><span class="tok-p">)</span> <span class="tok-nv">Int</span><span class="tok-p">))</span> <span class="tok-c1">; 関数の型</span>
+    <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-mi">2</span> <span class="tok-nv">x</span><span class="tok-p">))</span>              <span class="tok-c1">; 関数の中身</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">export</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nb">export</span> <span class="tok-nv">quad</span> <span class="tok-p">(</span><span class="tok-nv">x</span><span class="tok-p">)</span>          <span class="tok-c1">; 関数名がquadで引数はx</span>
+    <span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">Int</span><span class="tok-p">)</span> <span class="tok-nv">Int</span><span class="tok-p">))</span> <span class="tok-c1">; 関数の型</span>
+    <span class="tok-p">(</span><span class="tok-nv">double</span> <span class="tok-p">(</span><span class="tok-nv">double</span> <span class="tok-nv">x</span><span class="tok-p">)))</span>  <span class="tok-c1">; 関数の中身</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>doubleはRustのevalからは呼び出せませんが、内部で定義された関数からは呼び出せます。quadはRustのevalから呼び出すことができ、内部的にdoubleを呼び出します。</p>
+</div>
+<div class="paragraph">
+<p>これはRustで実際に行うコードです。</p>
+</div>
+<div class="listingblock">
+<div class="title">Rust&#8217;s eval</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="rust"><span></span><span class="tok-k">use</span><span class="tok-w"> </span><span class="tok-n">blisp</span><span class="tok-p">;</span><span class="tok-w"></span>
+
+<span class="tok-k">fn</span> <span class="tok-nf">eval</span><span class="tok-p">(</span><span class="tok-n">e</span>: <span class="tok-kp">&amp;</span><span class="tok-kt">str</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">ctx</span>: <span class="tok-kp">&amp;</span><span class="tok-nc">blisp</span>::<span class="tok-n">semantics</span>::<span class="tok-n">Context</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-c1">// evaluate expressions</span>
+<span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">exprs</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-k">match</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">eval</span><span class="tok-p">(</span><span class="tok-n">e</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">ctx</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">        </span><span class="tok-nb">Ok</span><span class="tok-p">(</span><span class="tok-n">es</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-o">=&gt;</span><span class="tok-w"> </span><span class="tok-n">es</span><span class="tok-p">,</span><span class="tok-w"></span>
+<span class="tok-w">        </span><span class="tok-nb">Err</span><span class="tok-p">(</span><span class="tok-n">err</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-o">=&gt;</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">            </span><span class="tok-fm">println!</span><span class="tok-p">(</span><span class="tok-s">&quot;error:{}:{}: {}&quot;</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">err</span><span class="tok-p">.</span><span class="tok-n">pos</span><span class="tok-p">.</span><span class="tok-n">line</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">err</span><span class="tok-p">.</span><span class="tok-n">pos</span><span class="tok-p">.</span><span class="tok-n">column</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">err</span><span class="tok-p">.</span><span class="tok-n">msg</span><span class="tok-p">);</span><span class="tok-w"></span>
+<span class="tok-w">            </span><span class="tok-k">return</span><span class="tok-p">;</span><span class="tok-w"></span>
+<span class="tok-w">        </span><span class="tok-p">}</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-p">};</span><span class="tok-w"></span>
+
+<span class="tok-w">    </span><span class="tok-k">for</span><span class="tok-w"> </span><span class="tok-n">r</span><span class="tok-w"> </span><span class="tok-k">in</span><span class="tok-w"> </span><span class="tok-n">exprs</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">        </span><span class="tok-k">match</span><span class="tok-w"> </span><span class="tok-n">r</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">            </span><span class="tok-nb">Ok</span><span class="tok-p">(</span><span class="tok-n">msg</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-o">=&gt;</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">                </span><span class="tok-fm">println!</span><span class="tok-p">(</span><span class="tok-s">&quot;{}&quot;</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">msg</span><span class="tok-p">);</span><span class="tok-w"></span>
+<span class="tok-w">            </span><span class="tok-p">}</span><span class="tok-w"></span>
+<span class="tok-w">            </span><span class="tok-nb">Err</span><span class="tok-p">(</span><span class="tok-n">msg</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-o">=&gt;</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">                </span><span class="tok-fm">println!</span><span class="tok-p">(</span><span class="tok-s">&quot;error: {}&quot;</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">msg</span><span class="tok-p">);</span><span class="tok-w"></span>
+<span class="tok-w">            </span><span class="tok-p">}</span><span class="tok-w"></span>
+<span class="tok-w">        </span><span class="tok-p">}</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-p">}</span><span class="tok-w"></span>
+<span class="tok-p">}</span><span class="tok-w"></span>
+
+<span class="tok-k">fn</span> <span class="tok-nf">main</span><span class="tok-p">()</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-c1">// internal code</span>
+<span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">code</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s">&quot;</span>
+<span class="tok-s">(defun double (x)         ; 関数名がdoubleでxは引数</span>
+<span class="tok-s">    (Pure (-&gt; (Int) Int)) ; 関数の型</span>
+<span class="tok-s">    (* 2 x))              ; 関数の中身</span>
+
+<span class="tok-s">(export quad (x)          ; 関数名がquadで引数はx</span>
+<span class="tok-s">    (Pure (-&gt; (Int) Int)) ; 関数の型</span>
+<span class="tok-s">    (double (double x)))  ; 関数の中身</span>
+<span class="tok-s">&quot;</span><span class="tok-p">;</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">exprs</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">init</span><span class="tok-p">(</span><span class="tok-n">code</span><span class="tok-p">).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">ctx</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">typing</span><span class="tok-p">(</span><span class="tok-o">&amp;</span><span class="tok-n">exprs</span><span class="tok-p">).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span>
+
+<span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">e</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s">&quot;(double 10) ; エラー&quot;</span><span class="tok-p">;</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-n">eval</span><span class="tok-p">(</span><span class="tok-n">e</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-o">&amp;</span><span class="tok-n">ctx</span><span class="tok-p">);</span><span class="tok-w"></span>
+
+<span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">e</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s">&quot;(quad 10) ; OK&quot;</span><span class="tok-p">;</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-n">eval</span><span class="tok-p">(</span><span class="tok-n">e</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-o">&amp;</span><span class="tok-n">ctx</span><span class="tok-p">);</span><span class="tok-w"></span>
+<span class="tok-p">}</span><span class="tok-w"></span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>このコードは以下のように出力します。</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>error:0:1: Typing Error: double is not defined
+40</pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_算術演算">5. 算術演算</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="title">基本</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; (Int Int) Int))</span>
+<span class="tok-p">(</span><span class="tok-nb">+</span> <span class="tok-mi">10</span> <span class="tok-mi">20</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nb">-</span> <span class="tok-mi">30</span> <span class="tok-mi">40</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-mi">6</span> <span class="tok-mi">100</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nb">/</span> <span class="tok-mi">100</span> <span class="tok-mi">2</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nv">%</span> <span class="tok-mi">10</span> <span class="tok-mi">3</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_真偽値演算">6. 真偽値演算</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="title">logical</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; (Bool Bool) Bool))</span>
+<span class="tok-p">(</span><span class="tok-nb">and</span> <span class="tok-nv">true</span> <span class="tok-nv">false</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nb">or</span> <span class="tok-nv">true</span> <span class="tok-nv">false</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nv">xor</span> <span class="tok-nv">true</span> <span class="tok-nv">false</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">negation</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; (Bool) Bool))</span>
+<span class="tok-p">(</span><span class="tok-nb">not</span> <span class="tok-nv">true</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_比較演算">7. 比較演算</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>=, !=, &lt;, &gt;, &lt;=, &gt;= といった関数は、同じ型の2つの値に対して適用できます。</p>
+</div>
+<div class="listingblock">
+<div class="title">comparison between 2 values whose types are same</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; (t t) Bool))</span>
+<span class="tok-p">(</span><span class="tok-nb">=</span> <span class="tok-mi">4</span> <span class="tok-mi">4</span><span class="tok-p">)</span>               <span class="tok-c1">; true</span>
+<span class="tok-p">(</span><span class="tok-nv">!=</span> <span class="tok-mi">4</span> <span class="tok-mi">4</span><span class="tok-p">)</span>              <span class="tok-c1">; false</span>
+<span class="tok-p">(</span><span class="tok-nb">=</span> <span class="tok-s">&quot;Hello&quot;</span> <span class="tok-s">&quot;Hello&quot;</span><span class="tok-p">)</span>   <span class="tok-c1">; true</span>
+<span class="tok-p">(</span><span class="tok-nb">=</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">1</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">2</span><span class="tok-p">))</span> <span class="tok-c1">; false</span>
+<span class="tok-p">(</span><span class="tok-nb">&lt;</span> <span class="tok-mi">6</span> <span class="tok-mi">7</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nb">&gt;</span> <span class="tok-mi">6</span> <span class="tok-mi">7</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nb">&lt;=</span> <span class="tok-mi">30</span> <span class="tok-mi">40</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nb">&gt;=</span> <span class="tok-mi">30</span> <span class="tok-mi">40</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nb">&lt;</span> <span class="tok-s">&quot;Hello&quot;</span> <span class="tok-s">&quot;World&quot;</span><span class="tok-p">)</span>
+<span class="tok-p">(</span><span class="tok-nb">&lt;=</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">1</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">2</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>eq</em>, <em>neq</em>, <em>lt</em>, <em>gt</em>, <em>leq</em>, <em>geq</em> といった関数は、異なる型同士の値でも比較可能です。</p>
+</div>
+<div class="listingblock">
+<div class="title">comparison between any 2 values</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; (t1 t1) Bool))</span>
+<span class="tok-p">(</span><span class="tok-nv">geq</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">1</span><span class="tok-p">)</span> <span class="tok-s">&quot;Hello&quot;</span><span class="tok-p">)</span> <span class="tok-c1">; (Some 1)は&quot;Hello&quot;より大きい、もしくは等しいか？</span>
+<span class="tok-p">(</span><span class="tok-nb">eq</span> <span class="tok-s">&quot;Hello&quot;</span> <span class="tok-mi">100</span><span class="tok-p">)</span>       <span class="tok-c1">; &quot;Hello&quot;と100は等しいか？</span>
+<span class="tok-p">(</span><span class="tok-nv">neq</span> <span class="tok-s">&quot;Hello&quot;</span> <span class="tok-mi">100</span><span class="tok-p">)</span>      <span class="tok-c1">; &quot;Hello&quot;と100は等しくないか？</span>
+<span class="tok-p">(</span><span class="tok-nv">lt</span> <span class="tok-mi">100</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">20</span><span class="tok-p">))</span>     <span class="tok-c1">; 100は(Some 20)より小さいか？</span>
+<span class="tok-p">(</span><span class="tok-nv">gt</span> <span class="tok-mi">200</span> <span class="tok-s">&quot;Hello&quot;</span><span class="tok-p">)</span>       <span class="tok-c1">; 200は&quot;Hello&quot;より大きいか？</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_ビット演算">8. ビット演算</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">band</span> <span class="tok-mi">1</span> <span class="tok-mi">0</span><span class="tok-p">)</span> <span class="tok-c1">; ビット積</span>
+<span class="tok-p">(</span><span class="tok-nv">band</span> <span class="tok-mi">1</span> <span class="tok-mi">1</span><span class="tok-p">)</span> <span class="tok-c1">; ビット積</span>
+<span class="tok-p">(</span><span class="tok-nv">bor</span> <span class="tok-mi">1</span> <span class="tok-mi">0</span><span class="tok-p">)</span>  <span class="tok-c1">; ビット和</span>
+<span class="tok-p">(</span><span class="tok-nv">bor</span> <span class="tok-mi">1</span> <span class="tok-mi">1</span><span class="tok-p">)</span>  <span class="tok-c1">; ビット和</span>
+<span class="tok-p">(</span><span class="tok-nv">bxor</span> <span class="tok-mi">1</span> <span class="tok-mi">0</span><span class="tok-p">)</span> <span class="tok-c1">; ビット排他的論理和</span></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">ビットシフト</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; (Int Int) (Option Int)))</span>
+<span class="tok-p">(</span><span class="tok-nv">&lt;&lt;</span> <span class="tok-mi">8</span> <span class="tok-mi">4</span><span class="tok-p">)</span>   <span class="tok-c1">; (Some 128)</span>
+<span class="tok-p">(</span><span class="tok-nv">&gt;&gt;</span> <span class="tok-mi">128</span> <span class="tok-mi">4</span><span class="tok-p">)</span> <span class="tok-c1">; (Some 8)</span>
+<span class="tok-p">(</span><span class="tok-nv">&gt;&gt;</span> <span class="tok-mi">-128</span> <span class="tok-mi">4</span><span class="tok-p">)</span> <span class="tok-c1">; (Some -8)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>2番目の引数が2<sup>64</sup>以上の場合はNoneをリターンします。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_数学的演算">9. 数学的演算</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; (Int Int) (Option Int)))</span>
+<span class="tok-p">(</span><span class="tok-nv">pow</span> <span class="tok-mi">10</span> <span class="tok-mi">20</span><span class="tok-p">)</span> <span class="tok-c1">; (Some 100000000000000000000) namely 10^20</span>
+
+<span class="tok-c1">; (Pure (-&gt; (Int) (Option Int)))</span>
+<span class="tok-p">(</span><span class="tok-nb">sqrt</span> <span class="tok-mi">16</span><span class="tok-p">)</span>   <span class="tok-c1">; (Some 4)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>powの指数部が2<sup>32</sup>以上の場合は、powはNoneをリターンします。</p>
+</div>
+<div class="paragraph">
+<p>sqrtの引数が0以下の場合は、sqrtはNoneをリターンします。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_代数的データ型">10. 代数的データ型</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>代数的データ型は以下のように定義できます。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; in BLisp</span>
+<span class="tok-p">(</span><span class="tok-nv">data</span> <span class="tok-nv">Gender</span> <span class="tok-c1">; 型名</span>
+    <span class="tok-nv">Male</span>     <span class="tok-c1">; 値</span>
+    <span class="tok-nv">Female</span><span class="tok-p">)</span>  <span class="tok-c1">; 値</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>型名とその値の最初の文字は大文字でなければなりません。これはRustの以下のコードと同等です。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="rust"><span></span><span class="tok-c1">// in Rust</span>
+<span class="tok-k">enum</span> <span class="tok-nc">Gender</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-n">Male</span><span class="tok-p">,</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-n">Female</span><span class="tok-w"></span>
+<span class="tok-p">}</span><span class="tok-w"></span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>各要素は以下のような値を持つことができます。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; in BLisp</span>
+<span class="tok-p">(</span><span class="tok-nv">data</span> <span class="tok-nv">Dim2</span>
+    <span class="tok-p">(</span><span class="tok-nv">Dim2</span> <span class="tok-nv">Int</span> <span class="tok-nv">Int</span><span class="tok-p">))</span> <span class="tok-c1">; Dim2は2つのInt型の値を持つ</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Dim2は以下のようにインスタンス化することができます。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">Dim2</span> <span class="tok-mi">10</span> <span class="tok-mi">20</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>この型はRustの以下の型と同等です。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="rust"><span></span><span class="tok-c1">// in Rust</span>
+<span class="tok-k">use</span><span class="tok-w"> </span><span class="tok-n">num_bigint</span>::<span class="tok-n">BigInt</span><span class="tok-p">;</span><span class="tok-w"></span>
+<span class="tok-k">enum</span> <span class="tok-nc">Dim2</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-n">Dim2</span><span class="tok-p">(</span><span class="tok-n">BigInt</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">BigInt</span><span class="tok-p">)</span><span class="tok-w"></span>
+<span class="tok-p">}</span><span class="tok-w"></span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_ジェネリクス">11. ジェネリクス</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Option型とResult型は内部で定義されています。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">data</span> <span class="tok-p">(</span><span class="tok-nv">Option</span> <span class="tok-no">t</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-no">t</span><span class="tok-p">)</span>
+    <span class="tok-nv">None</span><span class="tok-p">)</span>
+
+<span class="tok-p">(</span><span class="tok-nv">data</span> <span class="tok-p">(</span><span class="tok-nv">Result</span> <span class="tok-no">t</span> <span class="tok-nv">e</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-nv">Ok</span> <span class="tok-no">t</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-nv">Err</span> <span class="tok-nv">e</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>t</em> と <em>e</em> は型変数です。このコードは、Rustの以下のコードと同等です。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="rust"><span></span><span class="tok-c1">// in Rust</span>
+<span class="tok-k">enum</span> <span class="tok-nb">Option</span><span class="tok-o">&lt;</span><span class="tok-n">T</span><span class="tok-o">&gt;</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-nb">Some</span><span class="tok-p">(</span><span class="tok-n">T</span><span class="tok-p">),</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-nb">None</span><span class="tok-p">,</span><span class="tok-w"></span>
+<span class="tok-p">}</span><span class="tok-w"></span>
+
+<span class="tok-k">enum</span> <span class="tok-nb">Result</span><span class="tok-o">&lt;</span><span class="tok-n">T</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">E</span><span class="tok-o">&gt;</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-nb">Ok</span><span class="tok-p">(</span><span class="tok-n">T</span><span class="tok-p">),</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-nb">Err</span><span class="tok-p">(</span><span class="tok-n">E</span><span class="tok-p">),</span><span class="tok-w"></span>
+<span class="tok-p">}</span><span class="tok-w"></span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>リスト型は以下のような組み込み型です。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">data</span> <span class="tok-p">(</span><span class="tok-nv">List</span> <span class="tok-no">t</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-nv">Cons</span> <span class="tok-no">t</span> <span class="tok-p">(</span><span class="tok-nv">List</span> <span class="tok-no">t</span><span class="tok-p">))</span>
+    <span class="tok-no">Nil</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>したがって、以下の2つのリストは等価です。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">Cons</span> <span class="tok-mi">1</span> <span class="tok-p">(</span><span class="tok-nv">Cons</span> <span class="tok-mi">2</span> <span class="tok-p">(</span><span class="tok-nv">Cons</span> <span class="tok-mi">3</span> <span class="tok-no">Nil</span><span class="tok-p">)))</span>
+<span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span> <span class="tok-mi">3</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_ジェネリック関数">12. ジェネリック関数</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><em>car</em> と <em>cdr</em> は内部的に定義されたジェネリック関数です。これらの定義は以下の通りです。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nb">export</span> <span class="tok-nb">car</span> <span class="tok-p">(</span><span class="tok-nv">x</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-no">t</span><span class="tok-p">))</span> <span class="tok-p">(</span><span class="tok-nv">Option</span> <span class="tok-no">t</span><span class="tok-p">)))</span>
+    <span class="tok-p">(</span><span class="tok-nv">match</span> <span class="tok-nv">x</span>
+        <span class="tok-p">((</span><span class="tok-nv">Cons</span> <span class="tok-nv">n</span> <span class="tok-nv">_</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-nv">n</span><span class="tok-p">))</span>
+        <span class="tok-p">(</span><span class="tok-nv">_</span> <span class="tok-nv">None</span><span class="tok-p">)))</span>
+
+<span class="tok-p">(</span><span class="tok-nb">export</span> <span class="tok-nb">cdr</span> <span class="tok-p">(</span><span class="tok-nv">x</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-no">t</span><span class="tok-p">))</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-no">t</span><span class="tok-p">)))</span>
+    <span class="tok-p">(</span><span class="tok-nv">match</span> <span class="tok-nv">x</span>
+        <span class="tok-p">((</span><span class="tok-nv">Cons</span> <span class="tok-nv">_</span> <span class="tok-nv">l</span><span class="tok-p">)</span> <span class="tok-nv">l</span><span class="tok-p">)</span>
+        <span class="tok-p">(</span><span class="tok-nv">_</span> <span class="tok-o">&#39;</span><span class="tok-p">())))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>t_は型変数です。これらの関数は以下のように使うことができます。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nb">car</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">3</span> <span class="tok-mi">8</span> <span class="tok-mi">9</span><span class="tok-p">))</span>  <span class="tok-c1">; returns (Some 3)</span>
+<span class="tok-p">(</span><span class="tok-nb">cdr</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">8</span> <span class="tok-mi">10</span> <span class="tok-mi">4</span><span class="tok-p">))</span> <span class="tok-c1">; returns &#39;(10 4)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>通常変数と型変数の最初の文字は小文字でなければなりません。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_if式">13. If式</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>単純です.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-k">if</span> <span class="tok-p">(</span><span class="tok-nb">&lt;</span> <span class="tok-mi">10</span> <span class="tok-mi">20</span><span class="tok-p">)</span>
+    <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span> <span class="tok-mi">3</span><span class="tok-p">)</span>
+    <span class="tok-o">&#39;</span><span class="tok-p">())</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_match式">14. Match式</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>リストは以下のようにマッチさせることができます。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">match</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span> <span class="tok-mi">3</span><span class="tok-p">)</span>
+    <span class="tok-p">((</span><span class="tok-nv">Cons</span> <span class="tok-nv">n</span> <span class="tok-nv">_</span><span class="tok-p">)</span> <span class="tok-nv">n</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-o">&#39;</span><span class="tok-p">()</span> <span class="tok-mi">0</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>この、</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>(Cons n _)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>という式はパターンです。
+パターンが '(1 2 3) にマッチした場合、1は可変変数 <em>n</em> に代入されます。そうすると、<em>n</em> つまり1が返されます。</p>
+</div>
+<div class="paragraph">
+<p>タプルのパターンマッチングの例です。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">match</span> <span class="tok-nv">[1</span> <span class="tok-nv">3]</span>
+    <span class="tok-p">(</span><span class="tok-nv">[x</span> <span class="tok-nv">y]</span> <span class="tok-nv">[y</span> <span class="tok-nv">x]</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>このコードはタプルの第1要素と第2要素を入れ替えます。</p>
+</div>
+<div class="paragraph">
+<p>整数値はパターンマッチングにも使用できます。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">match</span> <span class="tok-mi">20</span>
+    <span class="tok-p">(</span><span class="tok-mi">20</span> <span class="tok-nv">true</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-nv">_</span> <span class="tok-nv">false</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>より複雑な例としては、以下のようなものがあります。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">match</span> <span class="tok-nv">[</span><span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">10</span><span class="tok-p">)</span> <span class="tok-nv">true]</span>
+    <span class="tok-p">(</span><span class="tok-nv">[</span><span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">10</span><span class="tok-p">)</span> <span class="tok-nv">false]</span> <span class="tok-mi">1</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-nv">[</span><span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">10</span><span class="tok-p">)</span> <span class="tok-nv">true]</span> <span class="tok-mi">2</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-nv">_</span> <span class="tok-mi">0</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>BLispはパターンを網羅的にチェックします。そのため、以下のコードは拒否されます。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">match</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-o">&#39;</span><span class="tok-p">()</span> <span class="tok-mi">0</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_let式">15. Let式</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>変数のバインドには、以下のようにLet式を使用します。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-k">let</span> <span class="tok-p">((</span><span class="tok-nv">x</span> <span class="tok-mi">10</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">y</span> <span class="tok-mi">20</span><span class="tok-p">))</span> <span class="tok-c1">; x is 10, y is 20</span>
+    <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-nv">x</span> <span class="tok-nv">y</span><span class="tok-p">))</span>
+
+<span class="tok-p">(</span><span class="tok-k">let</span> <span class="tok-p">((</span><span class="tok-nv">x</span> <span class="tok-mi">10</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">x</span> <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-nv">x</span> <span class="tok-nv">x</span><span class="tok-p">))</span> <span class="tok-p">(</span><span class="tok-nv">x</span> <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-nv">x</span> <span class="tok-nv">x</span><span class="tok-p">)))</span> <span class="tok-c1">; x = 10, x = x * x, x = x * x</span>
+    <span class="tok-nv">x</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>また、以下のように分配束縛を行うこともできます。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-k">let</span> <span class="tok-p">(((</span><span class="tok-nv">Some</span> <span class="tok-nv">x</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Some</span> <span class="tok-mi">10</span><span class="tok-p">)))</span> <span class="tok-c1">; x is 10</span>
+    <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-nv">x</span> <span class="tok-mi">2</span><span class="tok-p">))</span>
+
+<span class="tok-p">(</span><span class="tok-k">let</span> <span class="tok-p">((</span><span class="tok-nv">[x</span> <span class="tok-nv">y]</span> <span class="tok-nv">[10</span> <span class="tok-nv">20]</span><span class="tok-p">))</span> <span class="tok-c1">; x is 10, y is 20</span>
+    <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-nv">x</span> <span class="tok-nv">y</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_ラムダ式">16. ラムダ式</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>ラムダ式は以下のように定義されます。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-k">lambda</span> <span class="tok-p">(</span><span class="tok-nv">x</span> <span class="tok-nv">y</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-nv">x</span> <span class="tok-nv">y</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>このラムダは2つの整数を受け取り、それらの乗算を返します。これに引数を適用するのは次のように簡単に行えます。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">((</span><span class="tok-k">lambda</span> <span class="tok-p">(</span><span class="tok-nv">x</span> <span class="tok-nv">y</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-nv">x</span> <span class="tok-nv">y</span><span class="tok-p">))</span> <span class="tok-mi">10</span> <span class="tok-mi">20</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>すべてのラムダ式は純粋です。よって、ラムダ式からIO関数を呼び出すことはできません。</p>
+</div>
+<div class="paragraph">
+<p><em>map</em> と <em>fold</em> 関数は内部的に以下のように定義されています。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nb">export</span> <span class="tok-nb">map</span> <span class="tok-p">(</span><span class="tok-nv">f</span> <span class="tok-nv">x</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">((</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">a</span><span class="tok-p">)</span> <span class="tok-nv">b</span><span class="tok-p">))</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-nv">a</span><span class="tok-p">))</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-nv">b</span><span class="tok-p">)))</span>
+    <span class="tok-p">(</span><span class="tok-nv">match</span> <span class="tok-nv">x</span>
+        <span class="tok-p">((</span><span class="tok-nv">Cons</span> <span class="tok-nv">h</span> <span class="tok-nv">l</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Cons</span> <span class="tok-p">(</span><span class="tok-nv">f</span> <span class="tok-nv">h</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nb">map</span> <span class="tok-nv">f</span> <span class="tok-nv">l</span><span class="tok-p">)))</span>
+        <span class="tok-p">(</span><span class="tok-nv">_</span> <span class="tok-o">&#39;</span><span class="tok-p">())))</span>
+
+<span class="tok-p">(</span><span class="tok-nb">export</span> <span class="tok-nv">fold</span> <span class="tok-p">(</span><span class="tok-nv">f</span> <span class="tok-nv">init</span> <span class="tok-nv">x</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">((</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">a</span> <span class="tok-nv">b</span><span class="tok-p">)</span> <span class="tok-nv">b</span><span class="tok-p">))</span> <span class="tok-nv">b</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-nv">a</span><span class="tok-p">))</span> <span class="tok-nv">b</span><span class="tok-p">))</span>
+    <span class="tok-p">(</span><span class="tok-nv">match</span> <span class="tok-nv">x</span>
+        <span class="tok-p">((</span><span class="tok-nv">Cons</span> <span class="tok-nv">h</span> <span class="tok-nv">l</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">fold</span> <span class="tok-nv">f</span> <span class="tok-p">(</span><span class="tok-nv">f</span> <span class="tok-nv">h</span> <span class="tok-nv">init</span><span class="tok-p">)</span> <span class="tok-nv">l</span><span class="tok-p">))</span>
+        <span class="tok-p">(</span><span class="tok-nv">_</span> <span class="tok-nv">init</span><span class="tok-p">)))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>map</em> を使うと、以下のようにリストの要素に関数を適用することができます。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; それぞれをの要素を2乗</span>
+<span class="tok-p">(</span><span class="tok-k">let</span> <span class="tok-p">((</span><span class="tok-nv">l</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span> <span class="tok-mi">3</span><span class="tok-p">))</span>
+      <span class="tok-p">(</span><span class="tok-nv">f</span> <span class="tok-p">(</span><span class="tok-k">lambda</span> <span class="tok-p">(</span><span class="tok-nv">x</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-nv">x</span> <span class="tok-nv">x</span><span class="tok-p">))))</span>
+        <span class="tok-p">(</span><span class="tok-nb">map</span> <span class="tok-nv">f</span> <span class="tok-nv">l</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>fold</em> を使用して、リストの要素にまたがって計算することができます。例えば、合計は以下のように計算できます。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; 合計</span>
+<span class="tok-p">(</span><span class="tok-k">let</span> <span class="tok-p">((</span><span class="tok-nv">l</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">20</span> <span class="tok-mi">50</span> <span class="tok-mi">60</span><span class="tok-p">))</span>
+      <span class="tok-p">(</span><span class="tok-nv">f</span> <span class="tok-p">(</span><span class="tok-k">lambda</span> <span class="tok-p">(</span><span class="tok-nv">x</span> <span class="tok-nv">y</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nb">+</span> <span class="tok-nv">x</span> <span class="tok-nv">y</span><span class="tok-p">))))</span>
+        <span class="tok-p">(</span><span class="tok-nv">fold</span> <span class="tok-nv">f</span> <span class="tok-mi">0</span> <span class="tok-nv">l</span><span class="tok-p">))</span> <span class="tok-c1">; 0 is an initial value</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>当然、これは以下のようにも記述できます。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; summation</span>
+<span class="tok-p">(</span><span class="tok-nv">fold</span> <span class="tok-nb">+</span> <span class="tok-mi">0</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">20</span> <span class="tok-mi">50</span> <span class="tok-mi">60</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_文字列と文字">17. 文字列と文字</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><em>chars</em> はStringから(List Char)へ変換します。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; (String) (List Char)))</span>
+<span class="tok-p">(</span><span class="tok-nv">chars</span> <span class="tok-s">&quot;Hello&quot;</span><span class="tok-p">)</span> <span class="tok-c1">; &#39;(`H` `e` `l` `l` `o`)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>str</em> は(List Char)からStringへ変換します。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; (Pure (-&gt; ((List Char)) String))</span>
+<span class="tok-p">(</span><span class="tok-nv">str</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-o">`</span><span class="tok-nv">H</span><span class="tok-o">`</span> <span class="tok-o">`</span><span class="tok-nv">e</span><span class="tok-o">`</span> <span class="tok-o">`</span><span class="tok-nv">l</span><span class="tok-o">`</span> <span class="tok-o">`</span><span class="tok-nv">l</span><span class="tok-o">`</span> <span class="tok-o">`</span><span class="tok-nv">o</span><span class="tok-o">`</span><span class="tok-p">))</span> <span class="tok-c1">; &quot;Hello&quot;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_外部関数呼び出し">18. 外部関数呼び出し</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><em>call-rust</em> はRustの関数を呼び出すための関数です。
+これは以下のように組み込み関数として定義されています。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">define</span> <span class="tok-nv">call-rust</span>
+    <span class="tok-p">(</span><span class="tok-nv">IO</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">Int</span> <span class="tok-nv">Int</span> <span class="tok-nv">Int</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Option</span> <span class="tok-nv">Int</span><span class="tok-p">)))</span> <span class="tok-c1">; type of call-rust</span>
+    <span class="tok-c1">; 省略</span>
+    <span class="tok-p">)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>この関数は3つの整数値をとり、(Option Int)をリターンします。
+Rustの関数を呼び出すためには、以下のようにコールバック関数を設定しなければなりません。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="rust"><span></span><span class="tok-k">use</span><span class="tok-w"> </span><span class="tok-n">blisp</span><span class="tok-p">;</span><span class="tok-w"></span>
+<span class="tok-k">use</span><span class="tok-w"> </span><span class="tok-n">num_bigint</span>::<span class="tok-n">BigInt</span><span class="tok-p">;</span><span class="tok-w"></span>
+
+<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">expr</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s">&quot;</span>
+<span class="tok-s">(export callback (x y z)</span>
+<span class="tok-s">    (IO (-&gt; (Int Int Int) (Option Int)))</span>
+<span class="tok-s">    (call-rust x y z))&quot;</span><span class="tok-p">;</span><span class="tok-w"></span>
+<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">exprs</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">init</span><span class="tok-p">(</span><span class="tok-n">expr</span><span class="tok-p">).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span>
+<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-k">mut</span><span class="tok-w"> </span><span class="tok-n">ctx</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">typing</span><span class="tok-p">(</span><span class="tok-o">&amp;</span><span class="tok-n">exprs</span><span class="tok-p">).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span>
+
+<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">fun</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-o">|</span><span class="tok-n">x</span>: <span class="tok-kp">&amp;</span><span class="tok-nc">BigInt</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">y</span>: <span class="tok-kp">&amp;</span><span class="tok-nc">BigInt</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">z</span>: <span class="tok-kp">&amp;</span><span class="tok-nc">BigInt</span><span class="tok-o">|</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"> </span><b class="conum">(1)</b>
+<span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">n</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">x</span><span class="tok-w"> </span><span class="tok-o">*</span><span class="tok-w"> </span><span class="tok-n">y</span><span class="tok-w"> </span><span class="tok-o">*</span><span class="tok-w"> </span><span class="tok-n">z</span><span class="tok-p">;</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-fm">println!</span><span class="tok-p">(</span><span class="tok-s">&quot;n = {}&quot;</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">n</span><span class="tok-p">);</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-nb">Some</span><span class="tok-p">(</span><span class="tok-n">n</span><span class="tok-p">)</span><span class="tok-w"></span>
+<span class="tok-p">};</span><span class="tok-w"></span>
+<span class="tok-n">ctx</span><span class="tok-p">.</span><span class="tok-n">set_callback</span><span class="tok-p">(</span><span class="tok-nb">Box</span>::<span class="tok-n">new</span><span class="tok-p">(</span><span class="tok-n">fun</span><span class="tok-p">));</span><span class="tok-w"></span>
+
+<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">e</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s">&quot;(callback 100 2000 30000)&quot;</span><span class="tok-p">;</span><span class="tok-w"> </span><b class="conum">(2)</b>
+<span class="tok-n">blisp</span>::<span class="tok-n">eval</span><span class="tok-p">(</span><span class="tok-n">e</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-o">&amp;</span><span class="tok-n">ctx</span><span class="tok-p">);</span><span class="tok-w"></span></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>BLispから呼び出されるコールバック関数です. この関数の型は Fn:(&amp;BigInt, &amp;BigInt, &amp;BigInt) &#8594; Option&lt;BigInt&gt; でなければなりません。</p>
+</li>
+<li>
+<p>Rustのコールバック関数を呼び出しています。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>このコードを呼び出すと、次のように出力されます。</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>n = 6000000000</pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>call-rust</em> はIO関数です. 従って、Pure関数からは呼び出すことは出来ません。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_例">19. 例</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_リバース">19.1. リバース</h3>
+<div class="paragraph">
+<p><em>reverse</em> は内部で定義されている関数です。この関数はリストを反転します。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nb">reverse</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span> <span class="tok-mi">3</span> <span class="tok-mi">4</span> <span class="tok-mi">5</span> <span class="tok-mi">6</span> <span class="tok-mi">7</span> <span class="tok-mi">8</span> <span class="tok-mi">9</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>このコードの出力は以下の通りです。</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>'(9 8 7 6 5 4 3 2 1)</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_filter">19.2. Filter</h3>
+<div class="paragraph">
+<p><em>filter</em> は内部で定義されている関数です。この関数はリストの中身をフィルターします。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">filter</span> <span class="tok-p">(</span><span class="tok-k">lambda</span> <span class="tok-p">(</span><span class="tok-nv">x</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nb">=</span> <span class="tok-p">(</span><span class="tok-nv">%</span> <span class="tok-nv">x</span> <span class="tok-mi">2</span><span class="tok-p">)</span> <span class="tok-mi">0</span><span class="tok-p">))</span> <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-mi">1</span> <span class="tok-mi">2</span> <span class="tok-mi">3</span> <span class="tok-mi">4</span> <span class="tok-mi">5</span> <span class="tok-mi">6</span> <span class="tok-mi">7</span> <span class="tok-mi">8</span> <span class="tok-mi">9</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>このコードの出力は以下の通りです。</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>'(2 4 6 8)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>filter</em>' の型は以下の通りです。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span>
+    <span class="tok-p">((</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-no">t</span><span class="tok-p">)</span> <span class="tok-nv">Bool</span><span class="tok-p">))</span> <span class="tok-c1">; 関数を引数にとる</span>
+     <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-no">t</span><span class="tok-p">))</span>                <span class="tok-c1">; リストを引数にとる</span>
+    <span class="tok-o">&#39;</span><span class="tok-p">(</span><span class="tok-no">t</span><span class="tok-p">)))</span> <span class="tok-c1">; リストをリターン</span></code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_階乗">19.3. 階乗</h3>
+<div class="paragraph">
+<p>末尾呼び出し版の階乗関数は、以下のように実装できます。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nb">export</span> <span class="tok-nv">factorial</span> <span class="tok-p">(</span><span class="tok-nv">n</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">Int</span><span class="tok-p">)</span> <span class="tok-nv">Int</span><span class="tok-p">))</span>
+    <span class="tok-p">(</span><span class="tok-nv">fact</span> <span class="tok-nv">n</span> <span class="tok-mi">1</span><span class="tok-p">))</span>
+
+<span class="tok-p">(</span><span class="tok-nb">defun</span> <span class="tok-nv">fact</span> <span class="tok-p">(</span><span class="tok-nv">n</span> <span class="tok-nv">total</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Pure</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">Int</span> <span class="tok-nv">Int</span><span class="tok-p">)</span> <span class="tok-nv">Int</span><span class="tok-p">))</span>
+    <span class="tok-p">(</span><span class="tok-k">if</span> <span class="tok-p">(</span><span class="tok-nb">&lt;=</span> <span class="tok-nv">n</span> <span class="tok-mi">0</span><span class="tok-p">)</span>
+        <span class="tok-nv">total</span>
+        <span class="tok-p">(</span><span class="tok-nv">fact</span> <span class="tok-p">(</span><span class="tok-nb">-</span> <span class="tok-nv">n</span> <span class="tok-mi">1</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nb">*</span> <span class="tok-nv">n</span> <span class="tok-nv">total</span><span class="tok-p">))))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>この関数は以下のように呼び出すことができます。</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>&gt;&gt; (factorial 10)
+3628800
+&gt;&gt;
+&gt;&gt; (factorial 1000)
+402387260077093773543702433923003985719374864210714632543799910429938512398629020592044208486969404800479988610197196058631666872994808558901323829669944590997424504087073759918823627727188732519779505950995276120874975462497043601418278094646496291056393887437886487337119181045825783647849977012476632889835955735432513185323958463075557409114262417474349347553428646576611667797396668820291207379143853719588249808126867838374559731746136085379534524221586593201928090878297308431392844403281231558611036976801357304216168747609675871348312025478589320767169132448426236131412508780208000261683151027341827977704784635868170164365024153691398281264810213092761244896359928705114964975419909342221566832572080821333186116811553615836546984046708975602900950537616475847728421889679646244945160765353408198901385442487984959953319101723355556602139450399736280750137837615307127761926849034352625200015888535147331611702103968175921510907788019393178114194545257223865541461062892187960223838971476088506276862967146674697562911234082439208160153780889893964518263243671616762179168909779911903754031274622289988005195444414282012187361745992642956581746628302955570299024324153181617210465832036786906117260158783520751516284225540265170483304226143974286933061690897968482590125458327168226458066526769958652682272807075781391858178889652208164348344825993266043367660176999612831860788386150279465955131156552036093988180612138558600301435694527224206344631797460594682573103790084024432438465657245014402821885252470935190620929023136493273497565513958720559654228749774011413346962715422845862377387538230483865688976461927383814900140767310446640259899490222221765904339901886018566526485061799702356193897017860040811889729918311021171229845901641921068884387121855646124960798722908519296819372388642614839657382291123125024186649353143970137428531926649875337218940694281434118520158014123344828015051399694290153483077644569099073152433278288269864602789864321139083506217095002597389863554277196742822248757586765752344220207573630569498825087968928162753848863396909959826280956121450994871701244516461260379029309120889086942028510640182154399457156805941872748998094254742173582401063677404595741785160829230135358081840096996372524230560855903700624271243416909004153690105933983835777939410970027753472000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+&gt;&gt;
+&gt;&gt; (factorial 100)
+93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000
+&gt;&gt;
+&gt;&gt; (factorial 500)
+1220136825991110068701238785423046926253574342803192842192413588385845373153881997605496447502203281863013616477148203584163378722078177200480785205159329285477907571939330603772960859086270429174547882424912726344305670173270769461062802310452644218878789465754777149863494367781037644274033827365397471386477878495438489595537537990423241061271326984327745715546309977202781014561081188373709531016356324432987029563896628911658974769572087926928871281780070265174507768410719624390394322536422605234945850129918571501248706961568141625359056693423813008856249246891564126775654481886506593847951775360894005745238940335798476363944905313062323749066445048824665075946735862074637925184200459369692981022263971952597190945217823331756934581508552332820762820023402626907898342451712006207714640979456116127629145951237229913340169552363850942885592018727433795173014586357570828355780158735432768888680120399882384702151467605445407663535984174430480128938313896881639487469658817504506926365338175055478128640000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Version 0.3.8<br>
+Last updated 2021-03-28 15:55:23 +0900
+</div>
+</div>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]],
+    ignoreClass: "nostem|nolatexmath"
+  },
+  asciimath2jax: {
+    delimiters: [["\\$", "\\$"]],
+    ignoreClass: "nostem|noasciimath"
+  },
+  TeX: { equationNumbers: { autoNumber: "none" } }
+})
+MathJax.Hub.Register.StartupHook("AsciiMath Jax Ready", function () {
+  MathJax.InputJax.AsciiMath.postfilterHooks.Add(function (data, node) {
+    if ((node = data.script.parentNode) && (node = node.parentNode) && node.classList.contains("stemblock")) {
+      data.math.root.display = "block"
+    }
+    return data
+  })
+})
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script>
+</body>
+</html>

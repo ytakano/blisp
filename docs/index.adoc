@@ -1,0 +1,672 @@
+= BLisp: A Statically Typed Lisp Like Language
+Yuuki Takano <ytakano@wide.ad.jp>
+v0.3.8, 2021-03
+:doctype: article
+:toc:
+:sectnums:
+:encoding: utf-8
+:stem: latexmath
+:source-highlighter: pygments
+
+
+BLisp is a statically typed Lisp like programming language which adopts effect system for no_std environments.
+BLisp supports higher order RPC like higher order functions of functional programming languages.
+
+* https://github.com/ytakano/blisp[GitHub's Repository]
+* https://crates.io/crates/blisp[BLisp's crates.io]
+
+This repository provides only a library crate.
+Please see https://github.com/ytakano/blisp-repl[blisp-repl] to use BLisp,
+and https://github.com/ytakano/baremetalisp[baremetalisp] which is a toy OS.
+
+https://ytakano.github.io/blisp/index.ja.html[日本語版はこちら]
+
+.BLisp on no_std Environment
+image:https://cdn-ak.f.st-hatena.com/images/fotolife/y/ytakano/20210221/20210221155657.gif[BLisp on no_std Environment]
+
+== Features
+
+* Algebraic data type
+* Generics
+* Hindley–Milner based type inference
+* Effect system to separate side effects from pure functions
+* Big integer
+* Supporting no_std environments
+
+== Values
+
+.values
+[source, lisp]
+----
+`A`       ; character literal
+"Hello"   ; string literal
+144       ; integer value
+0xabcDEF  ; hexadecimal
+0o777     ; octal
+0b1001    ; binary
+true      ; boolean value
+false     ; boolean value
+[true 10] ; tuple
+[]        ; empty tuple
+'(1 2 3)  ; list
+'()       ; empty list, Nil
+----
+
+== Basic Types
+
+.types
+[source, lisp]
+----
+Char       ; character
+String     ; string
+Int        ; signed integer
+Bool       ; boolean
+'(Int)     ; list of Int
+[Int Bool] ; tuple of Int and Bool
+(Pure (-> (Int Int) Bool)) ; Pure function, which takes 2 integers and return boolean value
+(IO (-> (Int) [])) ; IO function, which takes an integer and return []
+----
+
+Pure and IO are function effects.
+In IO functions, both Pure and IO functions can be called.
+However, in Pure functions, calling only Pure functions is permitted.
+
+== Function Definition
+
+Functions can be defined by defun or export.
+"defun" defines a local function which cannot be called from Rust's eval function.
+
+Suppose following 2 functions.
+
+.defun
+[source, lisp]
+----
+(defun double (x)         ; function name is "double" and "x" is an argument
+    (Pure (-> (Int) Int)) ; function Type
+    (* 2 x))              ; function body
+----
+
+.export
+[source, lisp]
+----
+(export quad (x)          ; function name is "quad" and "x" is an argument
+    (Pure (-> (Int) Int)) ; function Type
+    (double (double x)))  ; function body
+----
+
+double cannot be called from Rust's eval, but can be called from internally defined functions.
+quad can be called from Rust's eval, and it calls double internally.
+
+This is the code what actually do in Rust.
+
+.Rust's eval
+[source, rust]
+----
+use blisp;
+
+fn eval(e: &str, ctx: &blisp::semantics::Context) {
+    // evaluate expressions
+    let exprs = match blisp::eval(e, ctx) {
+        Ok(es) => es,
+        Err(err) => {
+            println!("error:{}:{}: {}", err.pos.line, err.pos.column, err.msg);
+            return;
+        }
+    };
+
+    for r in exprs {
+        match r {
+            Ok(msg) => {
+                println!("{}", msg);
+            }
+            Err(msg) => {
+                println!("error: {}", msg);
+            }
+        }
+    }
+}
+
+fn main() {
+    // internal code
+    let code = "
+(defun double (x)         ; function name is double and x is an argument
+    (Pure (-> (Int) Int)) ; function Type
+    (* 2 x))              ; function body
+
+(export quad (x)          ; function name is quad and x is an argument
+    (Pure (-> (Int) Int)) ; function Type
+    (double (double x)))  ; function body
+";
+    let exprs = blisp::init(code).unwrap();
+    let ctx = blisp::typing(&exprs).unwrap();
+
+    let e = "(double 10) ; error";
+    eval(e, &ctx);
+
+    let e = "(quad 10) ; OK";
+    eval(e, &ctx);
+}
+----
+
+This code output as follows.
+
+ error:0:1: Typing Error: double is not defined
+ 40
+
+== Arithmetic Operations
+
+.basic
+[source, lisp]
+----
+; (Pure (-> (Int Int) Int))
+(+ 10 20)
+(- 30 40)
+(* 6 100)
+(/ 100 2)
+(% 10 3)
+----
+
+== Boolean Operations
+
+.logical
+[source, lisp]
+----
+; (Pure (-> (Bool Bool) Bool))
+(and true false)
+(or true false)
+(xor true false)
+----
+
+.negation
+[source, lisp]
+----
+; (Pure (-> (Bool) Bool))
+(not true)
+----
+
+== Comparison
+
+=, !=, <, >, \<=, >= can be used for 2 values whose types are same.
+
+.comparison between 2 values whose types are same
+[source, lisp]
+----
+; (Pure (-> (t t) Bool))
+(= 4 4)               ; true
+(!= 4 4)              ; false
+(= "Hello" "Hello")   ; true
+(= (Some 1) (Some 2)) ; false
+(< 6 7)
+(> 6 7)
+(<= 30 40)
+(>= 30 40)
+(< "Hello" "World")
+(<= (Some 1) (Some 2))
+----
+
+_eq_, _neq_, _lt_, _gt_, _leq_, _geq_ can be used for any 2 values
+
+.comparison between any 2 values
+[source, lisp]
+----
+; (Pure (-> (t1 t1) Bool))
+(geq (Some 1) "Hello") ; (Some 1) is greater than or qeual to "Hello"
+(eq "Hello" 100)       ; Is "Hello" qeual to 100?
+(neq "Hello" 100)      ; Is "Hello" not equal to 100?
+(lt 100 (Some 20))     ; Is 100 less than (Some 20)?
+(gt 200 "Hello")       ; Is 200 greater than "Hello"
+----
+
+== Bitwise Operations
+
+[source, lisp]
+----
+(band 1 0) ; bitwise and
+(band 1 1) ; bitwise and
+(bor 1 0)  ; bitwise or
+(bor 1 1)  ; bitwise or
+(bxor 1 0) ; bitwise xor
+----
+
+.bit shift
+[source, lisp]
+----
+; (Pure (-> (Int Int) (Option Int)))
+(<< 8 4)   ; (Some 128)
+(>> 128 4) ; (Some 8)
+(>> -128 4) ; (Some -8)
+----
+
+If 2nd argument is greater or equal to 2^64^, then these function return None.
+
+== Mathematical Operations
+
+[source, lisp]
+----
+; (Pure (-> (Int Int) (Option Int)))
+(pow 10 20) ; (Some 100000000000000000000)
+
+; (Pure (-> (Int) (Option Int)))
+(sqrt 16)   ; (Some 4)
+----
+
+If _pow_'s exponent portion is greater or equal to 2^32^, then _pow_ returns None.
+
+If _sqrt_'s argument is less than 0. then _sqrt_ returns None.
+
+== Algebraic Data Type
+
+Algebraic data type can be defined as follows.
+
+[source, lisp]
+----
+; in BLisp
+(data Gender ; type name
+    Male     ; value
+    Female)  ; value
+----
+
+Type name's and its value's first character must be uppercase.
+This is equivalent to Rust's following code.
+
+[source, rust]
+----
+// in Rust
+enum Gender {
+    Male,
+    Female
+}
+----
+
+Each element can have values as follows.
+
+[source, lisp]
+----
+; in BLisp
+(data Dim2
+    (Dim2 Int Int)) ; Dim2 has integers
+----
+
+Dim2 can be instantiated as follows.
+
+[source, lisp]
+----
+(Dim2 10 20)
+----
+
+This type is equivalent to Rust's following type.
+
+[source, rust]
+----
+// in Rust
+use num_bigint::BigInt;
+enum Dim2 {
+    Dim2(BigInt, BigInt)
+}
+----
+
+== Generics
+
+Option and Result types are defined internally.
+
+[source, lisp]
+----
+(data (Option t)
+    (Some t)
+    None)
+
+(data (Result t e)
+    (Ok t)
+    (Err e))
+----
+
+_t_ and _e_ are type variables.
+This code is equivalent to Rust's following code.
+
+[source, rust]
+----
+// in Rust
+enum Option<T> {
+    Some(T),
+    None,
+}
+
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+----
+
+List type is a built-in type as follows.
+
+[source, lisp]
+----
+(data (List t)
+    (Cons t (List t))
+    Nil)
+----
+
+So, following 2 lists are equivalent.
+
+[source, lisp]
+----
+(Cons 1 (Cons 2 (Cons 3 Nil)))
+'(1 2 3)
+----
+
+== Generic Function
+
+_car_ and _cdr_ are internally defined generic functions.
+These definitions are as follows.
+
+[source, lisp]
+----
+(export car (x) (Pure (-> ('(t)) (Option t)))
+    (match x
+        ((Cons n _) (Some n))
+        (_ None)))
+
+(export cdr (x) (Pure (-> ('(t)) '(t)))
+    (match x
+        ((Cons _ l) l)
+        (_ '())))
+----
+
+_t_ is a type variable. These functions can be used as follows.
+
+[source, lisp]
+----
+(car '(3 8 9))  ; returns (Some 3)
+(cdr '(8 10 4)) ; returns '(10 4)
+----
+
+Normal and type variables' first character must be lowercase.
+
+== If Expression
+
+Straightforward.
+
+[source, lisp]
+----
+(if (< 10 20)
+    '(1 2 3)
+    '())
+----
+
+== Match Expression
+
+A list can be matched as follows.
+
+[source, lisp]
+----
+(match '(1 2 3)
+    ((Cons n _) n)
+    ('() 0))
+----
+
+The expression
+
+ (Cons n _)
+
+is a pattern.
+If the pattern is matched to '(1 2 3), 1 is assigned to a variable _n_. Then, _n_, namely 1, is returned.
+
+This is an example of pattern matching of tuple.
+
+[source, lisp]
+----
+(match [1 3]
+    ([x y] [y x]))
+----
+
+This code swap 1st and 2nd elements of the tuple.
+
+Integer values can be also used for pattern matching.
+
+[source, lisp]
+----
+(match 20
+    (20 true)
+    (_ false))
+----
+
+More complex example is a as follows.
+
+[source, lisp]
+----
+(match [(Some 10) true]
+    ([(Some 10) false] 1)
+    ([(Some 10) true] 2)
+    (_ 0))
+----
+
+BLisp checks exhaustively of pattern.
+So, following code will be rejected.
+
+[source, lisp]
+----
+(match '(1 2)
+    ('() 0))
+----
+
+== Let Expression
+
+Let expression is used to bind variables as follows.
+
+[source, lisp]
+----
+(let ((x 10) (y 20)) ; x is 10, y is 20
+    (* x y))
+
+(let ((x 10) (x (* x x)) (x (* x x))) ; x = 10, x = x * x, x = x * x
+    x)
+----
+
+Destructuring can be also performed as follows.
+
+[source, lisp]
+----
+(let (((Some x) (Some 10))) ; x is 10
+    (* x 2))
+
+(let (([x y] [10 20])) ; x is 10, y is 20
+    (* x y))
+----
+
+== Lambda Expression
+
+Lambda expression is defined as follows.
+
+[source, lisp]
+----
+(lambda (x y) (* x y))
+----
+
+This lambda takes 2 integers and return the multiplication.
+Applying arguments to this is simple as follows.
+
+[source, lisp]
+----
+((lambda (x y) (* x y)) 10 20)
+----
+
+Every lambda expression is Pure.
+IO functions cannot be called in any lambda expressions.
+
+_map_ and _fold_ functions are internally defined as follows.
+
+[source, lisp]
+----
+(export map (f x) (Pure (-> ((Pure (-> (a) b)) '(a)) '(b)))
+    (match x
+        ((Cons h l) (Cons (f h) (map f l)))
+        (_ '())))
+
+(export fold (f init x) (Pure (-> ((Pure (-> (a b) b)) b '(a)) b))
+    (match x
+        ((Cons h l) (fold f (f h init) l))
+        (_ init)))
+----
+
+_map_ can be used to apply functions to elements of a list as follows.
+
+[source, lisp]
+----
+; square each element
+(let ((l '(1 2 3))
+      (f (lambda (x) (* x x))))
+        (map f l))
+----
+
+_fold_ can be used to calculate over elements of a list.
+For example, summation can be computed as follows.
+
+[source, lisp]
+----
+; summation
+(let ((l '(20 50 60))
+      (f (lambda (x y) (+ x y))))
+        (fold f 0 l)) ; 0 is an initial value
+----
+
+Of course, this can be written as follows.
+
+[source, lisp]
+----
+; summation
+(fold + 0 '(20 50 60))
+----
+
+== String and Character
+
+_chars_ converts String to (List Char).
+
+[source, lisp]
+----
+; (Pure (-> (String) (List Char)))
+(chars "Hello") ; '(`H` `e` `l` `l` `o`)
+----
+
+_str_ converts (List Char) to String.
+
+[source, lisp]
+----
+; (Pure (-> ((List Char)) String))
+(str '(`H` `e` `l` `l` `o`)) ; "Hello"
+----
+
+== Foreign Function Interface
+
+_call-rust_ is a function to call Rust's function.
+This is defined as a built-in function as follows.
+
+[source, lisp]
+----
+(define call-rust
+    (IO (-> (Int Int Int) (Option Int))) ; type of call-rust
+    ; omitted
+    )
+----
+
+It takes 3 integers and returns (Option Int).
+In order to call Rust's function, setting a callback function is required as follows.
+
+[source, rust]
+----
+use blisp;
+use num_bigint::BigInt;
+
+let expr = "
+(export callback (x y z)
+    (IO (-> (Int Int Int) (Option Int)))
+    (call-rust x y z))";
+let exprs = blisp::init(expr).unwrap();
+let mut ctx = blisp::typing(&exprs).unwrap();
+
+let fun = |x: &BigInt, y: &BigInt, z: &BigInt| { <1>
+    let n = x * y * z;
+    println!("n = {}", n);
+    Some(n)
+};
+ctx.set_callback(Box::new(fun));
+
+let e = "(callback 100 2000 30000)"; <2>
+blisp::eval(e, &ctx);
+----
+
+<1> callback function called from BLisp. The function type must be Fn:(&BigInt, &BigInt, &BigInt) -> Option<BigInt>
+
+<2> call Rust's callback function
+
+When executing this code, it outputs as follows.
+
+ n = 6000000000
+
+_call-rust_ is a IO function. Therefore, this cannot be called from Pure functions.
+
+== Examples
+
+=== Reverse
+
+_reverse_ is a internally defined function. It reverses order of a list.
+
+[source, lisp]
+----
+(reverse '(1 2 3 4 5 6 7 8 9))
+----
+
+This outputs as follows.
+
+ '(9 8 7 6 5 4 3 2 1)
+
+=== Filter
+
+_filter_ is a internally defined function. It filters the elements in a list.
+
+[source, lisp]
+----
+(filter (lambda (x) (= (% x 2) 0)) '(1 2 3 4 5 6 7 8 9))
+----
+
+This outputs as follows.
+
+ '(2 4 6 8)
+
+_filter_'s type is as follows.
+
+[source, lisp]
+----
+(Pure (->
+    ((Pure (-> (t) Bool)) ; take a function
+     '(t))                ; take a list
+    '(t))) ; return a list
+----
+
+=== Factorial
+
+Tail call factorial can be coded as follows.
+
+[source, lisp]
+----
+(export factorial (n) (Pure (-> (Int) Int))
+    (fact n 1))
+
+(defun fact (n total) (Pure (-> (Int Int) Int))
+    (if (<= n 0)
+        total
+        (fact (- n 1) (* n total))))
+----
+
+This function can be called as follows.
+
+ >> (factorial 10)
+ 3628800
+ >>
+ >> (factorial 1000)
+ 402387260077093773543702433923003985719374864210714632543799910429938512398629020592044208486969404800479988610197196058631666872994808558901323829669944590997424504087073759918823627727188732519779505950995276120874975462497043601418278094646496291056393887437886487337119181045825783647849977012476632889835955735432513185323958463075557409114262417474349347553428646576611667797396668820291207379143853719588249808126867838374559731746136085379534524221586593201928090878297308431392844403281231558611036976801357304216168747609675871348312025478589320767169132448426236131412508780208000261683151027341827977704784635868170164365024153691398281264810213092761244896359928705114964975419909342221566832572080821333186116811553615836546984046708975602900950537616475847728421889679646244945160765353408198901385442487984959953319101723355556602139450399736280750137837615307127761926849034352625200015888535147331611702103968175921510907788019393178114194545257223865541461062892187960223838971476088506276862967146674697562911234082439208160153780889893964518263243671616762179168909779911903754031274622289988005195444414282012187361745992642956581746628302955570299024324153181617210465832036786906117260158783520751516284225540265170483304226143974286933061690897968482590125458327168226458066526769958652682272807075781391858178889652208164348344825993266043367660176999612831860788386150279465955131156552036093988180612138558600301435694527224206344631797460594682573103790084024432438465657245014402821885252470935190620929023136493273497565513958720559654228749774011413346962715422845862377387538230483865688976461927383814900140767310446640259899490222221765904339901886018566526485061799702356193897017860040811889729918311021171229845901641921068884387121855646124960798722908519296819372388642614839657382291123125024186649353143970137428531926649875337218940694281434118520158014123344828015051399694290153483077644569099073152433278288269864602789864321139083506217095002597389863554277196742822248757586765752344220207573630569498825087968928162753848863396909959826280956121450994871701244516461260379029309120889086942028510640182154399457156805941872748998094254742173582401063677404595741785160829230135358081840096996372524230560855903700624271243416909004153690105933983835777939410970027753472000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+ >>
+ >> (factorial 100)
+ 93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000
+ >>
+ >> (factorial 500)
+ 1220136825991110068701238785423046926253574342803192842192413588385845373153881997605496447502203281863013616477148203584163378722078177200480785205159329285477907571939330603772960859086270429174547882424912726344305670173270769461062802310452644218878789465754777149863494367781037644274033827365397471386477878495438489595537537990423241061271326984327745715546309977202781014561081188373709531016356324432987029563896628911658974769572087926928871281780070265174507768410719624390394322536422605234945850129918571501248706961568141625359056693423813008856249246891564126775654481886506593847951775360894005745238940335798476363944905313062323749066445048824665075946735862074637925184200459369692981022263971952597190945217823331756934581508552332820762820023402626907898342451712006207714640979456116127629145951237229913340169552363850942885592018727433795173014586357570828355780158735432768888680120399882384702151467605445407663535984174430480128938313896881639487469658817504506926365338175055478128640000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

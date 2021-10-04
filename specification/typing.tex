@@ -1,0 +1,398 @@
+\documentclass{article}
+
+\usepackage{amsmath,amssymb}
+\usepackage[dvipdfmx]{hyperref,graphicx}
+\usepackage{listings}
+
+\lstset{%
+  language={lisp},
+  basicstyle={\small\ttfamily},%
+  identifierstyle={\small},%
+  commentstyle={\small\itshape},%
+  keywordstyle={\small\bfseries},%
+  ndkeywordstyle={\small},%
+  stringstyle={\small\ttfamily},
+  frame={tb},
+  keepspaces=true,
+  breaklines=true,
+  columns=[l]{fullflexible},%
+  numbers=left,%
+  xrightmargin=0zw,%
+  xleftmargin=3zw,%
+  numberstyle={\scriptsize},%
+  stepnumber=1,
+  numbersep=1zw,%
+  lineskip=-0.5ex%
+}
+
+\title{Typing Rule of Baremetalisp}
+\author{Yuuki Takano\\ ytakano@wide.ad.jp}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+In this paper, I will formally describe the typing rule of Baremetalisp,
+which is a well typed Lisp for trusted execution environment.
+
+\begin{table}[tb]
+    \centering
+    \caption{Notation}
+    \label{tab:notation}
+    \begin{tabular}{rl}
+        $A \Rightarrow B$ & logical implication (if A then B)\\
+        $e$ & expression \\
+        $z$ & integer literal such as 10, -34, 112 \\
+        $x$ & variable \\
+        $t$ & type variable \\
+        $D$ & type name of user defined data \\
+        $L$ & label of user defined data \\
+        $E$ & effect \\
+        $E_\mathcal{T}: T \rightarrow E$ & effect of type \\
+        $\mathcal{T}$ & type \\
+        $C$ & type constraint \\
+        $io(C): C \rightarrow \mathtt{Bool}$ & does $C$ contain $\mathtt{IO}$ functions? \\
+        $\Gamma$ & context \\
+        $\mathcal{P}$ & pattern \\
+        $\mathcal{P}_{let}$ & pattern of let expression \\
+        $\mathcal{T}_1 \equiv_\alpha \mathcal{T}_2$ & $\mathcal{T}_1$ and $\mathcal{T}_2$ are $\alpha$-equivalent \\
+        $\mathcal{S} : t \rightarrow \mathcal{T}$ & substitution from type variable to type\\
+        $\mathcal{T} \cdot \mathcal{S}$ & apply $\mathcal{S}$ to $\mathcal{T}$ \\
+        $\mathcal{X}$ & set of $t$ \\
+        $FV_\mathcal{T} : \mathcal{T} \rightarrow \mathcal{X}$ & function from $\mathcal{T}$ to its free variables\\
+        $FV_\Gamma : \Gamma \rightarrow \mathcal{X}$ & function from $\Gamma$ to its free variables\\
+        $Size : L \rightarrow \mathtt{Int}$ & the number of labels $L$'s type has \\
+        $\Gamma \vdash e : \mathcal{T}\ |_\mathcal{X}\ C$ & $e$'s type is deduced as $\mathcal{T}$ from $\Gamma$ \\
+        & under constraint $C$ and type variables $\mathcal{X}$
+    \end{tabular}
+\end{table}
+
+\begin{figure}[tb]
+    \centering
+    \begin{tabular}{rrll}
+    $\mathcal{C}$ & := & $\mathcal{T} = \mathcal{T}, \mathcal{C}$ & \bf{type constraint} \\
+        & $|$ & $\varnothing$ \\ \\
+
+    $\Gamma$ & := & & \bf{context} \\
+        &     & $x: \mathcal{T}, \Gamma$ & type of variable \\
+        & $|$ & $L: \mathcal{T}, \Gamma$ & type of label \\
+        & $|$ & $L_{nth}: \mathcal{T}, \Gamma$ & n-th type of label's element \\
+        & $|$ & $\varnothing$ \\ \\
+
+    $E$ & := & $\mathtt{Pure}\ |\ \mathtt{IO}$ & \bf{effect} \\ \\
+
+    $\mathcal{T}$ & := & & \bf{type} \\
+        &     & $\mathtt{Int}$ \\
+        & $|$ & $\mathtt{Bool}$ \\
+        & $|$ & $'(\mathcal{T})$ & list type \\
+        & $|$ & $[\mathcal{T}+]$ & tuple type \\
+        & $|$ & $D$    & user defined type \\
+        & $|$ & $(D\ \mathcal{T}+)$ & user defined type with type arguments \\
+        & $|$ & $(E\ (\rightarrow\ (\mathcal{T}*)\ \mathcal{T}))$ & function type \\
+        & $|$ & $t$ & type variable \\ \\
+
+    $\mathcal{P}$ & := & & \bf{pattern} \\
+        &     & $x$ & variable \\
+        & $|$ & $L$ & label \\
+        & $|$ & $(L\ \mathcal{P}+)$ & label with patterns \\
+        & $|$ & $'()$ & empty list \\
+        & $|$ & $[\mathcal{P}+]$ & tuple \\ \\
+
+    $\mathcal{P}_{let}$ & := & & \bf{patten for let} \\
+        &     & $x$ & variable \\
+        & $|$ & $(L\ \mathcal{P}_{let}+)$ & label with patterns \\
+        & $|$ & $[\mathcal{P}_{let}+]$ & tuple \\
+    \end{tabular}
+    \caption{Syntax}
+    \label{fig:syntax}
+\end{figure}
+
+\section{Notation and Syntax}
+
+Table~\ref{tab:notation} and Fig.~\ref{fig:syntax} shows notation used in this paper
+and syntax for the typing rule, respectively.
+
+\begin{lstlisting}[caption=Example of variable and type,label=src:vars]
+(defun add (a b) (Pure (-> (Int Int) Int))
+    (+ a b))
+\end{lstlisting}
+
+$x$ is a variable.
+For example, $x \in \{a, b\}$ in Listing~\ref{src:vars}.
+$\mathcal{T}$ is a type.
+For example, $\mathcal{T} \in \{\mathtt{Int}, (\rightarrow\ (\mathtt{Int}\ \mathtt{Int})\ \mathtt{Int})\}$
+in Listing~\ref{src:vars}.
+$(\rightarrow\ (\mathtt{Int}\ \mathtt{Int})\ \mathtt{Int})$ is a function type which takes 2 integer values
+and return 1 integer value.
+$\mathtt{Pure}$ in Listing~\ref{src:vars} denotes the effect of the function but I just ignore it now.
+Function effects will be described in Sec.~\ref{sec:effect}.
+$\mathcal{T}$ can be other forms as described in Fig.~\ref{fig:syntax} such as
+$\mathtt{Bool}$, $'(\mathtt{Int})$, $[\mathtt{Bool}\ \mathtt{Int}]$, $(\mathrm{List}\ a)$, $(\mathrm{List}\ \mathtt{Int})$.
+$C$ is a type constraint, which is a set of pairs of types.
+For example, $C = \{(\rightarrow\ (t_1\ t_2)\ t) = (\rightarrow\ (\mathtt{Int}\ \mathtt{Int})\ \mathtt{Int})\}$ deduced from
+Listing~\ref{src:vars} means $(\rightarrow\ (t_1\ t_2)\ t)$ and $(\rightarrow\ (\mathtt{Int}\ \mathtt{Int})\ \mathtt{Int})$ are
+semantically equal and every type variable in $C$, $t_1, t_2, t$, is thus $\mathtt{Int}$.
+$\Gamma$ is a map from variable and label to type.
+For example, $\Gamma = \{a : t_1, b : t_2, + : (\rightarrow\ (\mathtt{Int}\ \mathtt{Int})\ \mathtt{Int})\}$
+in Listing~\ref{src:vars}.
+$\Gamma$ is called context generally, thus I call $\Gamma$ context in this paper.
+
+\begin{lstlisting}[caption=Example of user defined data type,label=src:cons]
+(data (List a)
+    (Cons a (List a))
+    Nil)
+\end{lstlisting}
+
+$t$ is a type variable.
+For example, $t \in \{a\}$ in Listing~\ref{src:cons}.
+$L$ is a label for user defined type.
+For example, $L \in \{\mathrm{Cons}, \mathrm{Nil}\}$ in Listing~\ref{src:cons}.
+$D$ is user defined data.
+For example, $D \in \{\mathrm{List}\}$ in Listing~\ref{src:cons}.
+$\Gamma$ will hold mapping from labels in addition to variables.
+For example,
+$\Gamma = \{\mathrm{Cons} : (\mathrm{List}\ a), \mathrm{Nil} : (\mathrm{List}\ a), \mathrm{Cons}_{1st} : a, \mathrm{Cons}_{2nd} : (\mathrm{List}\ a)\}$
+in Listing~\ref{src:cons}.
+
+$FV_\mathcal{T}$ and $FV_\Gamma$ are functions, which take $\mathcal{T}$ and $\Gamma$ and return free variables.
+For example, $FV_\mathcal{T}((\rightarrow\ (t_1\ t_2)\ t)) = \{t_1, t_2, t\}$ and
+\begin{equation*}
+    \begin{aligned}
+        &FV_\Gamma(\{a : t_1, b : t_1, + : (\rightarrow\ (\mathtt{Int}\ \mathtt{Int})\ \mathtt{Int})\}) \\
+        &=\{FV_\mathcal{T}(t_1), FV_\mathcal{T}(t_1), FV_\mathcal{T}((\rightarrow\ (\mathtt{Int}\ \mathtt{Int})\ \mathtt{Int}))\} \\
+        &=\{t_1, t_2\}.
+    \end{aligned}
+\end{equation*}
+$\mathcal{T}_1 \equiv_\alpha \mathcal{T}_2$ denotes that $\mathcal{T}_1$ and $\mathcal{T}_2$ are $\alpha$-equivalent,
+which means $\mathcal{T}_1$ and $\mathcal{T}_2$ are semantically equal.
+For example, $(\rightarrow\ (t_1\ t_2)\ t) \equiv_\alpha (\rightarrow\ (t_{10}\ t_{11})\ t_{12})$.
+$\mathcal{S}$ is a substitution, which is a map from type variable to type,
+and it can be applied to $\mathcal{T}$ as $\mathcal{T} \cdot \mathcal{S}$.
+For example, if $\mathcal{S}(t_1) = [\mathtt{Bool}\ \mathtt{Int}], \mathcal{S}(t_2) = (\mathrm{List}\ t_3)$ then
+$(\rightarrow\ (t_1\ t_2)\ t) \cdot \mathcal{S} = (\rightarrow\ ([\mathtt{Bool}\ \mathtt{Int}]\ (\mathrm{List}\ t_3))\ t)$.
+
+\begin{lstlisting}[caption=Example of pattern matching,label=src:match]
+(data Dim2 (Dim2 Int Int))
+
+(data (Maybe t)
+    (Just t)
+    Nothing)
+
+(defun match-let (a) (Pure (-> ((Maybe Dim2)) Int))
+    (match a
+        ((Just val)
+            (let (((Dim2 x y) val))
+                (+ x y)))
+        (Nothing
+            0)))
+\end{lstlisting}
+$\mathcal{P}$ and $\mathcal{P}_{let}$ are pattern in match and let expressions.
+For example, in listings~\ref{src:match}, $(\mathrm{Just}\ val)$ and Nothing at line 9 and 12 are from $\mathcal{P}$
+and $(\mathrm{Dim2}\ x\ y)$ at line 10 is from $\mathcal{P}_{let}$.
+$Size$ is a function which takes a label and return the number of labels the label's type has.
+For example, $Size(\mathrm{Just}) = Size(\mathrm{Nothing}) = 2$ because Maybe type has 2 labels
+and $Size(\mathrm{Dim2}) = 1$ because Dim2 type has 1 label in listings~\ref{src:match}.
+
+\begin{figure}[tb]
+    \centering
+    \begin{tabular}{rlrl}
+        $\Gamma \vdash \mathtt{true} : \mathtt{Bool}\ |_\varnothing\ \varnothing$ & (T-True) &
+        $\Gamma \vdash \mathtt{false} : \mathtt{Bool}\ |_\varnothing\ \varnothing$ & (T-False) \vspace{5mm} \\
+
+        $\dfrac{x : T \in \Gamma}{\Gamma \vdash x : T\ |_\varnothing\ \varnothing}$ & (T-Var) &
+        $\Gamma \vdash z : \mathtt{Int}\ |_\varnothing\ \varnothing$ & (T-Num) \vspace{5mm} \\
+
+        $\dfrac{x : T' \in \Gamma \hspace{5mm} T' \cdot S \equiv_\alpha T}{\Gamma \vdash x : T\ |_{FV_\mathcal{T}(T)}\ \varnothing}$ & (T-VarPoly) \vspace{5mm} \\
+
+        \multicolumn{3}{r}{
+        $\dfrac{
+            \begin{aligned}
+                &\Gamma_0 \vdash \mathcal{P}_{let} : \mathcal{T}_0\ |_{\mathcal{X}_0}\ C_0 \hspace{5mm}
+                    \Gamma \vdash e_1 : \mathcal{T}_1\ |_{\mathcal{X}_1}\ C_1 \hspace{5mm}
+                    \Gamma, \Gamma_0 \vdash e_2 : \mathcal{T}_2\ |_{\mathcal{X}_2}\ C_2\\
+                &\mathcal{X}_0 \cap \mathcal{X}_1 \cap \mathcal{X}_2 = \varnothing \hspace{5mm}
+                    C = C_0 \cup C_1 \cup C_2 \cup \{ \mathcal{T}_0 = \mathcal{T}_1 \}
+            \end{aligned}
+        }{
+            \Gamma \vdash (\mathtt{let1}\ \mathcal{P}_{let}\ e_1\ e_2) : \mathcal{T}_2\ |_{\mathcal{X}_0 \cup \mathcal{X}_1 \cup \mathcal{X}_2}\ C
+        }$} & (T-Let1) \vspace{5mm} \\
+
+        \multicolumn{3}{r}{
+        $\dfrac{
+            \begin{aligned}
+                &\Gamma \vdash e_1 : \mathcal{T}_1\ |_{\mathcal{X}_1}\ C_1 \hspace{5mm} \Gamma \vdash e_2 : \mathcal{T}_2\ |_{\mathcal{X}_2}\ C_2 \hspace{5mm} \Gamma \vdash e_3 : \mathcal{T}_3\ |_{\mathcal{X}_3}\ C_3 \\
+                &\mathcal{X}_1 \cap \mathcal{X}_2 \cap \mathcal{X}_3 = \varnothing \hspace{5mm} C = C_1 \cup C_2 \cup C_3 \cup \{ \mathcal{T}_1 = \mathtt{Bool}, \mathcal{T}_2 = T_3 \}
+            \end{aligned}
+        }{
+            \Gamma \vdash (\mathtt{if}\ e_1\ e_2\ e_3) : \mathcal{T}_2\ |_{\mathcal{X}_1 \cup \mathcal{X}_2 \cup \mathcal{X}_3}\ C
+        }$} & (T-If) \vspace{5mm} \\
+
+        \multicolumn{3}{r}{
+        $\dfrac{
+            \begin{aligned}
+                &\Gamma \vdash e_1 : \mathcal{T}_1\ |_{\mathcal{X}_1}\ C_1 \hspace{5mm}
+                    \Gamma \vdash e_2 : \mathcal{T}_2\ |_{\mathcal{X}_2}\ C_2 \land \cdots \land \Gamma \vdash e_n : \mathcal{T}_n\ |_{\mathcal{X}_n}\ C_n \\
+                &\{t\} \cap FV_\Gamma(\Gamma) = \varnothing \hspace{5mm} \{t\} \cap \mathcal{X}_1 \cap \cdots \cap \mathcal{X}_n = \varnothing\\
+                &\mathcal{X} = \{t\} \cup \mathcal{X}_1 \cup \cdots \cup \mathcal{X}_n \hspace{5mm} E = E_\mathcal{T}(\mathcal{T}_1) \\
+                &C = C_1 \cup \cdots \cup C_n \cup \{ \mathcal{T}_1 = (E\ (\rightarrow\ (\mathcal{T}_2\ \cdots\ \mathcal{T}_n)\ t)) \}
+            \end{aligned}
+        }{
+            \Gamma \vdash (e_1\ e_2\ \cdots\ e_n) : t\ |_\mathcal{X}\ C
+        }$} & (T-App) \vspace{5mm} \\
+
+        \multicolumn{3}{r}{
+        $\dfrac{
+            \begin{aligned}
+                &\Gamma \vdash e_0 : \mathcal{T}_0\ |_{\mathcal{X}_0}\ C_0 \\
+                &\Gamma, \Gamma_1 \vdash e_1 : \mathcal{T}_{e1}\ |_{\mathcal{X}_{e1}}\ C_{e1} \land \cdots \land \Gamma, \Gamma_n \vdash e_n : \mathcal{T}_{en}\ |_{\mathcal{X}_{en}}\ C_{en} \\
+                &\Gamma_1 \vdash \mathcal{P}_1 : \mathcal{T}_{p1}\ |_{\mathcal{X}_{p1}}\ C_{p1} \land \cdots \land \Gamma_n \vdash \mathcal{P}_{pn} : \mathcal{T}_{pn}\ |_{\mathcal{X}_{pn}}\ C_{pn} \\
+                &\mathcal{X}_0 \cap \mathcal{X}_{e1} \cap \cdots \cap \mathcal{X}_{en} \cap \mathcal{X}_{p1} \cap \cdots \cap \mathcal{X}_{pn} = \varnothing \\
+                &\mathcal{X} = \mathcal{X}_0 \cup \mathcal{X}_{e1} \cup \cdots \cup \mathcal{X}_{en} \cup \mathcal{X}_{p1} \cup \cdots \cup \mathcal{X}_{pn} \\
+                &\begin{aligned}
+                    C =\ &C_0 \cup C_{e1} \cup \cdots \cup C_{en} \cup C_{p1} \cup \cdots \cup C_{pn} \cup \\
+                         &\{\mathcal{T}_0 = \mathcal{T}_{p1}, \cdots, \mathcal{T}_0 = \mathcal{T}_{pn}\} \cup
+                         \{\mathcal{T}_{e1} = \mathcal{T}_{e2}, \cdots, \mathcal{T}_{e1} = \mathcal{T}_{en}\}
+                \end{aligned}
+            \end{aligned}
+        }{
+            \Gamma \vdash (\mathtt{match}\ e_0\ (\mathcal{P}_1\ e_1)\ \cdots\ (\mathcal{P}_n\ e_n)) : T_{e1}\ |_\mathcal{X}\ C
+        }$} & (T-Match)
+    \end{tabular}
+    \caption{Typing rule (1/2)}
+    \label{fig:typing1}
+\end{figure}
+
+\begin{figure}[tb]
+    \centering
+    \begin{tabular}{rlrl}
+        $\Gamma \vdash\ '() :\ '(T)\ |_{\{T\}}\ \varnothing$ & (T-Nil) &
+        $\dfrac{L : \mathcal{T}' \in \Gamma \hspace{5mm} \mathcal{T}' \cdot \mathcal{S} \equiv_\alpha \mathcal{T}}{\Gamma \vdash L : \mathcal{T}\ |_{FV_\mathcal{T}(\mathcal{T})}\ \varnothing}$ & (T-Label0) \vspace{5mm} \\
+
+        \multicolumn{3}{r}{
+            $\dfrac{
+                \begin{aligned}
+                    &\Gamma \vdash e_1 : T_1\ |_{\mathcal{X}_1}\ C_1 \land \cdots \land \Gamma \vdash e_n : T_n\ |_{\mathcal{X}_n}\ C_n \\
+                    &\mathcal{X}_1 \cap \cdots \cap \mathcal{X}_n = \varnothing \hspace{5mm}
+                    \mathcal{X} = \mathcal{X}_1 \cup \cdots \cup \mathcal{X}_n \hspace{5mm}
+                    C = C_1 \cup \cdots \cup C_n
+                \end{aligned}
+            }{\Gamma \vdash [e_1\ \cdots\ e_n] : [T_1\ \cdots\ T_n]\ |_\mathcal{X}\ C}$
+        } & (T-Tuple) \vspace{5mm} \\
+
+        \multicolumn{3}{r}{
+            $\dfrac{
+                \begin{aligned}
+                    &\Gamma \vdash e_1 : T_1\ |_{\mathcal{X}_1}\ C_1 \land \cdots \land \Gamma \vdash e_n : T_n\ |_{\mathcal{X}_n}\ C_n \\
+                    &\mathcal{X}_1 \cap \cdots \cap \mathcal{X}_n = \varnothing \hspace{5mm}
+                    \mathcal{X} = \mathcal{X}_1 \cup \cdots \cup \mathcal{X}_n \\
+                    &C = C_1 \cup \cdots \cup C_n \cup \{T_1 = T_2, \cdots, T_1 = T_n \}
+                \end{aligned}
+            }{\Gamma \vdash\ '(e_1\ \cdots\ e_n) :\ '(T_1)\ |_\mathcal{X}\ C}$
+        } & (T-List) \vspace{5mm} \\
+
+        \multicolumn{3}{r}{
+        $\dfrac{
+            \begin{aligned}
+                &\Gamma \vdash e_1 : \mathcal{T}_1\ |_{\mathcal{X}_1}\ C_1 \land \cdots \land
+                    \Gamma \vdash e_n : \mathcal{T}_n\ |_{\mathcal{X}_n}\ C_n \\
+                &L : \mathcal{T}_0' \in \Gamma \hspace{5mm} \mathcal{T}_0' \cdot \mathcal{S}\equiv_\alpha \mathcal{T}_0 \hspace{5mm} FV(\mathcal{T}_0) \cap \mathcal{X}_1 \cap \cdots \cap \mathcal{X}_n = \varnothing \\
+                &FV_\mathcal{T}(\mathcal{T}_0) \cap FV_\Gamma(\Gamma) = \varnothing \hspace{5mm}
+                    \mathcal{X} = FV(\mathcal{T}_0) \cup \mathcal{X}_1 \cup \cdots \cup \mathcal{X}_n \\
+                &L_{1st} : T_1' \in \Gamma \land \cdots \land L_{nth} : T_n' \in \Gamma \\
+                &C = C_1 \cup \cdots \cup C_n \cup \{T_1' \cdot \mathcal{S} = \mathcal{T}_1, \cdots, T_n' \cdot \mathcal{S} = \mathcal{T}_n\} \\
+            \end{aligned}
+        }{
+            \Gamma \vdash (L\ e_1\ \cdots\ e_n) : \mathcal{T}_0\ |_{\mathcal{X}}\ C
+        }$} & (T-Label) \vspace{5mm} \\
+
+        \multicolumn{3}{r}{
+            $\dfrac{
+                \begin{aligned}
+                    &\Gamma, x_1 : t_1, \cdots, x_n : t_n \vdash e : \mathcal{T}_0\ |_{\mathcal{X}}\ C_0 \hspace{5mm} \neg io(C)\\
+                    &C = \{\mathcal{T} = (\mathtt{Pure}\ (\rightarrow\ (t_1\ \cdots\ t_n)\ \mathcal{T}_0))\} \cup C_0
+                \end{aligned}
+            }
+            {
+                \Gamma \vdash (\mathtt{lambda}\ (x_1\ \cdots\ x_n)\ e) : \mathcal{T}\ |_\mathcal{X}\ C
+            }$
+        } & (T-Lambda) \vspace{5mm} \\
+
+        \multicolumn{3}{r}{
+            $\dfrac{
+                \begin{aligned}
+                    &\Gamma, x_1 : t_1, \cdots, x_n : t_n \vdash e : \mathcal{T}_0\ |_{\mathcal{X}}\ C_0 \hspace{5mm}\\
+                    &E = E_\mathcal{T}(\mathcal{T}) \hspace{5mm} (E = \mathtt{Pure}) \Rightarrow \neg io(C)\\
+                    &C = C_0 \cup \{\mathcal{T} = (E\ (\rightarrow (\mathcal{T}_1\ \cdots\ \mathcal{T}_n)\ \mathcal{T}_0)) \}
+                \end{aligned}
+            }{
+                \Gamma \vdash (\mathtt{defun}\ \mathrm{name}\ (x_1\ \cdots\ x_n)\ \mathcal{T}\ e) : \mathcal{T}\ |_\mathcal{X}\ C
+            }$
+        } & (T-Defun)
+    \end{tabular}
+    \caption{Typing rule (2/2)}
+    \label{fig:typing2}
+\end{figure}
+
+
+\begin{figure}[tb]
+    \centering
+    \begin{tabular}{rlrl}
+        $\Gamma \vdash \mathtt{true} : \mathtt{Bool}\ |_\varnothing\ \varnothing$ & (P-True) &
+        $\Gamma \vdash \mathtt{false} : \mathtt{Bool}\ |_\varnothing\ \varnothing$ & (P-False) \vspace{5mm} \\
+
+        $\dfrac{x : T \in \Gamma}{\Gamma \vdash x : T\ |_\varnothing\ \varnothing}$ & (P-Var) &
+        $\Gamma \vdash z : \mathtt{Int}\ |_\varnothing\ \varnothing$ & (P-Num) \vspace{5mm} \\
+
+        $\Gamma \vdash\ '() :\ '(T)\ |_{\{T\}}\ \varnothing$ & (P-Nil) &
+        $\dfrac{L : \mathcal{T}' \in \Gamma \hspace{5mm} \mathcal{T}' \cdot \mathcal{S} \equiv_\alpha \mathcal{T}}{\Gamma \vdash L : \mathcal{T}\ |_{FV_\mathcal{T}(\mathcal{T})}\ \varnothing}$ & (P-Label0) \vspace{5mm} \\
+
+        \multicolumn{3}{r}{
+        $\dfrac{
+            \begin{aligned}
+                &\Gamma \vdash \mathcal{P}_1 : \mathcal{T}_1\ |_{\mathcal{X}_1}\ C_1 \land \cdots \land
+                    \Gamma \vdash \mathcal{P}_n : \mathcal{T}_n\ |_{\mathcal{X}_n}\ C_n \\
+                &L : \mathcal{T}_0' \in \Gamma \hspace{5mm} \mathcal{T}_0' \cdot \mathcal{S}\equiv_\alpha \mathcal{T}_0 \hspace{5mm} FV(\mathcal{T}_0) \cap \mathcal{X}_1 \cap \cdots \cap \mathcal{X}_n = \varnothing \\
+                &FV_\mathcal{T}(\mathcal{T}_0) \cap FV_\Gamma(\Gamma) = \varnothing \hspace{5mm}
+                    \mathcal{X} = FV(\mathcal{T}_0) \cup \mathcal{X}_1 \cup \cdots \cup \mathcal{X}_n \\
+                &L_{1st} : T_1' \in \Gamma \land \cdots \land L_{nth} : T_n' \in \Gamma \\
+                &C = C_1 \cup \cdots \cup C_n \cup \{T_1' \cdot \mathcal{S} = \mathcal{T}_1, \cdots, T_n' \cdot \mathcal{S} = \mathcal{T}_n\} \\
+                &Size(L) = 1\ \mbox{for only}\ P_{let}
+            \end{aligned}
+        }{
+            \Gamma \vdash (L\ \mathcal{P}_1\ \cdots\ \mathcal{P}_n) : \mathcal{T}_0\ |_{\mathcal{X}}\ C
+        }$} & (P-Label) \vspace{5mm} \\
+
+        \multicolumn{3}{r}{
+        $\dfrac{
+            \begin{aligned}
+                &\Gamma \vdash \mathcal{P}_1 : \mathcal{T}_1\ |_{\mathcal{X}_1}\ C_1 \land \cdots \land
+                    \Gamma \vdash \mathcal{P}_n : \mathcal{T}_n\ |_{\mathcal{X}_n}\ C_n \\
+                &\mathcal{X}_1 \cap \cdots \cap \mathcal{X}_n = \varnothing \hspace{5mm}
+                    \mathcal{X} = \mathcal{X}_1 \cup \cdots \cup \mathcal{X}_n \hspace{5mm}
+                    C = C_1 \cup \cdots \cup C_n
+            \end{aligned}
+        }{
+            \Gamma \vdash [\mathcal{P}_1\ \cdots\ \mathcal{P}_n] : [\mathcal{T}_1 \cdots \mathcal{T}_n]\ |_{\mathcal{X}}\ C
+        }$} & (P-Tuple) \\
+    \end{tabular}
+    \caption{Typing rule of pattern}
+\end{figure}
+
+\section{Typing Rule}
+
+In this section, I will introduce the typing rule of Baremetalisp.
+Before describing the rule, I introduce an assumption
+that there is no variable shadowing to make it simple.
+This means that every variable should be properly $\alpha$-converted
+by using the De Bruijn index technique or variable shadowing should be handled
+when implementing the type inference algorithm.
+
+Fig.~\ref{fig:typing1} and \ref{fig:typing2} are the typing rule of
+expressions and function definitions.
+
+\section{Effect}
+\label{sec:effect}
+
+\end{document}

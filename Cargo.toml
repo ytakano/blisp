@@ -1,0 +1,28 @@
+[package]
+name = "blisp"
+version = "0.3.9"
+authors = ["Yuuki Takano <ytakanoster@gmail.com>"]
+edition = "2018"
+description = "A lisp like statically typed programing language for no_std."
+repository = "https://github.com/ytakano/blisp"
+keywords = ["no_std", "scripting", "scripting-engine", "scripting-language", "embedded" ]
+categories = [ "no-std", "embedded" ]
+license-file = "LICENSE"
+readme = "README.md"
+homepage = "https://ytakano.github.io/blisp/"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+[dependencies.num-bigint]
+version = "0.4.0"
+default-features = false
+
+[dependencies.num-traits]
+version = "0.2.14"
+default-features = false
+features = ["libm"]
+
+[lib]
+crate-type = ["rlib"]
