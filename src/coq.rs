@@ -230,6 +230,33 @@ pub(crate) fn to_coq_func(expr: &S::Defun) -> String {
 
     s_targs = format!("{}: Type}}", s_targs);
 
+
+    //ここから書き加え---------------------------------------------------
+    println!("{}", &expr.args[0].id);
+    //let def = format!("{} {}{}: {} :=\n", head, s_targs, args, ret);
+
+    //中身のtranspile
+    let mut tl_expr;
+    let l_expr = match expr.expr {
+        S::LangExpr::IfExpr(ex) => ,
+        S::LangExpr::LetExpr(ex) => ,
+        S::LangExpr::LitStr(ex) => ,
+        S::LangExpr::LitChar(ex) => ,
+        S::LangExpr::LitNum(ex) => ,
+        S::LangExpr::LitBool(ex) => ,
+        S::LangExpr::IDExpr(ex) => ,
+        S::LangExpr::DataExpr(ex) => ,
+        S::LangExpr::MatchExpr(ex) => {
+            
+        },
+        S::LangExpr::ApplyExpr(ex) => ,
+        S::LangExpr::ListExpr(ex) => ,
+        S::LangExpr::TupleExpr(ex) => ,
+        S::LangExpr::LambdaExpr(ex) => ,
+    };
+
+
+    //ここまで-----------------------------------------------------------
     format!("{} {}{}: {} :=\n", head, s_targs, args, ret)
 }
 
