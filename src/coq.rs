@@ -246,8 +246,8 @@ pub(crate) fn to_coq_func(expr: &S::Defun) -> String {
     format!("{} {}{}: {} :=\n", head, s_targs, args, ret)
 }
 
-fn func_analyze(expr: &S::LangExpr) -> String{
-    let l_expr = match expr {
+fn func_analyze(expr: &S::LangExpr) -> String {
+    match expr {
         S::LangExpr::IfExpr(ex) => ,
         S::LangExpr::LetExpr(ex) => {
 
@@ -260,13 +260,41 @@ fn func_analyze(expr: &S::LangExpr) -> String{
         S::LangExpr::DataExpr(ex) => ex.label, //ちょっとよく分かんない
         S::LangExpr::MatchExpr(ex) => {
             let mut matchExpr = "match".to_string();
-            matchExpr = format!("{} {} with\n", matchExpr, );
+            matchExpr = format!("{} {} with\n", matchExpr, func_analyze(&ex.expr));
+            let mut caseExpr = "".to_string();
+            for t in &ex.cases{
+                caseExpr = format!("| {} => {}\n", pattern_analyze(&t.pattern), func_analyze(&t.expr));
+            }
+            //一旦patternの処理をする
         },
         S::LangExpr::ApplyExpr(ex) => ,
         S::LangExpr::ListExpr(ex) => ,
         S::LangExpr::TupleExpr(ex) => ,
         S::LangExpr::LambdaExpr(ex) => ,
-    };
+    }
+}
+
+fn pattern_analyze(pattern: &S::Pattern) -> String {
+    match pattern {
+        S::Pattern::PatStr(ex) => ex.str,
+        S::Pattern::PatChar(ex) => ex.c.to_string(),
+        S::Pattern::PatNum(ex) => ex.num.to_string(),
+        S::Pattern::PatBool(ex) => ex.val.to_string(),
+        S::Pattern::PatID(ex) => ex.id,
+        S::Pattern::PatTuple(ex) => {
+            let mut patternExpr = "".to_string();
+            for t in &ex.pattern{
+                //ここで詰まった
+            }
+        },
+        S::Pattern::PatData(ex) => {
+
+        },
+        S::Pattern::PatNil(ex) => {
+
+        },
+
+    }
 }
 
 fn is_recursive(expr: &S::Defun) -> bool {
