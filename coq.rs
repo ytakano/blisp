@@ -236,37 +236,28 @@ pub(crate) fn to_coq_func(expr: &S::Defun) -> String {
     //let def = format!("{} {}{}: {} :=\n", head, s_targs, args, ret);
 
     //中身のtranspile
-    let mut tl_expr = "".to_string();
-    tl_expr = format!("{}{}",tl_expr, func_analyze(&expr.expr));
-
-
-
-
-    //ここまで-----------------------------------------------------------
-    format!("{} {}{}: {} :=\n", head, s_targs, args, ret)
-}
-
-fn func_analyze(expr: &S::LangExpr) -> String{
-    let l_expr = match expr {
+    let mut tl_expr;
+    let l_expr = match expr.expr {
         S::LangExpr::IfExpr(ex) => ,
-        S::LangExpr::LetExpr(ex) => {
-
-        },
-        S::LangExpr::LitStr(ex) => ex.str,
-        S::LangExpr::LitChar(ex) => ex.c.to_string(),
-        S::LangExpr::LitNum(ex) => ex.num.to_string(),
-        S::LangExpr::LitBool(ex) => ex.val.to_string(),
-        S::LangExpr::IDExpr(ex) => ex.id,
-        S::LangExpr::DataExpr(ex) => ex.label, //ちょっとよく分かんない
+        S::LangExpr::LetExpr(ex) => ,
+        S::LangExpr::LitStr(ex) => ,
+        S::LangExpr::LitChar(ex) => ,
+        S::LangExpr::LitNum(ex) => ,
+        S::LangExpr::LitBool(ex) => ,
+        S::LangExpr::IDExpr(ex) => ,
+        S::LangExpr::DataExpr(ex) => ,
         S::LangExpr::MatchExpr(ex) => {
-            let mut matchExpr = "match".to_string();
-            matchExpr = format!("{} {} with\n", matchExpr, );
+            
         },
         S::LangExpr::ApplyExpr(ex) => ,
         S::LangExpr::ListExpr(ex) => ,
         S::LangExpr::TupleExpr(ex) => ,
         S::LangExpr::LambdaExpr(ex) => ,
     };
+
+
+    //ここまで-----------------------------------------------------------
+    format!("{} {}{}: {} :=\n", head, s_targs, args, ret)
 }
 
 fn is_recursive(expr: &S::Defun) -> bool {
