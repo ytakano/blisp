@@ -90,6 +90,7 @@ use alloc::format;
 use alloc::string::{String, ToString};
 
 pub mod coq;
+pub mod r#macro;
 pub mod parser;
 pub mod runtime;
 pub mod semantics;
@@ -221,7 +222,12 @@ extern crate std;
 
 #[cfg(test)]
 mod tests {
-    use crate::{eval, init, semantics, transpile, typing};
+    use super::*;
+
+    #[test]
+    fn test_macro() {
+        r#macro::expand();
+    }
 
     fn eval_result(code: &str, ctx: &semantics::Context) {
         for r in eval(code, &ctx).unwrap() {

@@ -150,3 +150,12 @@ example:
 - not: (Pure (-> (Bool) Bool))
 - chars: (Pure (-> (String) (List Char)))
 - str: (Pure (-> ((List Char)) String))
+
+## Macro
+
+- $MACRO := ( define-syntax $ID $SYNTAX_RULES )
+- $SYNTAX_RULES := ( syntax-rules ( $ID* ) $SYNTAX_PATTERNS )
+- $SYNTAX_PATTERNS := $SYNTAX_PATTERN | $SYNTAX_PATTERNS
+- $SYNTAX_PATTERN := ( $SYNTAX $APPLY )
+- $SYNTAX := ( $ID_LITERAL+ ) | ( $SYNTAX )
+- $ID_LITERAL := $ID | $LITERAL

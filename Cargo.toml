@@ -2,7 +2,7 @@
 name = "blisp"
 version = "0.3.9"
 authors = ["Yuuki Takano <ytakanoster@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "A lisp like statically typed programing language for no_std."
 repository = "https://github.com/ytakano/blisp"
 keywords = ["no_std", "scripting", "scripting-engine", "scripting-language", "embedded" ]
@@ -16,11 +16,11 @@ homepage = "https://ytakano.github.io/blisp/"
 [dependencies]
 
 [dependencies.num-bigint]
-version = "0.4.0"
+version = "0.4"
 default-features = false
 
 [dependencies.num-traits]
-version = "0.2.14"
+version = "0.2"
 default-features = false
 features = ["libm"]
 

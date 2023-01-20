@@ -566,28 +566,19 @@ pub(crate) struct Exprs {
 pub(crate) struct TIDNode {
     pub(crate) id: String,
     pub(crate) pos: Pos,
-    ty: Option<Type>,
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct TEBoolNode {
-    pub(crate) pos: Pos,
-}
+pub(crate) struct TEBoolNode;
 
 #[derive(Clone, Debug)]
-pub(crate) struct TEIntNode {
-    pub(crate) pos: Pos,
-}
+pub(crate) struct TEIntNode;
 
 #[derive(Clone, Debug)]
-pub(crate) struct TEStringNode {
-    pub(crate) pos: Pos,
-}
+pub(crate) struct TEStringNode;
 
 #[derive(Clone, Debug)]
-pub(crate) struct TECharNode {
-    pub(crate) pos: Pos,
-}
+pub(crate) struct TECharNode;
 
 #[derive(Clone, Debug)]
 pub(crate) struct DataType {
@@ -2996,7 +2987,6 @@ fn expr2type_id(expr: &parser::Expr) -> Result<TIDNode, TypingErr> {
                     Ok(TIDNode {
                         id: id.to_string(),
                         pos: *pos,
-                        ty: None,
                     })
                 } else {
                     Err(TypingErr::new("the first character must be captal", expr))
@@ -3261,10 +3251,10 @@ fn expr2type(expr: &parser::Expr) -> Result<TypeExpr, TypingErr> {
         parser::Expr::ID(id, pos) => {
             // Int | Bool | String | $TID
             match id.as_ref() {
-                "Int" => Ok(TypeExpr::TEInt(TEIntNode { pos: *pos })),
-                "Bool" => Ok(TypeExpr::TEBool(TEBoolNode { pos: *pos })),
-                "String" => Ok(TypeExpr::TEString(TEStringNode { pos: *pos })),
-                "Char" => Ok(TypeExpr::TEChar(TECharNode { pos: *pos })),
+                "Int" => Ok(TypeExpr::TEInt(TEIntNode)),
+                "Bool" => Ok(TypeExpr::TEBool(TEBoolNode)),
+                "String" => Ok(TypeExpr::TEString(TEStringNode)),
+                "Char" => Ok(TypeExpr::TEChar(TECharNode)),
                 _ => {
                     let c = id.chars().next().unwrap();
                     if ('A'..='Z').contains(&c) {
@@ -3796,15 +3786,12 @@ fn expr2match(expr: &parser::Expr) -> Result<LangExpr, TypingErr> {
             let mut iter = exprs.iter();
             iter.next(); // must be "match"
 
-            let cond;
-            match iter.next() {
-                Some(e) => {
-                    cond = expr2typed_expr(e)?;
-                }
+            let cond = match iter.next() {
+                Some(e) => expr2typed_expr(e)?,
                 _ => {
                     return Err(TypingErr::new("no condition", expr));
                 }
-            }
+            };
 
             let mut cases = Vec::new();
             for it in iter {
@@ -3845,15 +3832,12 @@ fn expr2lambda(expr: &parser::Expr) -> Result<LangExpr, TypingErr> {
     iter.next(); // must be "lambda"
 
     // get arguments
-    let args;
-    match iter.next() {
-        Some(parser::Expr::Apply(e, _)) => {
-            args = e;
-        }
+    let args = match iter.next() {
+        Some(parser::Expr::Apply(e, _)) => e,
         _ => {
             return Err(TypingErr::new("require arguments", expr));
         }
-    }
+    };
 
     let mut v = Vec::new();
     for a in args {
@@ -3861,15 +3845,12 @@ fn expr2lambda(expr: &parser::Expr) -> Result<LangExpr, TypingErr> {
     }
 
     // get expression
-    let body;
-    match iter.next() {
-        Some(e) => {
-            body = expr2typed_expr(e)?;
-        }
+    let body = match iter.next() {
+        Some(e) => expr2typed_expr(e)?,
         _ => {
             return Err(TypingErr::new("require arguments", expr));
         }
-    }
+    };
 
     Ok(LangExpr::LambdaExpr(Box::new(Lambda {
         args: v,
@@ -4132,15 +4113,7 @@ fn check_pattern_exhaustive(
         });
     }
 
-    let ty;
-    match patterns.front().unwrap().get_type() {
-        Some(t) => {
-            ty = t;
-        }
-        None => {
-            return Ok(());
-        }
-    }
+    let Some(ty) = patterns.front().unwrap().get_type() else { return Ok(()) };
 
     // list up labels of type
     // example:
@@ -4260,7 +4233,7 @@ fn check_pattern_exhaustive(
                 }
                 Pattern::PatTuple(e) => {
                     for (i, p2) in e.pattern.iter().enumerate() {
-                        ps.insert(&"Tuple".to_string(), i, p2);
+                        ps.insert("Tuple", i, p2);
                     }
                 }
                 _ => {}
@@ -4268,7 +4241,7 @@ fn check_pattern_exhaustive(
         }
 
         for plst in ps.pat.values() {
-            check_pattern_exhaustive(&plst, ctx, pos)?;
+            check_pattern_exhaustive(plst, ctx, pos)?;
         }
 
         Ok(())
