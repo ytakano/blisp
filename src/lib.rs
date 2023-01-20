@@ -223,17 +223,17 @@ pub fn transpile(ctx: &semantics::Context) -> String {
 }
 
 /////////////////////////////////////////////////////////////////////
-#[embedded]
-fn test2(
-    _z: BigInt,
-    _a: Vec<BigInt>, 
-    _b: (BigInt, BigInt),
-    _c: Option<BigInt>,
-    _d: Result<BigInt, String>,
-) -> Option<BigInt> {
-    let temp = 5.to_bigint();
-    temp
-}
+// #[embedded]
+// fn test2(
+//     _z: BigInt,
+//     _a: Vec<BigInt>, 
+//     _b: (BigInt, BigInt),
+//     _c: Option<BigInt>,
+//     _d: Result<BigInt, String>,
+// ) -> Option<BigInt> {
+//     let temp = 5.to_bigint();
+//     temp
+// }
 /////////////////////////////////////////////////////////////////////
 
 
@@ -398,63 +398,6 @@ mod tests {
 
     #[test]
     fn do_transpile() {
-        //let expr = "(data D (A []) (B [Int Int]) (C '(Int)))";
-        //let expr = "(export t () (Pure (-> () Bool)) (true))";
-        /*(export double (x)
-        (Pure (-> (Int) Int))
-        (* 2 x))
-        
-        let expr = "
-        (data (Option t)
-            (Some t)
-            None)
-
-        (data (Result t e)
-            (Ok t)
-            (Err e))
-        
-        (export cdr (x) (Pure (-> ('(t)) '(t)))
-            (match x
-                ((Cons _ l) l)
-                (_ '())))
-
-        (export car (x) (Pure (-> ('(t)) (Option t)))
-            (match x
-                ((Cons n _) (Some n))
-                (_ None)))
-
-        (export double (x)
-            (Pure (-> (Int) Int))
-            (* 2 x))
-        ";
-        */
-        // let expr = "
-        // (data (Option t)
-        // (Some t)
-        // None)
-
-        // (data (Result t e)
-        // (Ok t)
-        // (Err e))
-        
-        // (defun filter' (f x l)
-        // (Pure (-> (
-        //     (Pure (-> (t) Bool)) '(t) '(t))
-        //     '(t)))
-        // (match x
-        //     ((Cons h a) (if (f h) (filter' f a (Cons h l)) (filter' f a l) ))
-        //     (_ l)))";
-        /*"(defun filter' (f x l)
-        (Pure (-> (
-            (Pure (-> (t) Bool)) '(t) '(t))
-            '(t)))
-        (match x
-            ((Cons h a) (if (f h) (filter' f a (Cons h l)) (filter' f a l) ))
-            (_ l)))";*/
-        /*"(export map (f x) (Pure (-> ((Pure (-> (a) b)) '(a)) '(b)))
-        (match x
-            ((Cons h l) (Cons (f h) (map f l)))
-            (_ '())))";*/
         let expr = "
         (defun snoc (l y)
         (Pure (-> (

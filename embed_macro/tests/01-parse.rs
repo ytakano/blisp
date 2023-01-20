@@ -37,7 +37,7 @@ use num_bigint::{BigInt, ToBigInt};
 // 	a * b
 // }
 
-#[sorted]
+#[embedded]
 fn test2(
     _z: BigInt,
     _a: Vec<BigInt>, 
@@ -49,7 +49,7 @@ fn test2(
     temp
 }
 
-#[sorted]
+#[embedded]
 fn test_fn(a: String, _a: Option<BigInt>) -> bool {
     match &*a {
         "a" => true,
