@@ -103,7 +103,8 @@ pub(crate) fn to_coq_type(
 
 pub(crate) fn import() -> &'static str {
 "Require Import ZArith.
-Require Import Coq.Lists.List."/*\n
+Require Import Coq.Lists.List."
+/*\n
 Inductive tuple5 (A, B, C, D, E:Type): Type :=
     | tup5 (x0: A, x1: B, x2: C, x3: D, x4: E).
 Inductive tuple4 (A, B, C, D:Type): Type :=
@@ -248,15 +249,9 @@ pub(crate) fn to_coq_func(expr: &S::Defun) -> String {
     // transpile return type
     let ret = to_coq_type(&fun_type.ret, 0, &mut targs);
 
-    //ここから書き加え---------------------------------------------------
-    //let def = format!("{} {}{}: {} :=\n", head, s_targs, args, ret);
-
-    //中身のtranspile
-    //tabのための変数
+    //indent count
     let mut tab_count = 0;
     let tl_expr = func_analyze(&expr.expr, &mut tab_count);
-
-    //ここまで-----------------------------------------------------------
 
     // if there is no type argument, then return
     if targs.is_empty() {
@@ -336,7 +331,6 @@ fn func_analyze<'a>(expr: &S::LangExpr, count: &'a mut i32) -> String {
                 case_expr = format!("{}\n{}| {} => {}", case_expr, tab_expr, pattern_analyze(&t.pattern), func_analyze(&t.expr, count));
             }
             *count -= 2;
-            //一旦patternの処理をする
             format!("{}{}\n{}end", match_expr, case_expr, tabb(*count + 2))
         },
         S::LangExpr::ApplyExpr(ex) => {
@@ -365,13 +359,7 @@ fn func_analyze<'a>(expr: &S::LangExpr, count: &'a mut i32) -> String {
             }
             let mut list_expr = "".to_string();
             let mut temp = "".to_string();
-            // let _last = ex.exprs.len() - 1;
-            for (i, t) in ex.exprs.iter().enumerate() {
-                /*
-                match i {
-                    _last => list_expr = format!("{}{} ", list_expr, func_analyze(&t, count)),
-                    _ => list_expr = format!("{}{} nil", list_expr, func_analyze(&t, count)),
-                }*/
+            for (_i, t) in ex.exprs.iter().enumerate() {
                 list_expr = format!("{}(cons {} ", list_expr, func_analyze(&t, count));
                 temp = format!("{})", temp);
             }
@@ -420,7 +408,6 @@ fn pattern_analyze(pattern: &S::Pattern) -> String {
             }
             pattern_expr = format!("{}tup{} (", pattern_expr, length);
             for t in &ex.pattern{
-                //ここで詰まった
                 pattern_expr = format!("{} {}", pattern_expr, pattern_analyze(&t));
             }
             format!("{})", pattern_expr)
