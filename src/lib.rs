@@ -81,19 +81,23 @@
 //! (filter (lambda (x) (= (% x 2) 0)) '(1 2 3 4 5 6 7 8 9)) ; '(2 4 6 8)
 //! ```
 
-#![no_std]
+//#![no_std]
 
 extern crate alloc;
+extern crate proc_macro;
 
 use alloc::collections::linked_list::LinkedList;
 use alloc::format;
 use alloc::string::{String, ToString};
+use num_bigint::{BigInt, ToBigInt};
+use embed_macro::embedded;
 
 pub mod coq;
 pub mod r#macro;
 pub mod parser;
 pub mod runtime;
 pub mod semantics;
+
 
 const FILE_ID_PRELUD: usize = 0;
 const FILE_ID_USER: usize = 1;
@@ -133,7 +137,8 @@ impl LispErr {
 /// blisp::init(code).unwrap();
 /// ```
 pub fn init(code: &str) -> Result<LinkedList<parser::Expr>, LispErr> {
-    let prelude = include_str!("prelude.lisp");
+    // let prelude = include_str!("prelude.lisp");
+    let prelude = "";
     let mut ps = parser::Parser::new(prelude, FILE_ID_PRELUD);
     let mut exprs = match ps.parse() {
         Ok(e) => e,
@@ -206,15 +211,32 @@ pub fn eval(
 pub fn transpile(ctx: &semantics::Context) -> String {
     let mut s = "".to_string();
     for (_, d) in ctx.data.iter() {
+        println!("AST(Data):\n{:#?}", d);
         s = format!("{}{}\n", s, coq::to_coq_data(d));
     }
 
     for (_, f) in ctx.funs.iter() {
+        //println!("AST(Defun):\n{:#?}", f);
         s = format!("{}{}\n", s, coq::to_coq_func(f));
     }
 
     format!("{}\n\n{}", coq::import(), s)
 }
+
+/////////////////////////////////////////////////////////////////////
+// #[embedded]
+// fn test2(
+//     _z: BigInt,
+//     _a: Vec<BigInt>, 
+//     _b: (BigInt, BigInt),
+//     _c: Option<BigInt>,
+//     _d: Result<BigInt, String>,
+// ) -> Option<BigInt> {
+//     let temp = 5.to_bigint();
+//     temp
+// }
+/////////////////////////////////////////////////////////////////////
+
 
 #[cfg(test)]
 #[macro_use]
@@ -292,7 +314,6 @@ mod tests {
     (match x
         ((Cons n _) (Some n))
         (_ None)))
-
 (export tail (x) (Pure (-> ('(Int)) (Option Int)))
     ; match expression
     (match x
@@ -327,7 +348,6 @@ mod tests {
         let expr = "
 (export factorial (n) (Pure (-> (Int) Int))
     (factorial' n 1))
-
 (defun factorial' (n total) (Pure (-> (Int Int) Int))
     (if (<= n 0)
         total
@@ -384,7 +404,23 @@ mod tests {
 
     #[test]
     fn do_transpile() {
-        let expr = "(data D (A []) (B [Int Int]) (C '(Int)))";
+        let expr = "
+        (defun snoc (l y)
+        (Pure (-> (
+            '(t) t)
+        '(t)))
+        (match l
+            (nil (Cons y nil))
+            ((Cons h b) (Cons h (snoc b y)))))
+            
+        (defun rev (l)
+        (Pure (-> (
+            '(t))
+        '(t)))
+        (match l
+            (nil nil)
+            ((Cons h t) (snoc (rev t) h))))
+            ";
         let exprs = init(expr).unwrap();
         let ctx = typing(&exprs).unwrap();
 
