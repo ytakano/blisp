@@ -356,6 +356,7 @@ struct Clojure {
 
 const MIN_GC_NUM: usize = 1024;
 
+#[derive(Debug)]
 struct RootObject {
     objects: LinkedList<Pin<Box<(LabeledData, bool)>>>,
     clojure: LinkedList<Pin<Box<(Clojure, bool)>>>,
@@ -406,6 +407,13 @@ impl RootObject {
     }
 }
 
+struct Environment<'a> {
+    pub ctx: &'a semantics::Context,
+    pub lambda: &'a BTreeMap<u64, semantics::Lambda>,
+    pub root: &'a mut RootObject,
+    pub vars: &'a mut VecDeque<Variables>,
+}
+
 pub(crate) fn eval(
     code: &str,
     ctx: &semantics::Context,
@@ -437,7 +445,15 @@ pub(crate) fn eval(
     for (expr, lambda) in &typed_exprs {
         let mut vars = VecDeque::new();
         vars.push_back(Variables::new());
-        match eval_expr(expr, lambda, ctx, &mut root, &mut vars) {
+
+        let mut env = Environment {
+            ctx,
+            lambda,
+            root: &mut root,
+            vars: &mut vars,
+        };
+
+        match eval_expr(expr, &mut env) {
             Ok(val) => {
                 result.push_back(Ok(val.get_in_lisp(true)));
             }
@@ -462,62 +478,46 @@ fn get_data_of_id(id: &str, vars: &mut VecDeque<Variables>) -> RTData {
     }
 }
 
-fn eval_expr(
-    expr: &Expr,
-    lambda: &BTreeMap<u64, semantics::Lambda>,
-    ctx: &semantics::Context,
-    root: &mut RootObject,
-    vars: &mut VecDeque<Variables>,
-) -> Result<RTData, RuntimeErr> {
+fn eval_expr(expr: &Expr, env: &mut Environment<'_>) -> Result<RTData, RuntimeErr> {
     match expr {
-        Expr::LitStr(e) => Ok(RTData::Str(root.make_str(e.str.clone()))),
-        Expr::LitNum(e) => Ok(RTData::Int(root.make_int(e.num.clone()))),
+        Expr::LitStr(e) => Ok(RTData::Str(env.root.make_str(e.str.clone()))),
+        Expr::LitNum(e) => Ok(RTData::Int(env.root.make_int(e.num.clone()))),
         Expr::LitChar(e) => Ok(RTData::Char(e.c)),
         Expr::LitBool(e) => Ok(RTData::Bool(e.val)),
-        Expr::IfExpr(e) => eval_if(e, lambda, ctx, root, vars),
-        Expr::DataExpr(e) => eval_data(e, lambda, ctx, root, vars),
-        Expr::ListExpr(e) => eval_list(e, lambda, ctx, root, vars),
-        Expr::LetExpr(e) => eval_let(e, lambda, ctx, root, vars),
-        Expr::MatchExpr(e) => eval_match(e, lambda, ctx, root, vars),
-        Expr::IDExpr(e) => Ok(eval_id(e, vars)),
-        Expr::ApplyExpr(e) => eval_apply(e, lambda, ctx, root, vars),
-        Expr::TupleExpr(e) => eval_tuple(e, lambda, ctx, root, vars),
-        Expr::LambdaExpr(e) => Ok(eval_lambda(e, root, vars)),
+        Expr::IfExpr(e) => eval_if(e, env),
+        Expr::DataExpr(e) => eval_data(e, env),
+        Expr::ListExpr(e) => eval_list(e, env),
+        Expr::LetExpr(e) => eval_let(e, env),
+        Expr::MatchExpr(e) => eval_match(e, env),
+        Expr::IDExpr(e) => Ok(eval_id(e, env.vars)),
+        Expr::ApplyExpr(e) => eval_apply(e, env),
+        Expr::TupleExpr(e) => eval_tuple(e, env),
+        Expr::LambdaExpr(e) => Ok(eval_lambda(e, env)),
     }
 }
 
-fn eval_lambda(
-    expr: &semantics::Lambda,
-    root: &mut RootObject,
-    vars: &mut VecDeque<Variables>,
-) -> RTData {
+fn eval_lambda(expr: &semantics::Lambda, env: &mut Environment<'_>) -> RTData {
     let data = if !expr.vars.is_empty() {
         let mut m = BTreeMap::new();
         for v in &expr.vars {
-            m.insert(v.to_string(), get_data_of_id(v, vars));
+            m.insert(v.to_string(), get_data_of_id(v, env.vars));
         }
         Some(m)
     } else {
         None
     };
 
-    let ptr = root.make_clojure(expr.ident, data);
+    let ptr = env.root.make_clojure(expr.ident, data);
     RTData::Lambda(ptr)
 }
 
-fn eval_tuple(
-    expr: &semantics::Exprs,
-    lambda: &BTreeMap<u64, semantics::Lambda>,
-    ctx: &semantics::Context,
-    root: &mut RootObject,
-    vars: &mut VecDeque<Variables>,
-) -> Result<RTData, RuntimeErr> {
+fn eval_tuple(expr: &semantics::Exprs, env: &mut Environment<'_>) -> Result<RTData, RuntimeErr> {
     let mut v = Vec::new();
     for e in expr.exprs.iter() {
-        v.push(eval_expr(e, lambda, ctx, root, vars)?);
+        v.push(eval_expr(e, env)?);
     }
 
-    let ptr = root.make_obj("Tuple".to_string(), Some(v));
+    let ptr = env.root.make_obj("Tuple".to_string(), Some(v));
 
     Ok(RTData::LData(ptr))
 }
@@ -567,22 +567,19 @@ fn get_lambda<'a>(
 
 fn call_lambda(
     expr: &semantics::Apply,
-    lambda: &BTreeMap<u64, semantics::Lambda>,
-    ctx: &semantics::Context,
-    root: &mut RootObject,
-    vars: &mut VecDeque<Variables>,
+    env: &mut Environment<'_>,
     cloj: &Clojure,
     iter: core::slice::Iter<semantics::LangExpr>,
     fun_expr: &semantics::LangExpr,
 ) -> Result<RTData, RuntimeErr> {
     // look up lambda
     let ident = cloj.ident;
-    let fun = get_lambda(ctx, lambda, ident, fun_expr)?;
+    let fun = get_lambda(env.ctx, env.lambda, ident, fun_expr)?;
 
     // set up arguments
     let mut vars_fun = Variables::new();
     for (e, arg) in iter.zip(fun.args.iter()) {
-        let data = eval_expr(e, lambda, ctx, root, vars)?;
+        let data = eval_expr(e, env)?;
         vars_fun.insert(arg.id.to_string(), data);
     }
 
@@ -600,20 +597,14 @@ fn call_lambda(
     if expr.is_tail {
         Ok(RTData::TailCall(TCall::Lambda(ident), vars_fun))
     } else {
-        vars.push_back(vars_fun);
-        let result = eval_tail_call(&fun.expr, lambda, ctx, root, vars);
-        vars.pop_back();
+        env.vars.push_back(vars_fun);
+        let result = eval_tail_call(&fun.expr, env);
+        env.vars.pop_back();
         result
     }
 }
 
-fn eval_apply(
-    expr: &semantics::Apply,
-    lambda: &BTreeMap<u64, semantics::Lambda>,
-    ctx: &semantics::Context,
-    root: &mut RootObject,
-    vars: &mut VecDeque<Variables>,
-) -> Result<RTData, RuntimeErr> {
+fn eval_apply(expr: &semantics::Apply, env: &mut Environment<'_>) -> Result<RTData, RuntimeErr> {
     let mut iter = expr.exprs.iter();
     let fun_expr = match iter.next() {
         Some(e) => e,
@@ -626,24 +617,24 @@ fn eval_apply(
         }
     };
 
-    match eval_expr(fun_expr, lambda, ctx, root, vars)? {
+    match eval_expr(fun_expr, env)? {
         RTData::Defun(fun_name) => {
             // call built-in function
-            if ctx.built_in.contains(&fun_name) {
+            if env.ctx.built_in.contains(&fun_name) {
                 let mut v = Vec::new();
                 for e in iter {
-                    let data = eval_expr(e, lambda, ctx, root, vars)?;
+                    let data = eval_expr(e, env)?;
                     v.push(data);
                 }
-                return eval_built_in(fun_name, &v, expr.pos, root, ctx);
+                return eval_built_in(fun_name, &v, expr.pos, env);
             }
 
             // look up defun
-            if let Ok(fun) = get_fun(ctx, &fun_name, fun_expr) {
+            if let Ok(fun) = get_fun(env.ctx, &fun_name, fun_expr) {
                 // set up arguments
                 let mut vars_fun = Variables::new();
                 for (e, arg) in iter.zip(fun.args.iter()) {
-                    let data = eval_expr(e, lambda, ctx, root, vars)?;
+                    let data = eval_expr(e, env)?;
                     vars_fun.insert(arg.id.to_string(), data);
                 }
 
@@ -651,25 +642,16 @@ fn eval_apply(
                 if expr.is_tail {
                     Ok(RTData::TailCall(TCall::Defun(fun_name), vars_fun))
                 } else {
-                    vars.push_back(vars_fun);
-                    let result = eval_tail_call(&fun.expr, lambda, ctx, root, vars)?;
-                    vars.pop_back();
+                    env.vars.push_back(vars_fun);
+                    let result = eval_tail_call(&fun.expr, env)?;
+                    env.vars.pop_back();
                     Ok(result)
                 }
             } else {
                 // call clojure
-                if let Some(RTData::Lambda(cloj)) = vars.back_mut().unwrap().get(&fun_name) {
+                if let Some(RTData::Lambda(cloj)) = env.vars.back_mut().unwrap().get(&fun_name) {
                     let c = cloj.clone();
-                    return call_lambda(
-                        expr,
-                        lambda,
-                        ctx,
-                        root,
-                        vars,
-                        c.get_clojure(),
-                        iter,
-                        fun_expr,
-                    );
+                    return call_lambda(expr, env, c.get_clojure(), iter, fun_expr);
                 }
 
                 // could not find such function
@@ -680,7 +662,7 @@ fn eval_apply(
         }
         RTData::Lambda(f) => {
             let f = f.get_clojure();
-            call_lambda(expr, lambda, ctx, root, vars, f, iter, fun_expr)
+            call_lambda(expr, env, f, iter, fun_expr)
         }
         _ => {
             let pos = fun_expr.get_pos();
@@ -694,26 +676,23 @@ fn eval_apply(
 
 fn eval_tail_call<'a>(
     mut expr: &'a Expr,
-    lambda: &'a BTreeMap<u64, semantics::Lambda>,
-    ctx: &'a semantics::Context,
-    root: &mut RootObject,
-    vars: &mut VecDeque<Variables>,
+    env: &'a mut Environment<'_>,
 ) -> Result<RTData, RuntimeErr> {
     loop {
-        match eval_expr(expr, lambda, ctx, root, vars)? {
+        match eval_expr(expr, env)? {
             RTData::TailCall(TCall::Defun(fun_name), vars_fun) => {
-                let fun = get_fun(ctx, &fun_name, expr)?;
+                let fun = get_fun(env.ctx, &fun_name, expr)?;
                 expr = &fun.expr;
-                vars.pop_back();
-                vars.push_back(vars_fun);
-                collect_garbage(vars, root); // mark and sweep
+                env.vars.pop_back();
+                env.vars.push_back(vars_fun);
+                collect_garbage(env.vars, env.root); // mark and sweep
             }
             RTData::TailCall(TCall::Lambda(id), vars_fun) => {
-                let fun = get_lambda(ctx, lambda, id, expr)?;
+                let fun = get_lambda(env.ctx, env.lambda, id, expr)?;
                 expr = &fun.expr;
-                vars.pop_back();
-                vars.push_back(vars_fun);
-                collect_garbage(vars, root); // mark and sweep
+                env.vars.pop_back();
+                env.vars.push_back(vars_fun);
+                collect_garbage(env.vars, env.root); // mark and sweep
             }
             x => {
                 return Ok(x);
@@ -781,34 +760,33 @@ fn eval_built_in(
     fun_name: String,
     args: &[RTData],
     pos: Pos,
-    root: &mut RootObject,
-    ctx: &semantics::Context,
+    env: &mut Environment<'_>,
 ) -> Result<RTData, RuntimeErr> {
     match fun_name.as_str() {
         "+" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let n = unsafe { &*n1 + &*n2 };
-            Ok(RTData::Int(root.make_int(n)))
+            Ok(RTData::Int(env.root.make_int(n)))
         }
         "-" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let n = unsafe { &*n1 - &*n2 };
-            Ok(RTData::Int(root.make_int(n)))
+            Ok(RTData::Int(env.root.make_int(n)))
         }
         "*" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let n = unsafe { &*n1 * &*n2 };
-            Ok(RTData::Int(root.make_int(n)))
+            Ok(RTData::Int(env.root.make_int(n)))
         }
         "/" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let n = unsafe { &*n1 / &*n2 };
-            Ok(RTData::Int(root.make_int(n)))
+            Ok(RTData::Int(env.root.make_int(n)))
         }
         "%" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let n = unsafe { &*n1 % &*n2 };
-            Ok(RTData::Int(root.make_int(n)))
+            Ok(RTData::Int(env.root.make_int(n)))
         }
         "=" | "eq" => Ok(RTData::Bool(args[0] == args[1])),
         "!=" | "neq" => Ok(RTData::Bool(args[0] != args[1])),
@@ -835,27 +813,27 @@ fn eval_built_in(
         "band" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let n = unsafe { &*n1 & &*n2 };
-            Ok(RTData::Int(root.make_int(n)))
+            Ok(RTData::Int(env.root.make_int(n)))
         }
         "bor" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let n = unsafe { &*n1 | &*n2 };
-            Ok(RTData::Int(root.make_int(n)))
+            Ok(RTData::Int(env.root.make_int(n)))
         }
         "bxor" => {
             let (n1, n2) = get_int_int(args, pos)?;
             let n = unsafe { &*n1 ^ &*n2 };
-            Ok(RTData::Int(root.make_int(n)))
+            Ok(RTData::Int(env.root.make_int(n)))
         }
         "sqrt" => {
             let n = get_int(args, pos)?;
             if unsafe { (*n) >= Zero::zero() } {
                 let n = unsafe { (*n).sqrt() };
-                let n = RTData::Int(root.make_int(n));
-                let ptr = root.make_obj("Some".to_string(), Some(vec![n]));
+                let n = RTData::Int(env.root.make_int(n));
+                let ptr = env.root.make_obj("Some".to_string(), Some(vec![n]));
                 Ok(RTData::LData(ptr))
             } else {
-                let ptr = root.make_obj("None".to_string(), None);
+                let ptr = env.root.make_obj("None".to_string(), None);
                 Ok(RTData::LData(ptr))
             }
         }
@@ -863,11 +841,11 @@ fn eval_built_in(
             let (n1, n2) = get_int_int(args, pos)?;
             if let Some(e) = unsafe { (*n2).to_u32() } {
                 let n = unsafe { (*n1).pow(e) };
-                let n = RTData::Int(root.make_int(n));
-                let ptr = root.make_obj("Some".to_string(), Some(vec![n]));
+                let n = RTData::Int(env.root.make_int(n));
+                let ptr = env.root.make_obj("Some".to_string(), Some(vec![n]));
                 Ok(RTData::LData(ptr))
             } else {
-                let ptr = root.make_obj("None".to_string(), None);
+                let ptr = env.root.make_obj("None".to_string(), None);
                 Ok(RTData::LData(ptr))
             }
         }
@@ -876,11 +854,11 @@ fn eval_built_in(
             if let Some(e) = unsafe { (*n2).to_u64() } {
                 let n = unsafe { (*n1).clone() };
                 let n = n.shr(e);
-                let n = RTData::Int(root.make_int(n));
-                let ptr = root.make_obj("Some".to_string(), Some(vec![n]));
+                let n = RTData::Int(env.root.make_int(n));
+                let ptr = env.root.make_obj("Some".to_string(), Some(vec![n]));
                 Ok(RTData::LData(ptr))
             } else {
-                let ptr = root.make_obj("None".to_string(), None);
+                let ptr = env.root.make_obj("None".to_string(), None);
                 Ok(RTData::LData(ptr))
             }
         }
@@ -889,22 +867,22 @@ fn eval_built_in(
             if let Some(e) = unsafe { (*n2).to_u64() } {
                 let n = unsafe { (*n1).clone() };
                 let n = n.shl(e);
-                let n = RTData::Int(root.make_int(n));
-                let ptr = root.make_obj("Some".to_string(), Some(vec![n]));
+                let n = RTData::Int(env.root.make_int(n));
+                let ptr = env.root.make_obj("Some".to_string(), Some(vec![n]));
                 Ok(RTData::LData(ptr))
             } else {
-                let ptr = root.make_obj("None".to_string(), None);
+                let ptr = env.root.make_obj("None".to_string(), None);
                 Ok(RTData::LData(ptr))
             }
         }
         "chars" => {
-            let mut tail = RTData::LData(root.make_obj("Nil".to_string(), None));
+            let mut tail = RTData::LData(env.root.make_obj("Nil".to_string(), None));
             if let RTData::Str(st) = &args[0] {
                 let s = st.get_string();
                 for c in s.chars().rev() {
                     let c = RTData::Char(c);
                     let cons =
-                        RTData::LData(root.make_obj("Cons".to_string(), Some(vec![c, tail])));
+                        RTData::LData(env.root.make_obj("Cons".to_string(), Some(vec![c, tail])));
                     tail = cons;
                 }
             }
@@ -942,18 +920,18 @@ fn eval_built_in(
                     }
                 }
             }
-            let ptr = root.make_str(s);
+            let ptr = env.root.make_str(s);
             Ok(RTData::Str(ptr))
         }
         "call-rust" => {
             let (n1, n2, n3) = get_int_int_int(args, pos)?;
-            let n = unsafe { (ctx.callback)(&*n1, &*n2, &*n3) };
+            let n = unsafe { (env.ctx.callback)(&*n1, &*n2, &*n3) };
             if let Some(n) = n {
-                let n = RTData::Int(root.make_int(n));
-                let ptr = root.make_obj("Some".to_string(), Some(vec![n]));
+                let n = RTData::Int(env.root.make_int(n));
+                let ptr = env.root.make_obj("Some".to_string(), Some(vec![n]));
                 Ok(RTData::LData(ptr))
             } else {
-                let ptr = root.make_obj("None".to_string(), None);
+                let ptr = env.root.make_obj("None".to_string(), None);
                 Ok(RTData::LData(ptr))
             }
         }
@@ -966,21 +944,18 @@ fn eval_built_in(
 
 fn eval_match(
     expr: &semantics::MatchNode,
-    lambda: &BTreeMap<u64, semantics::Lambda>,
-    ctx: &semantics::Context,
-    root: &mut RootObject,
-    vars: &mut VecDeque<Variables>,
+    env: &mut Environment<'_>,
 ) -> Result<RTData, RuntimeErr> {
-    let data = eval_expr(&expr.expr, lambda, ctx, root, vars)?;
+    let data = eval_expr(&expr.expr, env)?;
 
     for c in &expr.cases {
-        vars.back_mut().unwrap().push();
-        if eval_pat(&c.pattern, data.clone(), vars) {
-            let retval = eval_expr(&c.expr, lambda, ctx, root, vars)?;
-            vars.back_mut().unwrap().pop();
+        env.vars.back_mut().unwrap().push();
+        if eval_pat(&c.pattern, data.clone(), env.vars) {
+            let retval = eval_expr(&c.expr, env)?;
+            env.vars.back_mut().unwrap().pop();
             return Ok(retval);
         }
-        vars.back_mut().unwrap().pop();
+        env.vars.back_mut().unwrap().pop();
     }
 
     let pos = expr.pos;
@@ -995,30 +970,20 @@ fn eval_id(expr: &semantics::IDNode, vars: &mut VecDeque<Variables>) -> RTData {
     get_data_of_id(&id, vars)
 }
 
-fn eval_list(
-    expr: &semantics::Exprs,
-    lambda: &BTreeMap<u64, semantics::Lambda>,
-    ctx: &semantics::Context,
-    root: &mut RootObject,
-    vars: &mut VecDeque<Variables>,
-) -> Result<RTData, RuntimeErr> {
-    let mut elm = root.make_obj("Nil".to_string(), None);
+fn eval_list(expr: &semantics::Exprs, env: &mut Environment<'_>) -> Result<RTData, RuntimeErr> {
+    let mut elm = env.root.make_obj("Nil".to_string(), None);
     for e in expr.exprs.iter().rev() {
-        let val = eval_expr(e, lambda, ctx, root, vars)?;
-        elm = root.make_obj("Cons".to_string(), Some(vec![val, RTData::LData(elm)]));
+        let val = eval_expr(e, env)?;
+        elm = env
+            .root
+            .make_obj("Cons".to_string(), Some(vec![val, RTData::LData(elm)]));
     }
 
     Ok(RTData::LData(elm))
 }
 
-fn eval_if(
-    expr: &semantics::IfNode,
-    lambda: &BTreeMap<u64, semantics::Lambda>,
-    ctx: &semantics::Context,
-    root: &mut RootObject,
-    vars: &mut VecDeque<Variables>,
-) -> Result<RTData, RuntimeErr> {
-    let cond = eval_expr(&expr.cond_expr, lambda, ctx, root, vars)?;
+fn eval_if(expr: &semantics::IfNode, env: &mut Environment<'_>) -> Result<RTData, RuntimeErr> {
+    let cond = eval_expr(&expr.cond_expr, env)?;
     let flag = match cond {
         RTData::Bool(e) => e,
         _ => {
@@ -1031,46 +996,34 @@ fn eval_if(
     };
 
     if flag {
-        eval_expr(&expr.then_expr, lambda, ctx, root, vars)
+        eval_expr(&expr.then_expr, env)
     } else {
-        eval_expr(&expr.else_expr, lambda, ctx, root, vars)
+        eval_expr(&expr.else_expr, env)
     }
 }
 
-fn eval_data(
-    expr: &semantics::DataNode,
-    lambda: &BTreeMap<u64, semantics::Lambda>,
-    ctx: &semantics::Context,
-    root: &mut RootObject,
-    vars: &mut VecDeque<Variables>,
-) -> Result<RTData, RuntimeErr> {
+fn eval_data(expr: &semantics::DataNode, env: &mut Environment<'_>) -> Result<RTData, RuntimeErr> {
     let data = if expr.exprs.is_empty() {
         None
     } else {
         let mut v = Vec::new();
         for e in &expr.exprs {
-            v.push(eval_expr(e, lambda, ctx, root, vars)?);
+            v.push(eval_expr(e, env)?);
         }
         Some(v)
     };
 
-    let ptr = root.make_obj(expr.label.id.to_string(), data);
+    let ptr = env.root.make_obj(expr.label.id.to_string(), data);
 
     Ok(RTData::LData(ptr))
 }
 
-fn eval_let(
-    expr: &semantics::LetNode,
-    lambda: &BTreeMap<u64, semantics::Lambda>,
-    ctx: &semantics::Context,
-    root: &mut RootObject,
-    vars: &mut VecDeque<Variables>,
-) -> Result<RTData, RuntimeErr> {
-    vars.back_mut().unwrap().push();
+fn eval_let(expr: &semantics::LetNode, env: &mut Environment<'_>) -> Result<RTData, RuntimeErr> {
+    env.vars.back_mut().unwrap().push();
 
     for def in &expr.def_vars {
-        let data = eval_expr(&def.expr, lambda, ctx, root, vars)?;
-        if !eval_pat(&def.pattern, data, vars) {
+        let data = eval_expr(&def.expr, env)?;
+        if !eval_pat(&def.pattern, data, env.vars) {
             let pos = def.pattern.get_pos();
             return Err(RuntimeErr {
                 msg: "failed pattern matching".to_string(),
@@ -1079,8 +1032,8 @@ fn eval_let(
         }
     }
 
-    let result = eval_expr(&expr.expr, lambda, ctx, root, vars)?;
-    vars.back_mut().unwrap().pop();
+    let result = eval_expr(&expr.expr, env)?;
+    env.vars.back_mut().unwrap().pop();
 
     Ok(result)
 }
