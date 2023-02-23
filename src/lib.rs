@@ -89,8 +89,8 @@ extern crate proc_macro;
 use alloc::collections::linked_list::LinkedList;
 use alloc::format;
 use alloc::string::{String, ToString};
-use num_bigint::{BigInt, ToBigInt};
-use embed_macro::embedded;
+
+
 
 pub mod coq;
 pub mod r#macro;
@@ -252,7 +252,7 @@ mod tests {
     }
 
     fn eval_result(code: &str, ctx: &semantics::Context) {
-        for r in eval(code, &ctx).unwrap() {
+        for r in eval(code, ctx).unwrap() {
             println!("{} -> {}", code, r.unwrap());
         }
     }

@@ -411,16 +411,13 @@ pub(crate) fn eval(
     ctx: &semantics::Context,
 ) -> Result<LinkedList<Result<String, String>>, LispErr> {
     let mut ps = parser::Parser::new(code, crate::FILE_ID_EVAL);
-    let exprs;
-    match ps.parse() {
-        Ok(e) => {
-            exprs = e;
-        }
+    let exprs = match ps.parse() {
+        Ok(e) => e,
         Err(e) => {
             let msg = format!("Syntax Error: {}", e.msg);
             return Err(LispErr { msg, pos: e.pos });
         }
-    }
+    };
 
     let mut typed_exprs = LinkedList::new();
     for expr in &exprs {
@@ -477,15 +474,15 @@ fn eval_expr(
         Expr::LitNum(e) => Ok(RTData::Int(root.make_int(e.num.clone()))),
         Expr::LitChar(e) => Ok(RTData::Char(e.c)),
         Expr::LitBool(e) => Ok(RTData::Bool(e.val)),
-        Expr::IfExpr(e) => eval_if(&e, lambda, ctx, root, vars),
-        Expr::DataExpr(e) => eval_data(&e, lambda, ctx, root, vars),
-        Expr::ListExpr(e) => eval_list(&e, lambda, ctx, root, vars),
-        Expr::LetExpr(e) => eval_let(&e, lambda, ctx, root, vars),
-        Expr::MatchExpr(e) => eval_match(&e, lambda, ctx, root, vars),
-        Expr::IDExpr(e) => Ok(eval_id(&e, vars)),
-        Expr::ApplyExpr(e) => eval_apply(&e, lambda, ctx, root, vars),
-        Expr::TupleExpr(e) => eval_tuple(&e, lambda, ctx, root, vars),
-        Expr::LambdaExpr(e) => Ok(eval_lambda(&e, root, vars)),
+        Expr::IfExpr(e) => eval_if(e, lambda, ctx, root, vars),
+        Expr::DataExpr(e) => eval_data(e, lambda, ctx, root, vars),
+        Expr::ListExpr(e) => eval_list(e, lambda, ctx, root, vars),
+        Expr::LetExpr(e) => eval_let(e, lambda, ctx, root, vars),
+        Expr::MatchExpr(e) => eval_match(e, lambda, ctx, root, vars),
+        Expr::IDExpr(e) => Ok(eval_id(e, vars)),
+        Expr::ApplyExpr(e) => eval_apply(e, lambda, ctx, root, vars),
+        Expr::TupleExpr(e) => eval_tuple(e, lambda, ctx, root, vars),
+        Expr::LambdaExpr(e) => Ok(eval_lambda(e, root, vars)),
     }
 }
 
@@ -530,17 +527,14 @@ fn get_fun<'a>(
     fun_name: &str,
     expr: &Expr,
 ) -> Result<&'a semantics::Defun, RuntimeErr> {
-    let fun;
-    match ctx.funs.get(fun_name) {
-        Some(f) => {
-            fun = f;
-        }
+    let fun = match ctx.funs.get(fun_name) {
+        Some(f) => f,
         None => {
             let pos = expr.get_pos();
             let msg = format!("{} is not defined", fun_name);
             return Err(RuntimeErr { msg, pos });
         }
-    }
+    };
 
     Ok(fun)
 }
@@ -588,7 +582,7 @@ fn call_lambda(
     // set up arguments
     let mut vars_fun = Variables::new();
     for (e, arg) in iter.zip(fun.args.iter()) {
-        let data = eval_expr(&e, lambda, ctx, root, vars)?;
+        let data = eval_expr(e, lambda, ctx, root, vars)?;
         vars_fun.insert(arg.id.to_string(), data);
     }
 
@@ -621,11 +615,8 @@ fn eval_apply(
     vars: &mut VecDeque<Variables>,
 ) -> Result<RTData, RuntimeErr> {
     let mut iter = expr.exprs.iter();
-    let fun_expr;
-    match iter.next() {
-        Some(e) => {
-            fun_expr = e;
-        }
+    let fun_expr = match iter.next() {
+        Some(e) => e,
         None => {
             let pos = expr.pos;
             return Err(RuntimeErr {
@@ -633,15 +624,15 @@ fn eval_apply(
                 pos,
             });
         }
-    }
+    };
 
-    match eval_expr(&fun_expr, lambda, ctx, root, vars)? {
+    match eval_expr(fun_expr, lambda, ctx, root, vars)? {
         RTData::Defun(fun_name) => {
             // call built-in function
             if ctx.built_in.contains(&fun_name) {
                 let mut v = Vec::new();
                 for e in iter {
-                    let data = eval_expr(&e, lambda, ctx, root, vars)?;
+                    let data = eval_expr(e, lambda, ctx, root, vars)?;
                     v.push(data);
                 }
                 return eval_built_in(fun_name, &v, expr.pos, root, ctx);
@@ -652,7 +643,7 @@ fn eval_apply(
                 // set up arguments
                 let mut vars_fun = Variables::new();
                 for (e, arg) in iter.zip(fun.args.iter()) {
-                    let data = eval_expr(&e, lambda, ctx, root, vars)?;
+                    let data = eval_expr(e, lambda, ctx, root, vars)?;
                     vars_fun.insert(arg.id.to_string(), data);
                 }
 
@@ -1028,11 +1019,8 @@ fn eval_if(
     vars: &mut VecDeque<Variables>,
 ) -> Result<RTData, RuntimeErr> {
     let cond = eval_expr(&expr.cond_expr, lambda, ctx, root, vars)?;
-    let flag;
-    match cond {
-        RTData::Bool(e) => {
-            flag = e;
-        }
+    let flag = match cond {
+        RTData::Bool(e) => e,
         _ => {
             let pos = expr.cond_expr.get_pos();
             return Err(RuntimeErr {
@@ -1040,7 +1028,7 @@ fn eval_if(
                 pos,
             });
         }
-    }
+    };
 
     if flag {
         eval_expr(&expr.then_expr, lambda, ctx, root, vars)

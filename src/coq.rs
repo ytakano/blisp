@@ -102,21 +102,21 @@ pub(crate) fn to_coq_type(
 }
 
 pub(crate) fn import() -> &'static str {
-"Require Import ZArith.
+    "Require Import ZArith.
 Require Import Coq.Lists.List."
-/*\n
-Inductive tuple5 (A, B, C, D, E:Type): Type :=
-    | tup5 (x0: A, x1: B, x2: C, x3: D, x4: E).
-Inductive tuple4 (A, B, C, D:Type): Type :=
-    | tup4 (x0: A, x1: B, x2: C, x3: D).
-Inductive tuple3 (A, B, C:Type): Type :=
-    | tup3 (x0: A, x1: B, x2: C).
-Inductive tuple2 (A, B:Type): Type :=
-    | tup2 (x0: A, x1: B).
-Inductive tuple1 (A:Type): Type :=
-    | tup1 (x0: A).
-Inductive tuple0 : Type :=
-    | tup0."*/
+    /*\n
+    Inductive tuple5 (A, B, C, D, E:Type): Type :=
+        | tup5 (x0: A, x1: B, x2: C, x3: D, x4: E).
+    Inductive tuple4 (A, B, C, D:Type): Type :=
+        | tup4 (x0: A, x1: B, x2: C, x3: D).
+    Inductive tuple3 (A, B, C:Type): Type :=
+        | tup3 (x0: A, x1: B, x2: C).
+    Inductive tuple2 (A, B:Type): Type :=
+        | tup2 (x0: A, x1: B).
+    Inductive tuple1 (A:Type): Type :=
+        | tup1 (x0: A).
+    Inductive tuple0 : Type :=
+        | tup0."*/
 }
 
 pub(crate) fn to_coq_data(expr: &S::DataType) -> String {
@@ -130,12 +130,17 @@ pub(crate) fn to_coq_data(expr: &S::DataType) -> String {
             mem = format!("{}{}\n", mem, to_coq_data_mem(d));
         }
     }
-    
+
     if expr.members.is_empty() {
         format!("Inductive {}\n{}", to_coq_data_def(&expr.name), mem)
     } else {
-        let extend = inductive_arguments(&expr);
-        format!("Inductive {}\n{}{}\n", to_coq_data_def(&expr.name), mem, extend)
+        let extend = inductive_arguments(expr);
+        format!(
+            "Inductive {}\n{}{}\n",
+            to_coq_data_def(&expr.name),
+            mem,
+            extend
+        )
     }
 }
 
@@ -207,12 +212,11 @@ fn inductive_arguments(expr: &S::DataType) -> String {
 }
 
 pub(crate) fn to_coq_func(expr: &S::Defun) -> String {
-    let head;
-    if is_recursive(expr) {
-        head = format!("Fixpoint {}", expr.id.id);
+    let head = if is_recursive(expr) {
+        format!("Fixpoint {}", expr.id.id)
     } else {
-        head = format!("Definition {}", expr.id.id);
-    }
+        format!("Definition {}", expr.id.id)
+    };
 
     let fun_type = if let S::TypeExpr::TEFun(e) = &expr.fun_type {
         e
@@ -275,30 +279,49 @@ pub(crate) fn to_coq_func(expr: &S::Defun) -> String {
     format!("{} {}{}: {} :=\n{}.\n", head, s_targs, args, ret, tl_expr)
 }
 
-fn func_analyze<'a>(expr: &S::LangExpr, count: &'a mut i32) -> String {
+fn func_analyze(expr: &S::LangExpr, count: &mut i32) -> String {
     match expr {
         S::LangExpr::IfExpr(ex) => {
             let mut if_expr = "".to_string();
-            if_expr = format!("{}match {} with\n", if_expr, func_analyze(&ex.cond_expr, count));
+            if_expr = format!(
+                "{}match {} with\n",
+                if_expr,
+                func_analyze(&ex.cond_expr, count)
+            );
             *count += 2;
             let tab_expr = tabb(*count);
-            
-            if_expr = format!("{}{}| true => {}\n", if_expr, tab_expr, func_analyze(&ex.then_expr, count));
-            if_expr = format!("{}{}| false => {}\n", if_expr, tab_expr, func_analyze(&ex.else_expr, count));
+
+            if_expr = format!(
+                "{}{}| true => {}\n",
+                if_expr,
+                tab_expr,
+                func_analyze(&ex.then_expr, count)
+            );
+            if_expr = format!(
+                "{}{}| false => {}\n",
+                if_expr,
+                tab_expr,
+                func_analyze(&ex.else_expr, count)
+            );
 
             *count -= 2;
             format!("{}{}end", if_expr, tabb(*count + 2))
-        },
+        }
         S::LangExpr::LetExpr(ex) => {
             let mut let_expr = "".to_string();
             if ex.def_vars.is_empty() {
-                return let_expr
+                return let_expr;
             }
             for t in &ex.def_vars {
-                let_expr = format!("{}let {} = {} in\n", let_expr, pattern_analyze(&t.pattern), func_analyze(&t.expr, count));
+                let_expr = format!(
+                    "{}let {} = {} in\n",
+                    let_expr,
+                    pattern_analyze(&t.pattern),
+                    func_analyze(&t.expr, count)
+                );
             }
             let_expr
-        },
+        }
         S::LangExpr::LitStr(ex) => ex.str.to_string(),
         S::LangExpr::LitChar(ex) => ex.c.to_string(),
         S::LangExpr::LitNum(ex) => ex.num.to_string(),
@@ -314,11 +337,11 @@ fn func_analyze<'a>(expr: &S::LangExpr, count: &'a mut i32) -> String {
             data_expr = format!("{}({}", data_expr, temp1);
             if !&ex.exprs.is_empty() {
                 for t in &ex.exprs {
-                    data_expr = format!("{} {}", data_expr, func_analyze(&t, count));
+                    data_expr = format!("{} {}", data_expr, func_analyze(t, count));
                 }
             }
             format!("{})", data_expr)
-        },
+        }
         S::LangExpr::MatchExpr(ex) => {
             let mut match_expr = "match".to_string();
             match_expr = format!("{} {} with", match_expr, func_analyze(&ex.expr, count));
@@ -327,44 +350,50 @@ fn func_analyze<'a>(expr: &S::LangExpr, count: &'a mut i32) -> String {
             let tab_expr = tabb(*count);
 
             let mut case_expr = "".to_string();
-            for t in &ex.cases{
-                case_expr = format!("{}\n{}| {} => {}", case_expr, tab_expr, pattern_analyze(&t.pattern), func_analyze(&t.expr, count));
+            for t in &ex.cases {
+                case_expr = format!(
+                    "{}\n{}| {} => {}",
+                    case_expr,
+                    tab_expr,
+                    pattern_analyze(&t.pattern),
+                    func_analyze(&t.expr, count)
+                );
             }
             *count -= 2;
             format!("{}{}\n{}end", match_expr, case_expr, tabb(*count + 2))
-        },
+        }
         S::LangExpr::ApplyExpr(ex) => {
             let mut apply_expr = "(".to_string();
-            let mut store :Option<String> = None;
+            let mut store: Option<String> = None;
             for t in &ex.exprs {
-                let temp = func_analyze(&t, count);
+                let temp = func_analyze(t, count);
                 match apply_arith(temp.clone()) {
                     Some(_) => {
                         store = apply_arith(temp);
-                    },
+                    }
                     None => {
                         match store {
                             Some(y) => apply_expr = format!("{} {} {}", apply_expr, temp, y),
                             None => apply_expr = format!("{}{} ", apply_expr, temp),
                         }
                         store = None;
-                    },
+                    }
                 }
             }
             format!("{})", apply_expr)
-        },
+        }
         S::LangExpr::ListExpr(ex) => {
-            if ex.exprs.len() == 0 {
+            if ex.exprs.is_empty() {
                 return "nil".to_string();
             }
             let mut list_expr = "".to_string();
             let mut temp = "".to_string();
             for (_i, t) in ex.exprs.iter().enumerate() {
-                list_expr = format!("{}(cons {} ", list_expr, func_analyze(&t, count));
+                list_expr = format!("{}(cons {} ", list_expr, func_analyze(t, count));
                 temp = format!("{})", temp);
             }
             format!("{}nil{}", list_expr, temp)
-        },
+        }
         S::LangExpr::TupleExpr(ex) => {
             let length = &ex.exprs.len();
             let mut tupple_expr = format!("tup{}", &length);
@@ -372,24 +401,24 @@ fn func_analyze<'a>(expr: &S::LangExpr, count: &'a mut i32) -> String {
                 0 => tupple_expr,
                 _ => {
                     tupple_expr = format!("{} (", tupple_expr);
-                for t in &ex.exprs {
-                    tupple_expr = format!("{} {}", tupple_expr, func_analyze(&t, count));
+                    for t in &ex.exprs {
+                        tupple_expr = format!("{} {}", tupple_expr, func_analyze(t, count));
+                    }
+                    format!("{})", tupple_expr)
                 }
-                format!("{})", tupple_expr)
-                },
             }
-        },
+        }
         S::LangExpr::LambdaExpr(ex) => {
             let mut lambda_expr = "fun".to_string();
             if ex.args.is_empty() {
                 lambda_expr = format!("{} _", lambda_expr);
             } else {
-                for t in &ex.args{
+                for t in &ex.args {
                     lambda_expr = format!("{} {}", lambda_expr, t.id);
                 }
             }
             format!("{} => {}", lambda_expr, func_analyze(&ex.expr, count))
-        },
+        }
     }
 }
 
@@ -407,11 +436,11 @@ fn pattern_analyze(pattern: &S::Pattern) -> String {
                 return format!("{}tup{}", pattern_expr, length);
             }
             pattern_expr = format!("{}tup{} (", pattern_expr, length);
-            for t in &ex.pattern{
-                pattern_expr = format!("{} {}", pattern_expr, pattern_analyze(&t));
+            for t in &ex.pattern {
+                pattern_expr = format!("{} {}", pattern_expr, pattern_analyze(t));
             }
             format!("{})", pattern_expr)
-        },
+        }
         S::Pattern::PatData(ex) => {
             let mut pattern_expr = "".to_string();
             let temp: &str = &ex.label.id;
@@ -421,10 +450,10 @@ fn pattern_analyze(pattern: &S::Pattern) -> String {
             };
             pattern_expr = format!("{}({}", pattern_expr, temp);
             for t in &ex.pattern {
-                pattern_expr = format!("{} {}", pattern_expr, pattern_analyze(&t));
+                pattern_expr = format!("{} {}", pattern_expr, pattern_analyze(t));
             }
             format!("{})", pattern_expr)
-        },
+        }
         S::Pattern::PatNil(_) => "_".to_string(),
     }
 }
@@ -441,7 +470,7 @@ fn apply_arith(expr: String) -> Option<String> {
     }
 }
 
-fn tabb(count : i32) -> String {
+fn tabb(count: i32) -> String {
     let mut tab_expr = "".to_string();
     for _ in 1..=count {
         tab_expr = format!("{} ", tab_expr);
