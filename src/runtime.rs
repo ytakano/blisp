@@ -1,9 +1,6 @@
-use super::parser;
-use super::semantics;
-use super::{LispErr, Pos};
-
-use alloc::boxed::Box;
+use super::{parser, semantics, LispErr, Pos};
 use alloc::{
+    boxed::Box,
     collections::{btree_map::BTreeMap, linked_list::LinkedList, vec_deque::VecDeque},
     format,
     string::{String, ToString},
@@ -16,7 +13,6 @@ use core::{
     pin::Pin,
     ptr::{read_volatile, write_volatile},
 };
-
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Zero};
 
@@ -418,7 +414,7 @@ pub(crate) fn eval(
     code: &str,
     ctx: &semantics::Context,
 ) -> Result<LinkedList<Result<String, String>>, LispErr> {
-    let mut ps = parser::Parser::new(code, crate::FILE_ID_EVAL);
+    let mut ps = parser::Parser::new(code, crate::FileType::Eval);
     let exprs = match ps.parse() {
         Ok(e) => e,
         Err(e) => {

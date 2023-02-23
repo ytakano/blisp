@@ -51,7 +51,8 @@
 - $TYPE_LIST := '( $TYPE )
 - $TYPE_TUPLE := \[ $TYPE* \]
 - $TYPE_DATA := $TID | ( $TID $TYPE* )
-- $TYPE_FUN := ( $EFFECT ( -> $TYPES $TYPE ) )
+- $TYPE_FUN := ( $EFFECT $TYPE_ARROW )
+- $TYPE_ARROW := ( -> $TYPES $TYPE )
 - $TYPES := ( $TYPE* )
 - $EFFECT := Pure | IO
 
@@ -97,6 +98,10 @@ example:
 (defun add (x y) (Pure (-> (Int Int) Int))
   (+ x y))
 ```
+
+## External Function
+
+- $EXTERN := ( extern $ID $TYPE_ARROW )
 
 ## Expression
 

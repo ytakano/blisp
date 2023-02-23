@@ -14,14 +14,15 @@
  * $EXPRS := $EXP $EXPRS | ∅
  */
 
+use super::Pos;
+use crate::FileType;
+use alloc::{
+    collections::linked_list::LinkedList,
+    string::{String, ToString},
+};
 use core::usize;
-
-use alloc::collections::linked_list::LinkedList;
-use alloc::string::{String, ToString};
 use num_bigint::BigInt;
 use num_traits::Zero;
-
-use super::Pos;
 
 #[derive(Debug)]
 pub struct SyntaxErr {
@@ -62,7 +63,7 @@ impl Expr {
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(code: &'a str, file_id: usize) -> Parser<'a> {
+    pub fn new(code: &'a str, file_id: FileType) -> Parser<'a> {
         Parser {
             pos: Pos {
                 file_id,

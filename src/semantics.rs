@@ -1,14 +1,14 @@
 use super::parser;
 use super::Pos;
-
-use alloc::boxed::Box;
-use alloc::collections::btree_map::BTreeMap;
-use alloc::collections::btree_set::BTreeSet;
-use alloc::collections::linked_list::LinkedList;
-use alloc::string::{String, ToString};
-use alloc::vec::Vec;
-use alloc::{fmt, format, vec};
+use alloc::{
+    boxed::Box,
+    collections::{btree_map::BTreeMap, btree_set::BTreeSet, linked_list::LinkedList},
+    fmt, format,
+    string::{String, ToString},
+    vec::Vec,
+};
 use num_bigint::BigInt;
+use std::collections::btree_map;
 
 type ID = u64;
 type Sbst = BTreeMap<ID, Type>;
@@ -406,6 +406,14 @@ pub(crate) struct IDNode {
 }
 
 #[derive(Clone, Debug)]
+pub(crate) struct Extern {
+    pub(crate) id: IDNode,
+    pub(crate) fun_type: TypeExpr,
+    pub(crate) pos: Pos,
+    ty: Option<Type>,
+}
+
+#[derive(Clone, Debug)]
 pub(crate) struct IfNode {
     pub(crate) cond_expr: LangExpr,
     pub(crate) then_expr: LangExpr,
@@ -761,6 +769,7 @@ pub type CallbackFn = Box<dyn Fn(&BigInt, &BigInt, &BigInt) -> Option<BigInt>>;
 
 pub struct Context {
     pub(crate) funs: BTreeMap<String, Defun>,
+    pub(crate) ext_funs: BTreeMap<String, Extern>,
     pub(crate) lambda: BTreeMap<u64, Lambda>,
     pub(crate) lambda_ident: u64,
     pub(crate) data: BTreeMap<String, DataType>,
@@ -770,7 +779,11 @@ pub struct Context {
 }
 
 impl Context {
-    fn new(funs: BTreeMap<String, Defun>, data: BTreeMap<String, DataType>) -> Context {
+    fn new(
+        funs: BTreeMap<String, Defun>,
+        ext_funs: BTreeMap<String, Extern>,
+        data: BTreeMap<String, DataType>,
+    ) -> Context {
         let mut built_in = BTreeSet::new();
 
         built_in.insert("+".to_string());
@@ -807,6 +820,7 @@ impl Context {
 
         Context {
             funs,
+            ext_funs,
             data,
             built_in,
             label2data: BTreeMap::new(),
@@ -870,10 +884,19 @@ impl Context {
     }
 
     fn typing_functions(&mut self) -> Result<(), TypingErr> {
+        let mut ext_funs = BTreeMap::new();
+        for (_, ext_fun) in self.ext_funs.iter() {
+            let mut fun = ext_fun.clone();
+            self.typing_extern(&mut fun)?;
+            ext_funs.insert(fun.id.id.to_string(), fun);
+        }
+
+        self.ext_funs = ext_funs;
+
         let mut funs = BTreeMap::new();
         for (_, defun) in self.funs.iter() {
-            let defun = defun.clone();
-            let defun = self.typing_defun(defun)?;
+            let mut defun = defun.clone();
+            self.typing_defun(&mut defun)?;
             funs.insert(defun.id.id.to_string(), defun);
         }
 
@@ -882,7 +905,14 @@ impl Context {
         Ok(())
     }
 
-    fn typing_defun(&self, mut defun: Defun) -> Result<Defun, TypingErr> {
+    fn typing_extern(&self, fun: &mut Extern) -> Result<(), TypingErr> {
+        let mut num_tv = 0;
+        let fun_type = self.to_type(&fun.fun_type, &mut num_tv).unwrap(); // defined type
+        fun.ty = Some(fun_type);
+        Ok(())
+    }
+
+    fn typing_defun(&self, defun: &mut Defun) -> Result<(), TypingErr> {
         let mut var_type = VarType::new();
         let mut num_tv = 0;
         let mut args_orig = Vec::new();
@@ -937,7 +967,7 @@ impl Context {
             arg.ty = Some(ty.apply_sbst(&sbst));
         }
 
-        Ok(defun)
+        Ok(())
     }
 
     fn typing_expr(
@@ -1088,7 +1118,7 @@ impl Context {
         // get function type
         let r = self.typing_expr(e1, sbst, var_type, num_tv)?;
         sbst = r.1;
-        let t1 = r.0;
+        let t1 = r.0; // function type
 
         // get arguments
         let mut v = Vec::new();
@@ -1277,104 +1307,100 @@ impl Context {
         var_type: &VarType,
         num_tv: &mut ID,
     ) -> Result<(Type, Sbst), TypingErr> {
-        let ty;
-        match var_type.get(&expr.id.to_string()) {
-            Some(t) => {
-                ty = t.apply_sbst(&sbst);
-            }
+        let ty = match var_type.get(&expr.id) {
+            Some(t) => t.apply_sbst(&sbst),
             None => {
-                // look up function
-                match self.funs.get(&expr.id.to_string()) {
-                    Some(defun) => {
-                        ty = self.to_type(&defun.fun_type, num_tv).unwrap();
-                    }
-                    None => {
-                        match expr.id.as_ref() {
-                            // built-in functions
-                            "+" | "-" | "*" | "/" | "%" | "band" | "bor" | "bxor" => {
-                                ty = ty_fun(&Effect::Pure, vec![ty_int(), ty_int()], ty_int());
-                            }
-                            "=" | "<" | ">" | "<=" | ">=" | "!=" => {
-                                let tv = ty_var(*num_tv);
-                                *num_tv += 1;
-                                ty = ty_fun(&Effect::Pure, vec![tv.clone(), tv], ty_bool());
-                            }
-                            "eq" | "lt" | "gt" | "leq" | "geq" | "neq" => {
-                                let tv1 = ty_var(*num_tv);
-                                *num_tv += 1;
-                                let tv2 = ty_var(*num_tv);
-                                *num_tv += 1;
-                                ty = ty_fun(&Effect::Pure, vec![tv1, tv2], ty_bool());
-                            }
-                            "and" | "or" | "xor" => {
-                                ty = ty_fun(&Effect::Pure, vec![ty_bool(), ty_bool()], ty_bool());
-                            }
-                            "not" => {
-                                ty = ty_fun(&Effect::Pure, vec![ty_bool()], ty_bool());
-                            }
-                            "sqrt" => {
-                                ty = ty_fun(
+                // look up external function
+                if let Some(fun) = self.ext_funs.get(&expr.id) {
+                    self.to_type(&fun.fun_type, num_tv).unwrap()
+                } else {
+                    // look up function
+                    match self.funs.get(&expr.id) {
+                        Some(defun) => self.to_type(&defun.fun_type, num_tv).unwrap(),
+                        None => {
+                            match expr.id.as_ref() {
+                                // built-in functions
+                                "+" | "-" | "*" | "/" | "%" | "band" | "bor" | "bxor" => {
+                                    ty_fun(&Effect::Pure, vec![ty_int(), ty_int()], ty_int())
+                                }
+                                "=" | "<" | ">" | "<=" | ">=" | "!=" => {
+                                    let tv = ty_var(*num_tv);
+                                    *num_tv += 1;
+                                    ty_fun(&Effect::Pure, vec![tv.clone(), tv], ty_bool())
+                                }
+                                "eq" | "lt" | "gt" | "leq" | "geq" | "neq" => {
+                                    let tv1 = ty_var(*num_tv);
+                                    *num_tv += 1;
+                                    let tv2 = ty_var(*num_tv);
+                                    *num_tv += 1;
+                                    ty_fun(&Effect::Pure, vec![tv1, tv2], ty_bool())
+                                }
+                                "and" | "or" | "xor" => {
+                                    ty_fun(&Effect::Pure, vec![ty_bool(), ty_bool()], ty_bool())
+                                }
+                                "not" => ty_fun(&Effect::Pure, vec![ty_bool()], ty_bool()),
+                                "sqrt" => ty_fun(
                                     &Effect::Pure,
                                     vec![ty_int()],
                                     Type::TCon(Tycon {
                                         id: "Option".to_string(),
                                         args: Some(vec![ty_int()]),
                                     }),
-                                );
-                            }
-                            "pow" | "<<" | ">>" => {
-                                // (Pure (-> (Int Int) (Option Int)))
-                                ty = ty_fun(
-                                    &Effect::Pure,
-                                    vec![ty_int(), ty_int()],
-                                    Type::TCon(Tycon {
-                                        id: "Option".to_string(),
-                                        args: Some(vec![ty_int()]),
-                                    }),
-                                );
-                            }
-                            "chars" => {
-                                // (Pure (-> (String) (List Char)))
-                                ty = ty_fun(
-                                    &Effect::Pure,
-                                    vec![ty_string()],
-                                    Type::TCon(Tycon {
-                                        id: "List".to_string(),
-                                        args: Some(vec![ty_char()]),
-                                    }),
-                                );
-                            }
-                            "str" => {
-                                // (Pure (-> ((List Char)) String))
-                                ty = ty_fun(
-                                    &Effect::Pure,
-                                    vec![Type::TCon(Tycon {
-                                        id: "List".to_string(),
-                                        args: Some(vec![ty_char()]),
-                                    })],
-                                    ty_string(),
-                                );
-                            }
-                            "call-rust" => {
-                                // (IO (-> (Int Int Int) (Option Int)))
-                                ty = ty_fun(
-                                    &Effect::IO,
-                                    vec![ty_int(), ty_int(), ty_int()],
-                                    Type::TCon(Tycon {
-                                        id: "Option".to_string(),
-                                        args: Some(vec![ty_int()]),
-                                    }),
-                                );
-                            }
-                            _ => {
-                                let msg = format!("{} is not defined", expr.id);
-                                return Err(TypingErr { msg, pos: expr.pos });
+                                ),
+                                "pow" | "<<" | ">>" => {
+                                    // (Pure (-> (Int Int) (Option Int)))
+                                    ty_fun(
+                                        &Effect::Pure,
+                                        vec![ty_int(), ty_int()],
+                                        Type::TCon(Tycon {
+                                            id: "Option".to_string(),
+                                            args: Some(vec![ty_int()]),
+                                        }),
+                                    )
+                                }
+                                "chars" => {
+                                    // (Pure (-> (String) (List Char)))
+                                    ty_fun(
+                                        &Effect::Pure,
+                                        vec![ty_string()],
+                                        Type::TCon(Tycon {
+                                            id: "List".to_string(),
+                                            args: Some(vec![ty_char()]),
+                                        }),
+                                    )
+                                }
+                                "str" => {
+                                    // (Pure (-> ((List Char)) String))
+                                    ty_fun(
+                                        &Effect::Pure,
+                                        vec![Type::TCon(Tycon {
+                                            id: "List".to_string(),
+                                            args: Some(vec![ty_char()]),
+                                        })],
+                                        ty_string(),
+                                    )
+                                }
+                                "call-rust" => {
+                                    // (IO (-> (Int Int Int) (Option Int)))
+                                    ty_fun(
+                                        &Effect::IO,
+                                        vec![ty_int(), ty_int(), ty_int()],
+                                        Type::TCon(Tycon {
+                                            id: "Option".to_string(),
+                                            args: Some(vec![ty_int()]),
+                                        }),
+                                    )
+                                }
+                                _ => {
+                                    let msg = format!("{} is not defined 5", expr.id);
+                                    return Err(TypingErr { msg, pos: expr.pos });
+                                }
                             }
                         }
                     }
                 }
             }
-        }
+        };
 
         expr.ty = Some(ty.clone());
 
@@ -1655,8 +1681,8 @@ impl Context {
         let mut types = Vec::new();
         for i in 0..data_node.name.type_args.len() {
             types.push(ty_var(i as ID + *num_tv));
-            *num_tv += 1;
         }
+        *num_tv += data_node.name.type_args.len() as u64;
 
         // generate a map from type variable to type
         let mut tv2type = BTreeMap::new();
@@ -2040,10 +2066,7 @@ impl Context {
                 self.check_data_type(e, fun_types, vars, sbst, effect, chk_rec)
             }
             LangExpr::LambdaExpr(e) => self.check_lambda_type(e, fun_types, vars, sbst, chk_rec),
-            LangExpr::LitNum(_)
-            | LangExpr::LitBool(_)
-            | LangExpr::LitStr(_)
-            | LangExpr::LitChar(_) => Ok(()),
+            _ => Ok(()),
         }
     }
 
@@ -2159,28 +2182,37 @@ impl Context {
         check_type_has_io(&expr.ty, &expr.pos, sbst, effect)?;
         match vars.get(&expr.id.to_string()) {
             Some(_) => (),
-            None => match self.funs.get(&expr.id.to_string()) {
-                Some(defun) => {
-                    if !chk_rec && !defun.exported {
+            None => {
+                if let Some(_) = self.ext_funs.get(&expr.id) {
+                    if !chk_rec {
                         let msg = format!("{} is not defined", expr.id);
                         return Err(TypingErr { msg, pos: expr.pos });
                     }
+                } else {
+                    match self.funs.get(&expr.id) {
+                        Some(defun) => {
+                            if !chk_rec && !defun.exported {
+                                let msg = format!("{} is not defined 2", expr.id);
+                                return Err(TypingErr { msg, pos: expr.pos });
+                            }
 
-                    let call_ty = expr.ty.as_ref().unwrap().apply_sbst(sbst);
-                    self.check_defun_type_recur(&call_ty, defun, fun_types, true)?;
-                }
-                None => {
-                    if self.built_in.contains(&expr.id) {
-                        if !chk_rec && expr.id == "call-rust" {
-                            let msg = format!("{} is not defined", expr.id);
-                            return Err(TypingErr { msg, pos: expr.pos });
+                            let call_ty = expr.ty.as_ref().unwrap().apply_sbst(sbst);
+                            self.check_defun_type_recur(&call_ty, defun, fun_types, true)?;
                         }
-                    } else {
-                        let msg = format!("{} is not defined", expr.id);
-                        return Err(TypingErr { msg, pos: expr.pos });
+                        None => {
+                            if self.built_in.contains(&expr.id) {
+                                if !chk_rec && expr.id == "call-rust" {
+                                    let msg = format!("{} is not defined 3", expr.id);
+                                    return Err(TypingErr { msg, pos: expr.pos });
+                                }
+                            } else {
+                                let msg = format!("{} is not defined 4", expr.id);
+                                return Err(TypingErr { msg, pos: expr.pos });
+                            }
+                        }
                     }
                 }
-            },
+            }
         }
         Ok(())
     }
@@ -2472,8 +2504,7 @@ fn get_free_var_expr(
         LangExpr::LambdaExpr(e) => {
             get_free_var_lambda(e, funs, local_vars, ext_vars, ident, lambda)
         }
-        LangExpr::LitNum(_) | LangExpr::LitBool(_) | LangExpr::LitStr(_) | LangExpr::LitChar(_) => {
-        }
+        _ => {}
     }
 }
 
@@ -2806,6 +2837,7 @@ pub(crate) fn typing_expr(
 
 pub fn exprs2context(exprs: &LinkedList<parser::Expr>) -> Result<Context, TypingErr> {
     let mut funs = BTreeMap::new();
+    let mut ext_funs = BTreeMap::new();
     let mut data = BTreeMap::new();
     let msg = "top expression must be data, defun, or export";
 
@@ -2819,12 +2851,34 @@ pub fn exprs2context(exprs: &LinkedList<parser::Expr>) -> Result<Context, Typing
                         if id == "defun" || id == "export" {
                             let f = expr2defun(e)?;
 
-                            if funs.contains_key(&f.id.id.to_string()) {
-                                let msg = format!("function {} is multiply defined", f.id.id);
+                            if ext_funs.contains_key(&f.id.id) {
+                                let msg = format!("{} is multiply defined", f.id.id);
                                 return Err(TypingErr { msg, pos: f.id.pos });
                             }
 
-                            funs.insert(f.id.id.to_string(), f);
+                            if let btree_map::Entry::Vacant(entry) = funs.entry(f.id.id.to_string())
+                            {
+                                entry.insert(f);
+                            } else {
+                                let msg = format!("{} is multiply defined", f.id.id);
+                                return Err(TypingErr { msg, pos: f.id.pos });
+                            }
+                        } else if id == "extern" {
+                            let f = expr2extern(e)?;
+
+                            if funs.contains_key(&f.id.id) {
+                                let msg = format!("{} is multiply defined", f.id.id);
+                                return Err(TypingErr { msg, pos: f.id.pos });
+                            }
+
+                            if let btree_map::Entry::Vacant(entry) =
+                                ext_funs.entry(f.id.id.to_string())
+                            {
+                                entry.insert(f);
+                            } else {
+                                let msg = format!("{} is multiply defined", f.id.id);
+                                return Err(TypingErr { msg, pos: f.id.pos });
+                            }
                         } else if id == "data" {
                             let d = expr2data(e)?;
                             if data.contains_key(&d.name.id.id) {
@@ -2851,7 +2905,7 @@ pub fn exprs2context(exprs: &LinkedList<parser::Expr>) -> Result<Context, Typing
         }
     }
 
-    let mut ctx = Context::new(funs, data);
+    let mut ctx = Context::new(funs, ext_funs, data);
     ctx.typing()?;
 
     Ok(ctx)
@@ -3011,6 +3065,64 @@ fn expr2data_mem(expr: &parser::Expr) -> Result<DataTypeMem, TypingErr> {
     }
 }
 
+/// Convert `parser::Expr`, which is untyped to `Extern`, which is typed.
+///
+/// $EXTERN := ( extern $ID $TYPE_ARROW )
+fn expr2extern(expr: &parser::Expr) -> Result<Extern, TypingErr> {
+    match expr {
+        parser::Expr::Apply(exprs, pos) => {
+            let mut iter = exprs.iter();
+
+            // extern
+            match iter.next() {
+                Some(parser::Expr::ID(id, _)) => {
+                    if id != "extern" {
+                        return Err(TypingErr::new("require extern", expr));
+                    }
+                }
+                _ => {
+                    return Err(TypingErr::new("require extern", expr));
+                }
+            }
+
+            // $ID
+            let id = match iter.next() {
+                Some(e) => expr2id(e)?,
+                _ => {
+                    return Err(TypingErr::new("require function name", expr));
+                }
+            };
+
+            // $TYPE_ARROW
+            let pos_ty;
+            let (args, ret) = match iter.next() {
+                Some(e) => {
+                    pos_ty = e.get_pos();
+                    expr2type_arrow(e)?
+                }
+                _ => {
+                    return Err(TypingErr::new("require function type", expr));
+                }
+            };
+
+            Ok(Extern {
+                id,
+                fun_type: TypeExpr::Fun(TEFunNode {
+                    effect: Effect::IO,
+                    args,
+                    ret: Box::new(ret),
+                    pos: pos_ty,
+                }),
+                pos: *pos,
+                ty: None,
+            })
+        }
+        _ => Err(TypingErr::new("syntax error on extern", expr)),
+    }
+}
+
+/// Convert `parser::Expr`, which is untyped to `Defun`, which is typed.
+///
 /// $DEFUN := ( $HEAD_DEFUN $ID ( $ID* ) $TYPE_FUN $EXPR )
 fn expr2defun(expr: &parser::Expr) -> Result<Defun, TypingErr> {
     match expr {
@@ -3085,10 +3197,57 @@ fn expr2defun(expr: &parser::Expr) -> Result<Defun, TypingErr> {
     }
 }
 
-/// $TYPE_FUN := ( $EFFECT ( -> $TYPES $TYPE ) )
+/// $TYPE_ARROW = ( -> $TYPES $TYPE )
+fn expr2type_arrow(expr: &parser::Expr) -> Result<(Vec<TypeExpr>, TypeExpr), TypingErr> {
+    let args;
+    let ret;
+    match expr {
+        parser::Expr::Apply(exprs2, _) => {
+            let mut iter = exprs2.iter();
+            let e2 = iter.next();
+            match e2 {
+                Some(parser::Expr::ID(arr, _)) => {
+                    if arr != "->" {
+                        return Err(TypingErr::new("must be \"->\"", e2.unwrap()));
+                    }
+                }
+                _ => {
+                    return Err(TypingErr::new("require \"->\"", expr));
+                }
+            }
+
+            // $TYPES
+            match iter.next() {
+                Some(t) => {
+                    args = expr2types(t)?;
+                }
+                _ => {
+                    return Err(TypingErr::new("require types for arguments", expr));
+                }
+            }
+
+            // $TYPE
+            match iter.next() {
+                Some(t) => {
+                    ret = expr2type(t)?;
+                }
+                _ => {
+                    return Err(TypingErr::new("require type for return value", expr));
+                }
+            }
+        }
+        _ => {
+            return Err(TypingErr::new("require function type", expr));
+        }
+    }
+
+    Ok((args, ret))
+}
+
+/// $TYPE_FUN := ( $EFFECT $TYPE_ARROW )
 fn expr2type_fun(expr: &parser::Expr) -> Result<TypeExpr, TypingErr> {
     match expr {
-        parser::Expr::Apply(exprs, pos) => {
+        parser::Expr::Apply(exprs, _pos) => {
             let mut iter = exprs.iter();
 
             // $EFFECT := Pure | IO
@@ -3112,59 +3271,18 @@ fn expr2type_fun(expr: &parser::Expr) -> Result<TypeExpr, TypingErr> {
                 }
             }
 
-            // ( -> $TYPES $TYPE )
-            let e1 = iter.next();
-            let args;
-            let ret;
-            match e1 {
-                Some(parser::Expr::Apply(exprs2, _)) => {
-                    let mut iter2 = exprs2.iter();
-                    let e2 = iter2.next();
-                    match e2 {
-                        Some(parser::Expr::ID(arr, _)) => {
-                            if arr != "->" {
-                                return Err(TypingErr::new("must be \"->\"", e2.unwrap()));
-                            }
-                        }
-                        _ => {
-                            return Err(TypingErr::new("require \"->\"", e1.unwrap()));
-                        }
-                    }
-
-                    // $TYPES
-                    match iter2.next() {
-                        Some(t) => {
-                            args = expr2types(t)?;
-                        }
-                        _ => {
-                            return Err(TypingErr::new("require types for arguments", e1.unwrap()));
-                        }
-                    }
-
-                    // $TYPE
-                    match iter2.next() {
-                        Some(t) => {
-                            ret = expr2type(t)?;
-                        }
-                        _ => {
-                            return Err(TypingErr::new(
-                                "require type for return value",
-                                e1.unwrap(),
-                            ));
-                        }
-                    }
-                }
-                _ => {
-                    return Err(TypingErr::new("require function type", expr));
-                }
+            // $TYPE_ARROW
+            if let Some(e1) = iter.next() {
+                let (args, ret) = expr2type_arrow(e1)?;
+                Ok(TypeExpr::Fun(TEFunNode {
+                    effect,
+                    args,
+                    ret: Box::new(ret),
+                    pos: e1.get_pos(),
+                }))
+            } else {
+                Err(TypingErr::new("require a function type", expr))
             }
-
-            Ok(TypeExpr::Fun(TEFunNode {
-                effect,
-                args,
-                ret: Box::new(ret),
-                pos: *pos,
-            }))
         }
         _ => Err(TypingErr::new("must be function type", expr)),
     }
@@ -3283,6 +3401,8 @@ fn list_types2vec_types(exprs: &LinkedList<parser::Expr>) -> Result<Vec<TypeExpr
     Ok(v)
 }
 
+/// Convert `parser::Expr`, which is untyped to `LangExpr`, which is typed.
+///
 /// $EXPR := $LITERAL | $ID | $TID | $LET | $IF | $LAMBDA | $MATCH | $LIST | $TUPLE | $GENDATA | $APPLY
 fn expr2typed_expr(expr: &parser::Expr) -> Result<LangExpr, TypingErr> {
     match expr {

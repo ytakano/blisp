@@ -34,7 +34,7 @@
 //!         total
 //!         (factorial' (- n 1) (* n total))))";
 //!
-//! let exprs = blisp::init(code).unwrap();
+//! let exprs = blisp::init(code, &[]).unwrap();
 //! let ctx = blisp::typing(&exprs).unwrap();
 //! let expr = "(factorial 10)";
 //! for result in blisp::eval(expr, &ctx).unwrap() {
@@ -52,7 +52,7 @@
 //! (export callback (x y z)
 //!     (IO (-> (Int Int Int) (Option Int)))
 //!     (call-rust x y z))";
-//! let exprs = blisp::init(expr).unwrap();
+//! let exprs = blisp::init(expr, &[]).unwrap();
 //! let mut ctx = blisp::typing(&exprs).unwrap();
 //!
 //! let fun = |x: &BigInt, y: &BigInt, z: &BigInt| {
@@ -86,9 +86,11 @@
 extern crate alloc;
 extern crate proc_macro;
 
-use alloc::collections::linked_list::LinkedList;
-use alloc::format;
-use alloc::string::{String, ToString};
+use alloc::{
+    collections::linked_list::LinkedList,
+    format,
+    string::{String, ToString},
+};
 
 pub mod coq;
 pub mod r#macro;
@@ -96,16 +98,22 @@ pub mod parser;
 pub mod runtime;
 pub mod semantics;
 
-const FILE_ID_PRELUD: usize = 0;
-const FILE_ID_USER: usize = 1;
-pub(crate) const FILE_ID_EVAL: usize = 2;
+pub use embed_macro::embedded;
+
+#[derive(Debug, Clone, Copy)]
+pub enum FileType {
+    Prelude,
+    User,
+    Eval,
+    Extern(u64),
+}
 
 /// indicate a position of file
 #[derive(Debug, Clone, Copy)]
 pub struct Pos {
-    pub file_id: usize, // file identifier, 0 is prelude.lisp
-    pub line: usize,    // line number, 0 origin
-    pub column: usize,  // column number, 0 origin
+    pub file_id: FileType,
+    pub line: usize,   // line number, 0 origin
+    pub column: usize, // column number, 0 origin
 }
 
 /// error message
@@ -131,11 +139,11 @@ impl LispErr {
 ///        1
 ///        (* n (factorial (- n 1)))))";
 ///
-/// blisp::init(code).unwrap();
+/// blisp::init(code, &[]).unwrap();
 /// ```
-pub fn init(code: &str) -> Result<LinkedList<parser::Expr>, LispErr> {
+pub fn init(code: &str, ext_funs: &[&str]) -> Result<LinkedList<parser::Expr>, LispErr> {
     let prelude = include_str!("prelude.lisp");
-    let mut ps = parser::Parser::new(prelude, FILE_ID_PRELUD);
+    let mut ps = parser::Parser::new(prelude, FileType::Prelude);
     let mut exprs = match ps.parse() {
         Ok(e) => e,
         Err(e) => {
@@ -144,7 +152,20 @@ pub fn init(code: &str) -> Result<LinkedList<parser::Expr>, LispErr> {
         }
     };
 
-    let mut ps = parser::Parser::new(code, FILE_ID_USER);
+    for (i, fun) in ext_funs.iter().enumerate() {
+        let mut ps = parser::Parser::new(fun, FileType::Extern(i as u64));
+        match ps.parse() {
+            Ok(mut e) => {
+                exprs.append(&mut e);
+            }
+            Err(e) => {
+                let msg = format!("Syntax Error: {}", e.msg);
+                return Err(LispErr::new(msg, e.pos));
+            }
+        }
+    }
+
+    let mut ps = parser::Parser::new(code, FileType::User);
     match ps.parse() {
         Ok(mut e) => {
             exprs.append(&mut e);
@@ -167,7 +188,7 @@ pub fn init(code: &str) -> Result<LinkedList<parser::Expr>, LispErr> {
 ///        1
 ///        (* n (factorial (- n 1)))))";
 ///
-/// let exprs = blisp::init(code).unwrap();
+/// let exprs = blisp::init(code, &[]).unwrap();
 /// blisp::typing(&exprs).unwrap();
 /// ```
 pub fn typing(exprs: &LinkedList<parser::Expr>) -> Result<semantics::Context, LispErr> {
@@ -190,7 +211,7 @@ pub fn typing(exprs: &LinkedList<parser::Expr>) -> Result<semantics::Context, Li
 ///        1
 ///        (* n (factorial (- n 1)))))";
 ///
-/// let exprs = blisp::init(code).unwrap();
+/// let exprs = blisp::init(code, &[]).unwrap();
 /// let ctx = blisp::typing(&exprs).unwrap();
 /// let expr = "(factorial 30)";
 /// for result in blisp::eval(expr, &ctx).unwrap() {
@@ -219,20 +240,6 @@ pub fn transpile(ctx: &semantics::Context) -> String {
     format!("{}\n\n{}", coq::import(), s)
 }
 
-/////////////////////////////////////////////////////////////////////
-// #[embedded]
-// fn test2(
-//     _z: BigInt,
-//     _a: Vec<BigInt>,
-//     _b: (BigInt, BigInt),
-//     _c: Option<BigInt>,
-//     _d: Result<BigInt, String>,
-// ) -> Option<BigInt> {
-//     let temp = 5.to_bigint();
-//     temp
-// }
-/////////////////////////////////////////////////////////////////////
-
 #[cfg(test)]
 #[macro_use]
 extern crate std;
@@ -254,7 +261,7 @@ mod tests {
 
     #[test]
     fn ops() {
-        let exprs = init("").unwrap();
+        let exprs = init("", &[]).unwrap();
         let ctx = typing(&exprs).unwrap();
         eval_result("(neq (Some \"Hello\") 10)", &ctx);
         eval_result("(chars \"Hello, World!\")", &ctx);
@@ -293,7 +300,7 @@ mod tests {
     (Pure (-> ((Pure (-> (Int Int) Int))) Int))
     (f 10 20))
 ";
-        let exprs = init(expr).unwrap();
+        let exprs = init(expr, &[]).unwrap();
         let ctx = typing(&exprs).unwrap();
         let e = "(lambda-test (lambda (x y) (* x y)))";
         eval_result(e, &ctx);
@@ -316,7 +323,7 @@ mod tests {
         ((Cons n Nil) (Some n))
         ((Cons _ l) (tail l))))
 ";
-        let exprs = init(expr).unwrap();
+        let exprs = init(expr, &[]).unwrap();
         let ctx = typing(&exprs).unwrap();
 
         let e = "(head '(30 40 50))";
@@ -332,7 +339,7 @@ mod tests {
     (match x
         ([n _] n)))
 ";
-        let exprs = init(expr).unwrap();
+        let exprs = init(expr, &[]).unwrap();
         let ctx = typing(&exprs).unwrap();
         let e = "(first [10 false])";
         eval_result(e, &ctx);
@@ -348,7 +355,7 @@ mod tests {
         total
         (factorial' (- n 1) (* n total))))
 ";
-        let exprs = init(expr).unwrap();
+        let exprs = init(expr, &[]).unwrap();
         let ctx = typing(&exprs).unwrap();
 
         let e = "(Some 10)";
@@ -381,7 +388,7 @@ mod tests {
         let expr = "
 (export callback (x y z) (IO (-> (Int Int Int) (Option Int)))
     (call-rust x y z))";
-        let exprs = init(expr).unwrap();
+        let exprs = init(expr, &[]).unwrap();
         let mut ctx = typing(&exprs).unwrap();
 
         use num_bigint::BigInt;
@@ -416,7 +423,7 @@ mod tests {
             (nil nil)
             ((Cons h t) (snoc (rev t) h))))
             ";
-        let exprs = init(expr).unwrap();
+        let exprs = init(expr, &[]).unwrap();
         let ctx = typing(&exprs).unwrap();
 
         println!("{}", transpile(&ctx));

@@ -1,9 +1,10 @@
 use super::semantics as S;
-
-use alloc::collections::LinkedList;
-use alloc::format;
-use alloc::string::{String, ToString};
-use alloc::vec::Vec;
+use alloc::{
+    collections::LinkedList,
+    format,
+    string::{String, ToString},
+    vec::Vec,
+};
 
 pub(crate) fn to_coq_type(
     expr: &S::TypeExpr,
