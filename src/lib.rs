@@ -90,14 +90,11 @@ use alloc::collections::linked_list::LinkedList;
 use alloc::format;
 use alloc::string::{String, ToString};
 
-
-
 pub mod coq;
 pub mod r#macro;
 pub mod parser;
 pub mod runtime;
 pub mod semantics;
-
 
 const FILE_ID_PRELUD: usize = 0;
 const FILE_ID_USER: usize = 1;
@@ -137,8 +134,7 @@ impl LispErr {
 /// blisp::init(code).unwrap();
 /// ```
 pub fn init(code: &str) -> Result<LinkedList<parser::Expr>, LispErr> {
-    // let prelude = include_str!("prelude.lisp");
-    let prelude = "";
+    let prelude = include_str!("prelude.lisp");
     let mut ps = parser::Parser::new(prelude, FILE_ID_PRELUD);
     let mut exprs = match ps.parse() {
         Ok(e) => e,
@@ -227,7 +223,7 @@ pub fn transpile(ctx: &semantics::Context) -> String {
 // #[embedded]
 // fn test2(
 //     _z: BigInt,
-//     _a: Vec<BigInt>, 
+//     _a: Vec<BigInt>,
 //     _b: (BigInt, BigInt),
 //     _c: Option<BigInt>,
 //     _d: Result<BigInt, String>,
@@ -236,7 +232,6 @@ pub fn transpile(ctx: &semantics::Context) -> String {
 //     temp
 // }
 /////////////////////////////////////////////////////////////////////
-
 
 #[cfg(test)]
 #[macro_use]
@@ -412,7 +407,7 @@ mod tests {
         (match l
             (nil (Cons y nil))
             ((Cons h b) (Cons h (snoc b y)))))
-            
+
         (defun rev (l)
         (Pure (-> (
             '(t))
