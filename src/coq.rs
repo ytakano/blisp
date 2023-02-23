@@ -11,11 +11,11 @@ pub(crate) fn to_coq_type(
     targs: &mut LinkedList<String>,
 ) -> String {
     match expr {
-        S::TypeExpr::TEBool(_) => "bool".to_string(),
-        S::TypeExpr::TEInt(_) => "Z".to_string(),
-        S::TypeExpr::TEString(_) => "string".to_string(),
-        S::TypeExpr::TEChar(_) => "ascii".to_string(),
-        S::TypeExpr::TEID(e) => {
+        S::TypeExpr::Bool(_) => "bool".to_string(),
+        S::TypeExpr::Int(_) => "Z".to_string(),
+        S::TypeExpr::String(_) => "string".to_string(),
+        S::TypeExpr::Char(_) => "ascii".to_string(),
+        S::TypeExpr::Id(e) => {
             if let Some(c) = e.id.chars().next() {
                 if ('a'..='z').contains(&c) {
                     let mut flag = false;
@@ -32,7 +32,7 @@ pub(crate) fn to_coq_type(
             }
             e.id.clone()
         }
-        S::TypeExpr::TETuple(e) => {
+        S::TypeExpr::Tuple(e) => {
             if e.ty.is_empty() {
                 return "unit".to_string();
             }
@@ -55,14 +55,14 @@ pub(crate) fn to_coq_type(
                 s
             }
         }
-        S::TypeExpr::TEList(e) => {
+        S::TypeExpr::List(e) => {
             if depth == 0 {
                 format!("list {}", to_coq_type(&e.ty, depth + 1, targs))
             } else {
                 format!("(list {})", to_coq_type(&e.ty, depth + 1, targs))
             }
         }
-        S::TypeExpr::TEData(e) => {
+        S::TypeExpr::Data(e) => {
             if e.type_args.is_empty() {
                 e.id.id.clone()
             } else {
@@ -78,7 +78,7 @@ pub(crate) fn to_coq_type(
                 }
             }
         }
-        S::TypeExpr::TEFun(e) => {
+        S::TypeExpr::Fun(e) => {
             let mut s = "".to_string();
 
             // ここがおかしいかも
@@ -218,7 +218,7 @@ pub(crate) fn to_coq_func(expr: &S::Defun) -> String {
         format!("Definition {}", expr.id.id)
     };
 
-    let fun_type = if let S::TypeExpr::TEFun(e) = &expr.fun_type {
+    let fun_type = if let S::TypeExpr::Fun(e) = &expr.fun_type {
         e
     } else {
         return "".to_string();
