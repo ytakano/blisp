@@ -25,7 +25,7 @@ struct RuntimeErr {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct Variables {
+pub struct Variables {
     vars: VecDeque<BTreeMap<String, RTData>>,
 }
 
@@ -60,13 +60,13 @@ impl Variables {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-enum TCall {
+pub enum TCall {
     Defun(String),
     Lambda(u64),
 }
 
 #[derive(Eq, Debug, Clone)]
-struct IntType(*mut (BigInt, bool));
+pub struct IntType(*mut (BigInt, bool));
 
 impl IntType {
     fn get_int(&self) -> &BigInt {
@@ -103,7 +103,7 @@ impl PartialEq for IntType {
 }
 
 #[derive(Eq, Debug, Clone)]
-struct StrType(*mut (String, bool));
+pub struct StrType(*mut (String, bool));
 
 impl StrType {
     fn get_string(&self) -> &String {
@@ -140,7 +140,7 @@ impl PartialEq for StrType {
 }
 
 #[derive(Eq, Debug, Clone)]
-struct ClojureType(*mut (Clojure, bool));
+pub struct ClojureType(*mut (Clojure, bool));
 
 impl ClojureType {
     fn get_clojure(&self) -> &Clojure {
@@ -181,7 +181,7 @@ impl PartialEq for ClojureType {
 }
 
 #[derive(Eq, Debug, Clone)]
-struct LDataType(*mut (LabeledData, bool));
+pub struct LDataType(*mut (LabeledData, bool));
 
 impl LDataType {
     fn get_ldata(&self) -> &LabeledData {
@@ -222,7 +222,7 @@ impl PartialEq for LDataType {
 }
 
 #[derive(Debug, Clone, Ord, PartialOrd, PartialEq, Eq)]
-enum RTData {
+pub enum RTData {
     Str(StrType),
     Char(char),
     Int(IntType),
@@ -1204,5 +1204,112 @@ fn sweep<T>(root: &mut LinkedList<Pin<Box<(T, bool)>>>) {
         if flag {
             root.append(&mut head);
         }
+    }
+}
+
+impl From<&RTData> for BigInt {
+    fn from(value: &RTData) -> Self {
+        if let RTData::Int(data) = value {
+            data.get_int().clone()
+        } else {
+            panic!("data is not BigInt");
+        }
+    }
+}
+
+impl From<&RTData> for char {
+    fn from(value: &RTData) -> Self {
+        if let RTData::Char(data) = value {
+            *data
+        } else {
+            panic!("data is not Char");
+        }
+    }
+}
+
+impl From<&RTData> for String {
+    fn from(value: &RTData) -> Self {
+        if let RTData::Str(data) = value {
+            data.get_string().clone()
+        } else {
+            panic!("data is not String");
+        }
+    }
+}
+
+impl From<&RTData> for bool {
+    fn from(value: &RTData) -> Self {
+        if let RTData::Bool(data) = value {
+            *data
+        } else {
+            panic!("data is not Bool");
+        }
+    }
+}
+
+impl<'a, T: From<&'a RTData>> From<&'a RTData> for Vec<T> {
+    fn from(value: &'a RTData) -> Self {
+        if let RTData::LData(data) = value {
+            let ldata = data.get_ldata();
+            let mut result = Vec::new();
+            list_to_vec(ldata, &mut result);
+
+            return result;
+        }
+
+        panic!("data is not List");
+    }
+}
+
+/// Convert a BLisp's list to a Rust's Vec.
+fn list_to_vec<'a, T: From<&'a RTData>>(mut ldata: &'a LabeledData, result: &mut Vec<T>) {
+    loop {
+        match ldata.label.as_str() {
+            "Cons" => {
+                if let Some(v) = &ldata.data {
+                    let e: T = (&v[0]).into();
+                    result.push(e);
+
+                    if let RTData::LData(data) = &v[1] {
+                        ldata = data.get_ldata();
+                    } else {
+                        panic!("no next in Cons")
+                    }
+                } else {
+                    panic!("invalid Cons");
+                }
+            }
+            "Nil" => break,
+            _ => panic!("label is not Cons or Nil"),
+        }
+    }
+}
+
+/// Convert a BLisp's Option to a Rust's Option.
+pub fn option_to_option<'a, T: From<&'a RTData>>(value: &'a RTData) -> Option<T> {
+    if let RTData::LData(data) = value {
+        let ldata = data.get_ldata();
+        match ldata.label.as_str() {
+            "Some" => {
+                if let Some(v) = &ldata.data {
+                    let e: T = (&v[0]).into();
+                    Some(e)
+                } else {
+                    panic!("invalid Some")
+                }
+            }
+            "None" => None,
+            _ => panic!("label is not Some or None"),
+        }
+    } else {
+        panic!("label is not Cons or Nil");
+    }
+}
+
+impl<'a, T: From<&'a RTData>, E: From<&'a RTData>> From<&'a RTData> for Result<T, E> {
+    fn from(value: &'a RTData) -> Self {
+        todo!();
+
+        panic!("data is not Result");
     }
 }

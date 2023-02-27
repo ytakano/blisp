@@ -20,5 +20,8 @@ fn test_embedded() {
         (test_fun 1 '(2 3) [4 5] (Some 6) (Ok 7))
     )";
     let exprs = blisp::init(code, &[TEST_FUN]).unwrap();
+
+    test_fun_ffi(&[]);
+
     let ctx = blisp::typing(&exprs).unwrap();
 }

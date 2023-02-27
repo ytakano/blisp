@@ -28,7 +28,7 @@ fn main() {
     (if (<= n 0)
         1
         (* n (factorial (- n 1)))))";
-    let exprs = blisp::init(code).unwrap();
+    let exprs = blisp::init(code, &[]).unwrap();
     let ctx = blisp::typing(&exprs).unwrap();
 
     let e = "(factorial 10)";

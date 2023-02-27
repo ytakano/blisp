@@ -2183,7 +2183,7 @@ impl Context {
         match vars.get(&expr.id.to_string()) {
             Some(_) => (),
             None => {
-                if let Some(_) = self.ext_funs.get(&expr.id) {
+                if self.ext_funs.get(&expr.id).is_some() {
                     if !chk_rec {
                         let msg = format!("{} is not defined", expr.id);
                         return Err(TypingErr { msg, pos: expr.pos });
