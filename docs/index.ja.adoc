@@ -1,6 +1,6 @@
 = BLisp: Lispっぽい静的型付け言語
 Yuuki Takano <ytakano@wide.ad.jp>
-v0.3.8, 2021-03
+v0.4.0, 2023-02
 :doctype: article
 :toc:
 :sectnums:
@@ -131,8 +131,8 @@ fn main() {
     (Pure (-> (Int) Int)) ; 関数の型
     (double (double x)))  ; 関数の中身
 ";
-    let exprs = blisp::init(code).unwrap();
-    let ctx = blisp::typing(&exprs).unwrap();
+    let exprs = blisp::init(code, vec![]).unwrap();
+    let ctx = blisp::typing(exprs).unwrap();
 
     let e = "(double 10) ; エラー";
     eval(e, &ctx);
@@ -545,6 +545,76 @@ _str_ は(List Char)からStringへ変換します。
 
 == 外部関数呼び出し
 
+_blisp::embedded_ は、外部関数呼び出し用のマクロです。
+このマクロを利用すると、Rustの関数をBLispから容易に呼び出せるようになります。
+
+たとえば、はじめに、Rustの関数を以下のように定義します。
+
+[source, rust]
+----
+use blisp::embedded;
+use num_bigint::{BigInt, ToBigInt};
+
+#[embedded]
+fn add_four_ints(a: BigInt, b: (BigInt, BigInt), c: Option<BigInt>) -> Result<BigInt, String> {
+    let mut result = a + b.0 + b.1;
+    if let Some(n) = c {
+        result += n;
+    }
+
+    Ok(result)
+}
+----
+
+_blisp::embedded_ マクロは外部関数呼び出し用の型定義を生成します。
+この関数は、以下のようにBLispから呼び出せます。
+
+[source, lisp]
+----
+(export call_add_four_ints (n)
+    (IO (-> ((Option Int)) (Result Int String)))
+    (add_four_ints 1 [2 3] n))
+----
+
+外部関数を登録するためには、以下のように、 _embedded_ によって生成される型定義のベクタを
+_blisp::init_ に渡します。
+
+[source, rust]
+----
+// add_for_ints
+let code = "(export call_add_four_ints (n)
+    (IO (-> ((Option Int)) (Result Int String)))
+    (add_four_ints 1 [2 3] n)
+)";
+let exprs = blisp::init(code, vec![Box::new(AddFourInts)]).unwrap();
+let ctx = blisp::typing(exprs).unwrap();
+let result = blisp::eval("(call_add_four_ints (Some 4))", &ctx).unwrap();
+----
+
+ここでは、関数名が _add_four_ints_ のため、そのキャメルケースの _AddFourInts_
+を _Box_ と _Vec_ に包んで _blisp::init_ に渡さなければなりません。
+
+Rustの外部関数は以下に示される型のみ引数と返り値で利用可能です。
+_Vec<u64>_ のような他の型はサポート外ですが、
+_Vec<Option<bool>>_ のような型はOKです。
+BLispとRustの間の型変換は _embedded_ マクロが生成する関数によって自動的に行われます。
+
+.Type Conversion between BLisp and Rust
+|===
+|BLisp          | Rust
+
+|_Int_          | _BigInt_
+|_Bool_         | _bool_
+|_Char_         | _char_
+|_String_       | _String_
+|_'(T)_         | _Vec<T>_
+|_[T0, T1]_     | _(T0, T1)_
+|_(Option T)_   | _Option<T>_
+|_(Result T E)_ | _Result<T, E>_
+|===
+
+== 外部関数呼び出し (_call-rust_, 廃止予定)
+
 _call-rust_ はRustの関数を呼び出すための関数です。
 これは以下のように組み込み関数として定義されています。
 
@@ -568,8 +638,8 @@ let expr = "
 (export callback (x y z)
     (IO (-> (Int Int Int) (Option Int)))
     (call-rust x y z))";
-let exprs = blisp::init(expr).unwrap();
-let mut ctx = blisp::typing(&exprs).unwrap();
+let exprs = blisp::init(expr, vec![]).unwrap();
+let mut ctx = blisp::typing(exprs).unwrap();
 
 let fun = |x: &BigInt, y: &BigInt, z: &BigInt| { <1>
     let n = x * y * z;

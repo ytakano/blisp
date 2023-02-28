@@ -1,14 +1,21 @@
-use super::parser;
-use super::Pos;
+use super::{parser, Pos};
+use crate::{
+    runtime::{Environment, RTData},
+    ExprsAndFFI,
+};
 use alloc::{
     boxed::Box,
-    collections::{btree_map::BTreeMap, btree_set::BTreeSet, linked_list::LinkedList},
+    collections::{
+        btree_map::{self, BTreeMap},
+        btree_set::BTreeSet,
+        linked_list::LinkedList,
+    },
     fmt, format,
     string::{String, ToString},
+    vec,
     vec::Vec,
 };
 use num_bigint::BigInt;
-use std::collections::btree_map;
 
 type ID = u64;
 type Sbst = BTreeMap<ID, Type>;
@@ -409,7 +416,6 @@ pub(crate) struct IDNode {
 pub(crate) struct Extern {
     pub(crate) id: IDNode,
     pub(crate) fun_type: TypeExpr,
-    pub(crate) pos: Pos,
     ty: Option<Type>,
 }
 
@@ -766,22 +772,25 @@ impl TApp for TEDataNode {
 }
 
 pub type CallbackFn = Box<dyn Fn(&BigInt, &BigInt, &BigInt) -> Option<BigInt>>;
+pub type FFIFn = BTreeMap<&'static str, fn(env: &mut Environment<'_>, args: &[RTData]) -> RTData>;
 
 pub struct Context {
     pub(crate) funs: BTreeMap<String, Defun>,
     pub(crate) ext_funs: BTreeMap<String, Extern>,
+    pub(crate) ext_ffi: FFIFn,
     pub(crate) lambda: BTreeMap<u64, Lambda>,
     pub(crate) lambda_ident: u64,
     pub(crate) data: BTreeMap<String, DataType>,
     pub(crate) built_in: BTreeSet<String>,
     label2data: BTreeMap<String, String>,
-    pub callback: CallbackFn,
+    pub(crate) callback: CallbackFn,
 }
 
 impl Context {
     fn new(
         funs: BTreeMap<String, Defun>,
         ext_funs: BTreeMap<String, Extern>,
+        ext_ffi: FFIFn,
         data: BTreeMap<String, DataType>,
     ) -> Context {
         let mut built_in = BTreeSet::new();
@@ -821,6 +830,7 @@ impl Context {
         Context {
             funs,
             ext_funs,
+            ext_ffi,
             data,
             built_in,
             label2data: BTreeMap::new(),
@@ -2835,13 +2845,14 @@ pub(crate) fn typing_expr(
     Ok((expr, lambda))
 }
 
-pub fn exprs2context(exprs: &LinkedList<parser::Expr>) -> Result<Context, TypingErr> {
+pub fn exprs2context(exprs: ExprsAndFFI) -> Result<Context, TypingErr> {
     let mut funs = BTreeMap::new();
     let mut ext_funs = BTreeMap::new();
+    let mut ext_ffi = BTreeMap::new();
     let mut data = BTreeMap::new();
     let msg = "top expression must be data, defun, or export";
 
-    for e in exprs {
+    for e in exprs.exprs.iter() {
         match e {
             parser::Expr::Apply(es, _) => {
                 let mut iter = es.iter();
@@ -2905,7 +2916,11 @@ pub fn exprs2context(exprs: &LinkedList<parser::Expr>) -> Result<Context, Typing
         }
     }
 
-    let mut ctx = Context::new(funs, ext_funs, data);
+    for ffi in exprs.ext_funs.iter() {
+        ext_ffi.insert(ffi.name(), ffi.ffi());
+    }
+
+    let mut ctx = Context::new(funs, ext_funs, ext_ffi, data);
     ctx.typing()?;
 
     Ok(ctx)
@@ -3070,7 +3085,7 @@ fn expr2data_mem(expr: &parser::Expr) -> Result<DataTypeMem, TypingErr> {
 /// $EXTERN := ( extern $ID $TYPE_ARROW )
 fn expr2extern(expr: &parser::Expr) -> Result<Extern, TypingErr> {
     match expr {
-        parser::Expr::Apply(exprs, pos) => {
+        parser::Expr::Apply(exprs, _pos) => {
             let mut iter = exprs.iter();
 
             // extern
@@ -3113,7 +3128,6 @@ fn expr2extern(expr: &parser::Expr) -> Result<Extern, TypingErr> {
                     ret: Box::new(ret),
                     pos: pos_ty,
                 }),
-                pos: *pos,
                 ty: None,
             })
         }

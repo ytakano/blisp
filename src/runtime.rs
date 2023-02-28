@@ -353,7 +353,7 @@ struct Clojure {
 const MIN_GC_NUM: usize = 1024;
 
 #[derive(Debug)]
-struct RootObject {
+pub(crate) struct RootObject {
     objects: LinkedList<Pin<Box<(LabeledData, bool)>>>,
     clojure: LinkedList<Pin<Box<(Clojure, bool)>>>,
     integers: LinkedList<Pin<Box<(BigInt, bool)>>>,
@@ -403,11 +403,11 @@ impl RootObject {
     }
 }
 
-struct Environment<'a> {
-    pub ctx: &'a semantics::Context,
-    pub lambda: &'a BTreeMap<u64, semantics::Lambda>,
-    pub root: &'a mut RootObject,
-    pub vars: &'a mut VecDeque<Variables>,
+pub struct Environment<'a> {
+    pub(crate) ctx: &'a semantics::Context,
+    pub(crate) lambda: &'a BTreeMap<u64, semantics::Lambda>,
+    pub(crate) root: &'a mut RootObject,
+    pub(crate) vars: &'a mut VecDeque<Variables>,
 }
 
 pub(crate) fn eval(
@@ -623,6 +623,15 @@ fn eval_apply(expr: &semantics::Apply, env: &mut Environment<'_>) -> Result<RTDa
                     v.push(data);
                 }
                 return eval_built_in(fun_name, &v, expr.pos, env);
+            }
+
+            if let Some(ffi) = env.ctx.ext_ffi.get(fun_name.as_str()) {
+                let mut v = Vec::new();
+                for e in iter {
+                    let data = eval_expr(e, env)?;
+                    v.push(data);
+                }
+                return Ok(ffi(env, &v));
             }
 
             // look up defun
@@ -1207,9 +1216,14 @@ fn sweep<T>(root: &mut LinkedList<Pin<Box<(T, bool)>>>) {
     }
 }
 
-impl From<&RTData> for BigInt {
-    fn from(value: &RTData) -> Self {
-        if let RTData::Int(data) = value {
+pub trait RTDataToRust<T> {
+    fn into(&self) -> T;
+}
+
+/// Get a BigInt value.
+impl RTDataToRust<BigInt> for RTData {
+    fn into(&self) -> BigInt {
+        if let RTData::Int(data) = self {
             data.get_int().clone()
         } else {
             panic!("data is not BigInt");
@@ -1217,9 +1231,10 @@ impl From<&RTData> for BigInt {
     }
 }
 
-impl From<&RTData> for char {
-    fn from(value: &RTData) -> Self {
-        if let RTData::Char(data) = value {
+/// Get a char value.
+impl RTDataToRust<char> for RTData {
+    fn into(&self) -> char {
+        if let RTData::Char(data) = self {
             *data
         } else {
             panic!("data is not Char");
@@ -1227,9 +1242,10 @@ impl From<&RTData> for char {
     }
 }
 
-impl From<&RTData> for String {
-    fn from(value: &RTData) -> Self {
-        if let RTData::Str(data) = value {
+/// Get a String value.
+impl RTDataToRust<String> for RTData {
+    fn into(&self) -> String {
+        if let RTData::Str(data) = self {
             data.get_string().clone()
         } else {
             panic!("data is not String");
@@ -1237,9 +1253,10 @@ impl From<&RTData> for String {
     }
 }
 
-impl From<&RTData> for bool {
-    fn from(value: &RTData) -> Self {
-        if let RTData::Bool(data) = value {
+/// Get a boolean value.
+impl RTDataToRust<bool> for RTData {
+    fn into(&self) -> bool {
+        if let RTData::Bool(data) = self {
             *data
         } else {
             panic!("data is not Bool");
@@ -1247,9 +1264,13 @@ impl From<&RTData> for bool {
     }
 }
 
-impl<'a, T: From<&'a RTData>> From<&'a RTData> for Vec<T> {
-    fn from(value: &'a RTData) -> Self {
-        if let RTData::LData(data) = value {
+/// Convert a BLisp's List to a Rust's Vec.
+impl<T> RTDataToRust<Vec<T>> for RTData
+where
+    RTData: RTDataToRust<T>,
+{
+    fn into(&self) -> Vec<T> {
+        if let RTData::LData(data) = self {
             let ldata = data.get_ldata();
             let mut result = Vec::new();
             list_to_vec(ldata, &mut result);
@@ -1261,13 +1282,42 @@ impl<'a, T: From<&'a RTData>> From<&'a RTData> for Vec<T> {
     }
 }
 
+/// Convert a BLisp's Option to a Rust's Option.
+impl<T> RTDataToRust<Option<T>> for RTData
+where
+    RTData: RTDataToRust<T>,
+{
+    fn into(&self) -> Option<T> {
+        if let RTData::LData(data) = self {
+            let ldata = data.get_ldata();
+            match ldata.label.as_str() {
+                "Some" => {
+                    if let Some(v) = &ldata.data {
+                        let e: T = RTDataToRust::into(&v[0]);
+                        Some(e)
+                    } else {
+                        panic!("invalid Some")
+                    }
+                }
+                "None" => None,
+                _ => panic!("label is neither Some nor None"),
+            }
+        } else {
+            panic!("data is not Option");
+        }
+    }
+}
+
 /// Convert a BLisp's list to a Rust's Vec.
-fn list_to_vec<'a, T: From<&'a RTData>>(mut ldata: &'a LabeledData, result: &mut Vec<T>) {
+fn list_to_vec<T>(mut ldata: &LabeledData, result: &mut Vec<T>)
+where
+    RTData: RTDataToRust<T>,
+{
     loop {
         match ldata.label.as_str() {
             "Cons" => {
                 if let Some(v) = &ldata.data {
-                    let e: T = (&v[0]).into();
+                    let e: T = RTDataToRust::into(&v[0]);
                     result.push(e);
 
                     if let RTData::LData(data) = &v[1] {
@@ -1280,36 +1330,292 @@ fn list_to_vec<'a, T: From<&'a RTData>>(mut ldata: &'a LabeledData, result: &mut
                 }
             }
             "Nil" => break,
-            _ => panic!("label is not Cons or Nil"),
+            _ => panic!("label is neither Cons nor Nil"),
         }
     }
 }
 
-/// Convert a BLisp's Option to a Rust's Option.
-pub fn option_to_option<'a, T: From<&'a RTData>>(value: &'a RTData) -> Option<T> {
-    if let RTData::LData(data) = value {
-        let ldata = data.get_ldata();
-        match ldata.label.as_str() {
-            "Some" => {
-                if let Some(v) = &ldata.data {
-                    let e: T = (&v[0]).into();
-                    Some(e)
-                } else {
-                    panic!("invalid Some")
+/// Convert a BLisp's Result to a Rust's Result.
+impl<T, E> RTDataToRust<Result<T, E>> for RTData
+where
+    RTData: RTDataToRust<T> + RTDataToRust<E>,
+{
+    fn into(&self) -> Result<T, E> {
+        if let RTData::LData(data) = self {
+            let ldata = data.get_ldata();
+            match ldata.label.as_str() {
+                "Ok" => {
+                    if let Some(v) = &ldata.data {
+                        let e: T = RTDataToRust::into(&v[0]);
+                        Ok(e)
+                    } else {
+                        panic!("invalid Ok")
+                    }
                 }
+                "Err" => {
+                    if let Some(v) = &ldata.data {
+                        let e: E = RTDataToRust::into(&v[0]);
+                        Err(e)
+                    } else {
+                        panic!("invalid Err")
+                    }
+                }
+                _ => panic!("label is neither Ok nor Err"),
             }
-            "None" => None,
-            _ => panic!("label is not Some or None"),
+        } else {
+            panic!("data is not Result");
         }
-    } else {
-        panic!("label is not Cons or Nil");
     }
 }
 
-impl<'a, T: From<&'a RTData>, E: From<&'a RTData>> From<&'a RTData> for Result<T, E> {
-    fn from(value: &'a RTData) -> Self {
-        todo!();
-
-        panic!("data is not Result");
+/// Convert a BLisp's Tuple to a Rust's Tuple
+/// where the length is 2.
+impl<T0, T1> RTDataToRust<(T0, T1)> for RTData
+where
+    RTData: RTDataToRust<T0> + RTDataToRust<T1>,
+{
+    fn into(&self) -> (T0, T1) {
+        if let RTData::LData(data) = self {
+            let ldata = data.get_ldata();
+            match ldata.label.as_str() {
+                "Tuple" => {
+                    if let Some(v) = &ldata.data {
+                        let v0: T0 = RTDataToRust::into(&v[0]);
+                        let v1: T1 = RTDataToRust::into(&v[1]);
+                        (v0, v1)
+                    } else {
+                        panic!("invalid Tuple")
+                    }
+                }
+                _ => panic!("label is not Tuple"),
+            }
+        } else {
+            panic!("data is not Tuple");
+        }
     }
+}
+
+/// Convert a BLisp's Tuple to a Rust's Tuple
+/// where the length is 3.
+impl<T0, T1, T2> RTDataToRust<(T0, T1, T2)> for RTData
+where
+    RTData: RTDataToRust<T0> + RTDataToRust<T1> + RTDataToRust<T2>,
+{
+    fn into(&self) -> (T0, T1, T2) {
+        if let RTData::LData(data) = self {
+            let ldata = data.get_ldata();
+            match ldata.label.as_str() {
+                "Tuple" => {
+                    if let Some(v) = &ldata.data {
+                        let v0: T0 = RTDataToRust::into(&v[0]);
+                        let v1: T1 = RTDataToRust::into(&v[1]);
+                        let v2: T2 = RTDataToRust::into(&v[2]);
+                        (v0, v1, v2)
+                    } else {
+                        panic!("invalid Tuple")
+                    }
+                }
+                _ => panic!("label is not Tuple"),
+            }
+        } else {
+            panic!("data is not Tuple");
+        }
+    }
+}
+
+/// Convert a BLisp's Tuple to a Rust's Tuple
+/// where the length is 4.
+impl<T0, T1, T2, T3> RTDataToRust<(T0, T1, T2, T3)> for RTData
+where
+    RTData: RTDataToRust<T0> + RTDataToRust<T1> + RTDataToRust<T2> + RTDataToRust<T3>,
+{
+    fn into(&self) -> (T0, T1, T2, T3) {
+        if let RTData::LData(data) = self {
+            let ldata = data.get_ldata();
+            match ldata.label.as_str() {
+                "Tuple" => {
+                    if let Some(v) = &ldata.data {
+                        let v0: T0 = RTDataToRust::into(&v[0]);
+                        let v1: T1 = RTDataToRust::into(&v[1]);
+                        let v2: T2 = RTDataToRust::into(&v[2]);
+                        let v3: T3 = RTDataToRust::into(&v[3]);
+                        (v0, v1, v2, v3)
+                    } else {
+                        panic!("invalid Tuple")
+                    }
+                }
+                _ => panic!("label is not Tuple"),
+            }
+        } else {
+            panic!("data is not Tuple");
+        }
+    }
+}
+
+/// Convert a BLisp's Tuple to a Rust's Tuple
+/// where the length is 5.
+impl<T0, T1, T2, T3, T4> RTDataToRust<(T0, T1, T2, T3, T4)> for RTData
+where
+    RTData: RTDataToRust<T0>
+        + RTDataToRust<T1>
+        + RTDataToRust<T2>
+        + RTDataToRust<T3>
+        + RTDataToRust<T4>,
+{
+    fn into(&self) -> (T0, T1, T2, T3, T4) {
+        if let RTData::LData(data) = self {
+            let ldata = data.get_ldata();
+            match ldata.label.as_str() {
+                "Tuple" => {
+                    if let Some(v) = &ldata.data {
+                        let v0: T0 = RTDataToRust::into(&v[0]);
+                        let v1: T1 = RTDataToRust::into(&v[1]);
+                        let v2: T2 = RTDataToRust::into(&v[2]);
+                        let v3: T3 = RTDataToRust::into(&v[3]);
+                        let v4: T4 = RTDataToRust::into(&v[4]);
+                        (v0, v1, v2, v3, v4)
+                    } else {
+                        panic!("invalid Tuple")
+                    }
+                }
+                _ => panic!("label is not Tuple"),
+            }
+        } else {
+            panic!("data is not Tuple");
+        }
+    }
+}
+
+pub trait RustToRTData<T> {
+    fn from(env: &mut Environment<'_>, value: T) -> Self;
+}
+
+impl RustToRTData<BigInt> for RTData {
+    fn from(env: &mut Environment<'_>, value: BigInt) -> Self {
+        RTData::Int(env.root.make_int(value))
+    }
+}
+
+impl RustToRTData<char> for RTData {
+    fn from(_env: &mut Environment<'_>, value: char) -> Self {
+        RTData::Char(value)
+    }
+}
+
+impl RustToRTData<bool> for RTData {
+    fn from(_env: &mut Environment<'_>, value: bool) -> Self {
+        RTData::Bool(value)
+    }
+}
+
+impl RustToRTData<String> for RTData {
+    fn from(env: &mut Environment<'_>, value: String) -> Self {
+        RTData::Str(env.root.make_str(value))
+    }
+}
+
+impl<T> RustToRTData<Option<T>> for RTData
+where
+    RTData: RustToRTData<T>,
+{
+    fn from(env: &mut Environment<'_>, value: Option<T>) -> Self {
+        if let Some(value) = value {
+            let value = RustToRTData::from(env, value);
+            RTData::LData(env.root.make_obj("Some".to_string(), Some(vec![value])))
+        } else {
+            RTData::LData(env.root.make_obj("None".to_string(), None))
+        }
+    }
+}
+
+impl<T, E> RustToRTData<Result<T, E>> for RTData
+where
+    RTData: RustToRTData<T> + RustToRTData<E>,
+{
+    fn from(env: &mut Environment<'_>, value: Result<T, E>) -> Self {
+        match value {
+            Ok(value) => {
+                let value = RustToRTData::from(env, value);
+                RTData::LData(env.root.make_obj("Ok".to_string(), Some(vec![value])))
+            }
+            Err(value) => {
+                let value = RustToRTData::from(env, value);
+                RTData::LData(env.root.make_obj("Err".to_string(), Some(vec![value])))
+            }
+        }
+    }
+}
+
+impl<T0, T1> RustToRTData<(T0, T1)> for RTData
+where
+    RTData: RustToRTData<T0> + RustToRTData<T1>,
+{
+    fn from(env: &mut Environment<'_>, (v0, v1): (T0, T1)) -> Self {
+        let v0 = RustToRTData::from(env, v0);
+        let v1 = RustToRTData::from(env, v1);
+        RTData::LData(env.root.make_obj("Tuple".to_string(), Some(vec![v0, v1])))
+    }
+}
+
+impl<T0, T1, T2> RustToRTData<(T0, T1, T2)> for RTData
+where
+    RTData: RustToRTData<T0> + RustToRTData<T1> + RustToRTData<T2>,
+{
+    fn from(env: &mut Environment<'_>, (v0, v1, v2): (T0, T1, T2)) -> Self {
+        let v0 = RustToRTData::from(env, v0);
+        let v1 = RustToRTData::from(env, v1);
+        let v2 = RustToRTData::from(env, v2);
+        RTData::LData(
+            env.root
+                .make_obj("Tuple".to_string(), Some(vec![v0, v1, v2])),
+        )
+    }
+}
+
+impl<T0, T1, T2, T3> RustToRTData<(T0, T1, T2, T3)> for RTData
+where
+    RTData: RustToRTData<T0> + RustToRTData<T1> + RustToRTData<T2> + RustToRTData<T3>,
+{
+    fn from(env: &mut Environment<'_>, (v0, v1, v2, v3): (T0, T1, T2, T3)) -> Self {
+        let v0 = RustToRTData::from(env, v0);
+        let v1 = RustToRTData::from(env, v1);
+        let v2 = RustToRTData::from(env, v2);
+        let v3 = RustToRTData::from(env, v3);
+        RTData::LData(
+            env.root
+                .make_obj("Tuple".to_string(), Some(vec![v0, v1, v2, v3])),
+        )
+    }
+}
+
+impl<T0, T1, T2, T3, T4> RustToRTData<(T0, T1, T2, T3, T4)> for RTData
+where
+    RTData: RustToRTData<T0>
+        + RustToRTData<T1>
+        + RustToRTData<T2>
+        + RustToRTData<T3>
+        + RustToRTData<T4>,
+{
+    fn from(env: &mut Environment<'_>, (v0, v1, v2, v3, v4): (T0, T1, T2, T3, T4)) -> Self {
+        let v0 = RustToRTData::from(env, v0);
+        let v1 = RustToRTData::from(env, v1);
+        let v2 = RustToRTData::from(env, v2);
+        let v3 = RustToRTData::from(env, v3);
+        let v4 = RustToRTData::from(env, v4);
+        RTData::LData(
+            env.root
+                .make_obj("Tuple".to_string(), Some(vec![v0, v1, v2, v3, v4])),
+        )
+    }
+}
+
+pub trait FFI {
+    /// Extern expression of BLisp
+    fn blisp_extern(&self) -> &'static str;
+
+    /// Return the corresponding FFI.
+    fn ffi(&self) -> fn(env: &mut Environment<'_>, args: &[RTData]) -> RTData;
+
+    /// The function name.
+    fn name(&self) -> &'static str;
 }

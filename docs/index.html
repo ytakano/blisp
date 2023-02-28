@@ -521,8 +521,8 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <div class="details">
 <span id="author" class="author">Yuuki Takano</span><br>
 <span id="email" class="email"><a href="mailto:ytakano@wide.ad.jp">ytakano@wide.ad.jp</a></span><br>
-<span id="revnumber">version 0.3.8,</span>
-<span id="revdate">2021-03</span>
+<span id="revnumber">version 0.4.0,</span>
+<span id="revdate">2023-02</span>
 </div>
 <div id="toc" class="toc">
 <div id="toctitle">Table of Contents</div>
@@ -545,11 +545,12 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <li><a href="#_lambda_expression">16. Lambda Expression</a></li>
 <li><a href="#_string_and_character">17. String and Character</a></li>
 <li><a href="#_foreign_function_interface">18. Foreign Function Interface</a></li>
-<li><a href="#_examples">19. Examples</a>
+<li><a href="#_foreign_function_interface_call_rust_will_be_deprecated">19. Foreign Function Interface (<em>call-rust</em>, will be deprecated)</a></li>
+<li><a href="#_examples">20. Examples</a>
 <ul class="sectlevel2">
-<li><a href="#_reverse">19.1. Reverse</a></li>
-<li><a href="#_filter">19.2. Filter</a></li>
-<li><a href="#_factorial">19.3. Factorial</a></li>
+<li><a href="#_reverse">20.1. Reverse</a></li>
+<li><a href="#_filter">20.2. Filter</a></li>
+<li><a href="#_factorial">20.3. Factorial</a></li>
 </ul>
 </li>
 </ul>
@@ -729,7 +730,7 @@ quad can be called from Rust&#8217;s eval, and it calls double internally.</p>
 <span class="tok-s">    (Pure (-&gt; (Int) Int)) ; function Type</span>
 <span class="tok-s">    (double (double x)))  ; function body</span>
 <span class="tok-s">&quot;</span><span class="tok-p">;</span><span class="tok-w"></span>
-<span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">exprs</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">init</span><span class="tok-p">(</span><span class="tok-n">code</span><span class="tok-p">).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">exprs</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">init</span><span class="tok-p">(</span><span class="tok-n">code</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-fm">vec!</span><span class="tok-p">[]).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span>
 <span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">ctx</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">typing</span><span class="tok-p">(</span><span class="tok-o">&amp;</span><span class="tok-n">exprs</span><span class="tok-p">).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span>
 
 <span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">e</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s">&quot;(double 10) ; error&quot;</span><span class="tok-p">;</span><span class="tok-w"></span>
@@ -1236,6 +1237,119 @@ For example, summation can be computed as follows.</p>
 <h2 id="_foreign_function_interface">18. Foreign Function Interface</h2>
 <div class="sectionbody">
 <div class="paragraph">
+<p><em>blisp::embedded</em> is a macro for foreign function interface.
+By using this, Rust&#8217;s functions can be called from BLisp easily.</p>
+</div>
+<div class="paragraph">
+<p>For example, first of all, define a Rust function as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="rust"><span></span><span class="tok-k">use</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">embedded</span><span class="tok-p">;</span><span class="tok-w"></span>
+<span class="tok-k">use</span><span class="tok-w"> </span><span class="tok-n">num_bigint</span>::<span class="tok-p">{</span><span class="tok-n">BigInt</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">ToBigInt</span><span class="tok-p">};</span><span class="tok-w"></span>
+
+<span class="tok-cp">#[embedded]</span><span class="tok-w"></span>
+<span class="tok-k">fn</span> <span class="tok-nf">add_four_ints</span><span class="tok-p">(</span><span class="tok-n">a</span>: <span class="tok-nc">BigInt</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">b</span>: <span class="tok-p">(</span><span class="tok-n">BigInt</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">BigInt</span><span class="tok-p">),</span><span class="tok-w"> </span><span class="tok-n">c</span>: <span class="tok-nb">Option</span><span class="tok-o">&lt;</span><span class="tok-n">BigInt</span><span class="tok-o">&gt;</span><span class="tok-p">)</span><span class="tok-w"> </span>-&gt; <span class="tok-nb">Result</span><span class="tok-o">&lt;</span><span class="tok-n">BigInt</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-nb">String</span><span class="tok-o">&gt;</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-k">mut</span><span class="tok-w"> </span><span class="tok-n">result</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">a</span><span class="tok-w"> </span><span class="tok-o">+</span><span class="tok-w"> </span><span class="tok-n">b</span><span class="tok-p">.</span><span class="tok-mi">0</span><span class="tok-w"> </span><span class="tok-o">+</span><span class="tok-w"> </span><span class="tok-n">b</span><span class="tok-p">.</span><span class="tok-mi">1</span><span class="tok-p">;</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-k">if</span><span class="tok-w"> </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-nb">Some</span><span class="tok-p">(</span><span class="tok-n">n</span><span class="tok-p">)</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">c</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"></span>
+<span class="tok-w">        </span><span class="tok-n">result</span><span class="tok-w"> </span><span class="tok-o">+=</span><span class="tok-w"> </span><span class="tok-n">n</span><span class="tok-p">;</span><span class="tok-w"></span>
+<span class="tok-w">    </span><span class="tok-p">}</span><span class="tok-w"></span>
+
+<span class="tok-w">    </span><span class="tok-nb">Ok</span><span class="tok-p">(</span><span class="tok-n">result</span><span class="tok-p">)</span><span class="tok-w"></span>
+<span class="tok-p">}</span><span class="tok-w"></span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>blisp::embedded</em> macro generates a type definition for FFI.
+This function can be called from BLisp as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nb">export</span> <span class="tok-nv">call_add_four_ints</span> <span class="tok-p">(</span><span class="tok-nv">n</span><span class="tok-p">)</span>
+    <span class="tok-p">(</span><span class="tok-nv">IO</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">((</span><span class="tok-nv">Option</span> <span class="tok-nv">Int</span><span class="tok-p">))</span> <span class="tok-p">(</span><span class="tok-nv">Result</span> <span class="tok-nv">Int</span> <span class="tok-nv">String</span><span class="tok-p">)))</span>
+    <span class="tok-p">(</span><span class="tok-nv">add_four_ints</span> <span class="tok-mi">1</span> <span class="tok-nv">[2</span> <span class="tok-nv">3]</span> <span class="tok-nv">n</span><span class="tok-p">))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To register FFIs, a vector of the definition generated by <em>embedded</em> macro
+must be passed to <em>blisp::init</em> as follows.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="rust"><span></span><span class="tok-c1">// add_for_ints</span>
+<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">code</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s">&quot;(export call_add_four_ints (n)</span>
+<span class="tok-s">    (IO (-&gt; ((Option Int)) (Result Int String)))</span>
+<span class="tok-s">    (add_four_ints 1 [2 3] n)</span>
+<span class="tok-s">)&quot;</span><span class="tok-p">;</span><span class="tok-w"></span>
+<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">exprs</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">init</span><span class="tok-p">(</span><span class="tok-n">code</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-fm">vec!</span><span class="tok-p">[</span><span class="tok-nb">Box</span>::<span class="tok-n">new</span><span class="tok-p">(</span><span class="tok-n">AddFourInts</span><span class="tok-p">)]).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span>
+<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">ctx</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">typing</span><span class="tok-p">(</span><span class="tok-n">exprs</span><span class="tok-p">).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span>
+<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">result</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">eval</span><span class="tok-p">(</span><span class="tok-s">&quot;(call_add_four_ints (Some 4))&quot;</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-o">&amp;</span><span class="tok-n">ctx</span><span class="tok-p">).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The function name is <em>add_four_ints</em>, then <em>AddFourInts</em>, which is camel case,
+must be passed to <em>blisp::init</em> capsulated by <em>Box</em> and <em>Vec</em>.</p>
+</div>
+<div class="paragraph">
+<p>FFIs in Rust take and return only types described as follows.
+Other types, like <em>Vec&lt;u64&gt;</em>, are not supported,
+but <em>Vec&lt;Option&lt;bool&gt;&gt;</em> is accepted.
+Types between BLisp and Rust are automatically converted by
+the function generated by <em>embedded</em> macro.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. Type Conversion between BLisp and Rust</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">BLisp</th>
+<th class="tableblock halign-left valign-top">Rust</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>Int</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>BigInt</em></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>Bool</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>bool</em></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>Char</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>char</em></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>String</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>String</em></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>'(T)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>Vec&lt;T&gt;</em></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>[T0, T1]</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>(T0, T1)</em></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>(Option T)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>Option&lt;T&gt;</em></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>(Result T E)</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>Result&lt;T, E&gt;</em></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_foreign_function_interface_call_rust_will_be_deprecated">19. Foreign Function Interface (<em>call-rust</em>, will be deprecated)</h2>
+<div class="sectionbody">
+<div class="paragraph">
 <p><em>call-rust</em> is a function to call Rust&#8217;s function.
 This is defined as a built-in function as follows.</p>
 </div>
@@ -1260,7 +1374,7 @@ In order to call Rust&#8217;s function, setting a callback function is required 
 <span class="tok-s">(export callback (x y z)</span>
 <span class="tok-s">    (IO (-&gt; (Int Int Int) (Option Int)))</span>
 <span class="tok-s">    (call-rust x y z))&quot;</span><span class="tok-p">;</span><span class="tok-w"></span>
-<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">exprs</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">init</span><span class="tok-p">(</span><span class="tok-n">expr</span><span class="tok-p">).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span>
+<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">exprs</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">init</span><span class="tok-p">(</span><span class="tok-n">expr</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-fm">vec!</span><span class="tok-p">[]).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span>
 <span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-k">mut</span><span class="tok-w"> </span><span class="tok-n">ctx</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">typing</span><span class="tok-p">(</span><span class="tok-o">&amp;</span><span class="tok-n">exprs</span><span class="tok-p">).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span>
 
 <span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">fun</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-o">|</span><span class="tok-n">x</span>: <span class="tok-kp">&amp;</span><span class="tok-nc">BigInt</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">y</span>: <span class="tok-kp">&amp;</span><span class="tok-nc">BigInt</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">z</span>: <span class="tok-kp">&amp;</span><span class="tok-nc">BigInt</span><span class="tok-o">|</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"> </span><b class="conum">(1)</b>
@@ -1298,10 +1412,10 @@ In order to call Rust&#8217;s function, setting a callback function is required 
 </div>
 </div>
 <div class="sect1">
-<h2 id="_examples">19. Examples</h2>
+<h2 id="_examples">20. Examples</h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_reverse">19.1. Reverse</h3>
+<h3 id="_reverse">20.1. Reverse</h3>
 <div class="paragraph">
 <p><em>reverse</em> is a internally defined function. It reverses order of a list.</p>
 </div>
@@ -1320,7 +1434,7 @@ In order to call Rust&#8217;s function, setting a callback function is required 
 </div>
 </div>
 <div class="sect2">
-<h3 id="_filter">19.2. Filter</h3>
+<h3 id="_filter">20.2. Filter</h3>
 <div class="paragraph">
 <p><em>filter</em> is a internally defined function. It filters the elements in a list.</p>
 </div>
@@ -1350,7 +1464,7 @@ In order to call Rust&#8217;s function, setting a callback function is required 
 </div>
 </div>
 <div class="sect2">
-<h3 id="_factorial">19.3. Factorial</h3>
+<h3 id="_factorial">20.3. Factorial</h3>
 <div class="paragraph">
 <p>Tail call factorial can be coded as follows.</p>
 </div>
@@ -1389,8 +1503,8 @@ In order to call Rust&#8217;s function, setting a callback function is required 
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 0.3.8<br>
-Last updated 2021-03-28 15:55:28 +0900
+Version 0.4.0<br>
+Last updated 2023-02-28 20:58:31 +0900
 </div>
 </div>
 <script type="text/x-mathjax-config">

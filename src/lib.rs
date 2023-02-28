@@ -34,8 +34,8 @@
 //!         total
 //!         (factorial' (- n 1) (* n total))))";
 //!
-//! let exprs = blisp::init(code, &[]).unwrap();
-//! let ctx = blisp::typing(&exprs).unwrap();
+//! let exprs = blisp::init(code, vec![]).unwrap();
+//! let ctx = blisp::typing(exprs).unwrap();
 //! let expr = "(factorial 10)";
 //! for result in blisp::eval(expr, &ctx).unwrap() {
 //!    println!("{}", result.unwrap());
@@ -52,8 +52,8 @@
 //! (export callback (x y z)
 //!     (IO (-> (Int Int Int) (Option Int)))
 //!     (call-rust x y z))";
-//! let exprs = blisp::init(expr, &[]).unwrap();
-//! let mut ctx = blisp::typing(&exprs).unwrap();
+//! let exprs = blisp::init(expr, vec![]).unwrap();
+//! let mut ctx = blisp::typing(exprs).unwrap();
 //!
 //! let fun = |x: &BigInt, y: &BigInt, z: &BigInt| {
 //!     let n = x * y * z;
@@ -81,15 +81,17 @@
 //! (filter (lambda (x) (= (% x 2) 0)) '(1 2 3 4 5 6 7 8 9)) ; '(2 4 6 8)
 //! ```
 
-//#![no_std]
+#![cfg_attr(not(test), no_std)]
 
 extern crate alloc;
 extern crate proc_macro;
 
 use alloc::{
+    boxed::Box,
     collections::linked_list::LinkedList,
     format,
     string::{String, ToString},
+    vec::Vec,
 };
 
 pub mod coq;
@@ -99,6 +101,7 @@ pub mod runtime;
 pub mod semantics;
 
 pub use embed_macro::embedded;
+use runtime::FFI;
 
 #[derive(Debug, Clone, Copy)]
 pub enum FileType {
@@ -129,6 +132,11 @@ impl LispErr {
     }
 }
 
+pub struct ExprsAndFFI {
+    exprs: LinkedList<parser::Expr>,
+    ext_funs: Vec<Box<dyn FFI>>,
+}
+
 /// initialize BLisp with code
 ///
 /// # Example
@@ -139,9 +147,9 @@ impl LispErr {
 ///        1
 ///        (* n (factorial (- n 1)))))";
 ///
-/// blisp::init(code, &[]).unwrap();
+/// blisp::init(code, vec![]).unwrap();
 /// ```
-pub fn init(code: &str, ext_funs: &[&str]) -> Result<LinkedList<parser::Expr>, LispErr> {
+pub fn init(code: &str, ext_funs: Vec<Box<dyn FFI>>) -> Result<ExprsAndFFI, LispErr> {
     let prelude = include_str!("prelude.lisp");
     let mut ps = parser::Parser::new(prelude, FileType::Prelude);
     let mut exprs = match ps.parse() {
@@ -153,7 +161,7 @@ pub fn init(code: &str, ext_funs: &[&str]) -> Result<LinkedList<parser::Expr>, L
     };
 
     for (i, fun) in ext_funs.iter().enumerate() {
-        let mut ps = parser::Parser::new(fun, FileType::Extern(i as u64));
+        let mut ps = parser::Parser::new(fun.blisp_extern(), FileType::Extern(i as u64));
         match ps.parse() {
             Ok(mut e) => {
                 exprs.append(&mut e);
@@ -169,7 +177,7 @@ pub fn init(code: &str, ext_funs: &[&str]) -> Result<LinkedList<parser::Expr>, L
     match ps.parse() {
         Ok(mut e) => {
             exprs.append(&mut e);
-            Ok(exprs)
+            Ok(ExprsAndFFI { exprs, ext_funs })
         }
         Err(e) => {
             let msg = format!("Syntax Error: {}", e.msg);
@@ -188,10 +196,10 @@ pub fn init(code: &str, ext_funs: &[&str]) -> Result<LinkedList<parser::Expr>, L
 ///        1
 ///        (* n (factorial (- n 1)))))";
 ///
-/// let exprs = blisp::init(code, &[]).unwrap();
-/// blisp::typing(&exprs).unwrap();
+/// let exprs = blisp::init(code, vec![]).unwrap();
+/// blisp::typing(exprs).unwrap();
 /// ```
-pub fn typing(exprs: &LinkedList<parser::Expr>) -> Result<semantics::Context, LispErr> {
+pub fn typing(exprs: ExprsAndFFI) -> Result<semantics::Context, LispErr> {
     match semantics::exprs2context(exprs) {
         Ok(c) => Ok(c),
         Err(e) => {
@@ -211,8 +219,8 @@ pub fn typing(exprs: &LinkedList<parser::Expr>) -> Result<semantics::Context, Li
 ///        1
 ///        (* n (factorial (- n 1)))))";
 ///
-/// let exprs = blisp::init(code, &[]).unwrap();
-/// let ctx = blisp::typing(&exprs).unwrap();
+/// let exprs = blisp::init(code, vec![]).unwrap();
+/// let ctx = blisp::typing(exprs).unwrap();
 /// let expr = "(factorial 30)";
 /// for result in blisp::eval(expr, &ctx).unwrap() {
 ///    println!("{}", result.unwrap());
@@ -228,21 +236,15 @@ pub fn eval(
 pub fn transpile(ctx: &semantics::Context) -> String {
     let mut s = "".to_string();
     for (_, d) in ctx.data.iter() {
-        println!("AST(Data):\n{:#?}", d);
         s = format!("{}{}\n", s, coq::to_coq_data(d));
     }
 
     for (_, f) in ctx.funs.iter() {
-        //println!("AST(Defun):\n{:#?}", f);
         s = format!("{}{}\n", s, coq::to_coq_func(f));
     }
 
     format!("{}\n\n{}", coq::import(), s)
 }
-
-#[cfg(test)]
-#[macro_use]
-extern crate std;
 
 #[cfg(test)]
 mod tests {
@@ -261,8 +263,8 @@ mod tests {
 
     #[test]
     fn ops() {
-        let exprs = init("", &[]).unwrap();
-        let ctx = typing(&exprs).unwrap();
+        let exprs = init("", vec![]).unwrap();
+        let ctx = typing(exprs).unwrap();
         eval_result("(neq (Some \"Hello\") 10)", &ctx);
         eval_result("(chars \"Hello, World!\")", &ctx);
         eval_result("(str '(`H` `e` `l` `l` `o`))", &ctx);
@@ -300,8 +302,8 @@ mod tests {
     (Pure (-> ((Pure (-> (Int Int) Int))) Int))
     (f 10 20))
 ";
-        let exprs = init(expr, &[]).unwrap();
-        let ctx = typing(&exprs).unwrap();
+        let exprs = init(expr, vec![]).unwrap();
+        let ctx = typing(exprs).unwrap();
         let e = "(lambda-test (lambda (x y) (* x y)))";
         eval_result(e, &ctx);
 
@@ -323,8 +325,8 @@ mod tests {
         ((Cons n Nil) (Some n))
         ((Cons _ l) (tail l))))
 ";
-        let exprs = init(expr, &[]).unwrap();
-        let ctx = typing(&exprs).unwrap();
+        let exprs = init(expr, vec![]).unwrap();
+        let ctx = typing(exprs).unwrap();
 
         let e = "(head '(30 40 50))";
         eval_result(e, &ctx);
@@ -339,8 +341,8 @@ mod tests {
     (match x
         ([n _] n)))
 ";
-        let exprs = init(expr, &[]).unwrap();
-        let ctx = typing(&exprs).unwrap();
+        let exprs = init(expr, vec![]).unwrap();
+        let ctx = typing(exprs).unwrap();
         let e = "(first [10 false])";
         eval_result(e, &ctx);
     }
@@ -355,8 +357,8 @@ mod tests {
         total
         (factorial' (- n 1) (* n total))))
 ";
-        let exprs = init(expr, &[]).unwrap();
-        let ctx = typing(&exprs).unwrap();
+        let exprs = init(expr, vec![]).unwrap();
+        let ctx = typing(exprs).unwrap();
 
         let e = "(Some 10)";
         eval_result(e, &ctx);
@@ -388,8 +390,8 @@ mod tests {
         let expr = "
 (export callback (x y z) (IO (-> (Int Int Int) (Option Int)))
     (call-rust x y z))";
-        let exprs = init(expr, &[]).unwrap();
-        let mut ctx = typing(&exprs).unwrap();
+        let exprs = init(expr, vec![]).unwrap();
+        let mut ctx = typing(exprs).unwrap();
 
         use num_bigint::BigInt;
         use std::boxed::Box;
@@ -423,8 +425,8 @@ mod tests {
             (nil nil)
             ((Cons h t) (snoc (rev t) h))))
             ";
-        let exprs = init(expr, &[]).unwrap();
-        let ctx = typing(&exprs).unwrap();
+        let exprs = init(expr, vec![]).unwrap();
+        let ctx = typing(exprs).unwrap();
 
         println!("{}", transpile(&ctx));
     }

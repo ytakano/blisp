@@ -1,8 +1,9 @@
 extern crate proc_macro;
 
+use convert_case::{Case, Casing};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{parse_macro_input, FnArg, GenericArgument, Item, PathArguments, Signature, Type}; //PathSegment
+use syn::{parse_macro_input, FnArg, GenericArgument, Item, PathArguments, Signature, Type};
 
 #[proc_macro_attribute]
 pub fn embedded(
@@ -14,13 +15,14 @@ pub fn embedded(
     let ty = parse_macro_input!(input as Item);
     let item_fn = match ty {
         Item::Fn(ref n) => n,
-        _ => panic!("function is only allowed."),
+        _ => panic!("only function is allowed"),
     };
 
     let fn_name = &item_fn.sig.ident.clone();
-    let fn_name_cap = {
+
+    let fn_name_camel = {
         let mut temp = format!("{}", fn_name);
-        temp = temp.to_ascii_uppercase();
+        temp = temp.to_case(Case::Pascal);
         Ident::new(&temp, Ident::span(fn_name))
     };
 
@@ -37,13 +39,27 @@ pub fn embedded(
         Ident::new(&temp, Ident::span(fn_name))
     };
 
-    let ffi_body = generate_ffi_body(fn_data, &fn_name_ffi);
+    let fn_name_str = format!("{fn_name}");
+
+    let ffi_body = generate_ffi_body(fn_data, &fn_name, &fn_name_ffi);
 
     let expanded = quote! {
-        const #fn_name_cap: &str = #fn_body;
-        fn #fn_name_ffi(args: &[blisp::runtime::RTData]) -> blisp::runtime::RTData {
-            #ffi_body
-            todo!()
+        struct #fn_name_camel;
+
+        impl blisp::runtime::FFI for #fn_name_camel {
+            fn blisp_extern(&self) -> &'static str { #fn_body }
+
+            fn ffi(&self) -> fn(&mut blisp::runtime::Environment<'_>, &[blisp::runtime::RTData]) -> blisp::runtime::RTData {
+                use blisp::runtime::{Environment, RTData, RTDataToRust, RustToRTData};
+                fn ffi_inner(env: &mut Environment<'_>, args: &[RTData]) ->RTData {
+                    #ffi_body
+                }
+                ffi_inner
+            }
+
+            fn name(&self) -> &'static str {
+                #fn_name_str
+            }
         }
     };
 
@@ -51,8 +67,8 @@ pub fn embedded(
     out
 }
 
-fn generate_ffi_body(data: &Signature, fn_name: &Ident) -> TokenStream {
-    let mut result = quote! {};
+fn generate_ffi_body(data: &Signature, fn_name: &Ident, fn_name_ffi: &Ident) -> TokenStream {
+    let mut body = quote! {};
     for (i, arg) in data.inputs.iter().enumerate() {
         let arg_type = match arg {
             FnArg::Typed(pat) => &*pat.ty,
@@ -61,76 +77,95 @@ fn generate_ffi_body(data: &Signature, fn_name: &Ident) -> TokenStream {
 
         let arg_dst = {
             let temp = format!("arg{i}");
-            Ident::new(&temp, Ident::span(fn_name))
+            Ident::new(&temp, Ident::span(fn_name_ffi))
         };
 
         let arg_src = {
             quote! {
-                (&args[#i])
+                &args[#i]
             }
         };
 
         let casting = typecast(arg_type, arg_dst, arg_src);
 
-        result = quote! {
-            #result
+        body = quote! {
+            #body
             #casting
         };
     }
 
-    result
+    let ffi_invoke = call_ffi(data.inputs.len(), fn_name);
+
+    quote! {
+        #body
+        let result = #ffi_invoke;
+        RustToRTData::from(env, result)
+    }
+}
+
+fn call_ffi(len: usize, fn_name: &Ident) -> TokenStream {
+    match len {
+        0 => quote! {
+            #fn_name()
+        },
+        1 => quote! {
+            #fn_name(arg0)
+        },
+        2 => quote! {
+            #fn_name(arg0, arg1)
+        },
+        3 => quote! {
+            #fn_name(arg0, arg1, arg2)
+        },
+        4 => quote! {
+            #fn_name(arg0, arg1, arg2, arg3)
+        },
+        5 => quote! {
+            #fn_name(arg0, arg1, arg2, arg3, arg4)
+        },
+        6 => quote! {
+            #fn_name(arg0, arg1, arg2, arg3, arg4, arg5)
+        },
+        7 => quote! {
+            #fn_name(arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+        },
+        8 => quote! {
+            #fn_name(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+        },
+        9 => quote! {
+            #fn_name(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+        },
+        _ => panic!("too many arguments"),
+    }
 }
 
 fn typecast(ty: &Type, arg_dst: Ident, arg_src: TokenStream) -> TokenStream {
     match ty {
-        Type::Tuple(tup) => {
+        Type::Tuple(_tup) => {
             quote! {
-                // TODO
+                let #arg_dst: #ty = RTDataToRust::into(#arg_src);
             }
         }
         Type::Path(path) => match &path.path.segments.first().unwrap().arguments {
             PathArguments::None => {
-                ex_typecast(&path.path.segments.first().unwrap().ident, arg_dst, arg_src)
+                quote! {
+                    let #arg_dst: #ty = RTDataToRust::into(#arg_src);
+                }
             }
-            PathArguments::AngleBracketed(ang) => {
+            PathArguments::AngleBracketed(_ang) => {
                 let type_name = &path.path.segments.first().unwrap().ident;
                 let type_name_str = format!("{}", &type_name);
 
                 match type_name_str.as_str() {
-                    "Vec" => quote! {
-                        let #arg_dst: #ty = #arg_src.into();
+                    "Vec" | "Option" | "Result" => quote! {
+                        let #arg_dst: #ty = RTDataToRust::into(#arg_src);
                     },
-                    "Option" => quote! {
-                        let #arg_dst: #ty = blisp::runtime::option_to_option(#arg_src);
-                    },
-                    "Result" => quote! {
-                        let #arg_dst: #ty = #arg_src.into();
-                    },
-                    _ => panic!("only Vec/Option/Result generics types are allowed"),
+                    _ => panic!("only Vec, Option, or Result generics types are allowed"),
                 }
             }
             _ => panic!("no parentheses at PathArgument"),
         },
         _ => panic!("parse type miss"),
-    }
-}
-
-fn ex_typecast(id: &Ident, arg_dst: Ident, arg_src: TokenStream) -> TokenStream {
-    let id_str = format!("{}", &id);
-    match &*id_str {
-        "BigInt" => quote! {
-            let #arg_dst: BigInt = #arg_src.into();
-        },
-        "char" => quote! {
-            let #arg_dst: char = #arg_src.into();
-        },
-        "bool" => quote! {
-            let #arg_dst: bool = #arg_src.into();
-        },
-        "String" => quote! {
-            let #arg_dst: String = #arg_src.into();
-        },
-        _ => panic!("arguments must be BigInt, char, bool, or String"),
     }
 }
 
@@ -202,7 +237,7 @@ fn parse_type(ty: &Type) -> String {
                         "Vec" => format!("'({})", args_str),
                         "Option" => format!("(Option {})", args_str),
                         "Result" => format!("(Result {})", args_str),
-                        _ => panic!("Generic Type only Vec/Option/Result"),
+                        _ => panic!("only Vec, Option, or Result generics types are allowed"),
                     }
                 }
                 _ => panic!("no parentheses at PathArgument"),
