@@ -100,7 +100,7 @@ pub mod parser;
 pub mod runtime;
 pub mod semantics;
 
-pub use embed_macro::embedded;
+pub use blisp_embedded::embedded;
 use runtime::FFI;
 
 #[derive(Debug, Clone, Copy)]
