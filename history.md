@@ -1,5 +1,10 @@
 # Version History
 
+## 0.4.0
+
+- add `embedded` macro for FFIs
+- add transpiler to Coq
+
 ## 0.3.9
 
 - fix a bug on the garbage collector

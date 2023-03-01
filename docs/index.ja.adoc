@@ -613,55 +613,120 @@ BLispとRustの間の型変換は _embedded_ マクロが生成する関数に�
 |_(Result T E)_ | _Result<T, E>_
 |===
 
-== 外部関数呼び出し (_call-rust_, 廃止予定)
+== Coqへのトランスパイラ (実験的)
 
-_call-rust_ はRustの関数を呼び出すための関数です。
-これは以下のように組み込み関数として定義されています。
+BLispは実験的にCoqへのトランスパイラを実装しています。
+トランスパイラは、以下のように _blisp::transpile_ を呼び出すことで実行されます。
 
-[source, lisp]
+[source, coq]
 ----
-(define call-rust
-    (IO (-> (Int Int Int) (Option Int))) ; type of call-rust
-    ; 省略
-    )
-----
-
-この関数は3つの整数値をとり、(Option Int)をリターンします。
-Rustの関数を呼び出すためには、以下のようにコールバック関数を設定しなければなりません。
-
-[source, rust]
-----
-use blisp;
-use num_bigint::BigInt;
-
 let expr = "
-(export callback (x y z)
-    (IO (-> (Int Int Int) (Option Int)))
-    (call-rust x y z))";
+(defun snoc (l y)
+(Pure (-> (
+    '(t) t)
+'(t)))
+(match l
+    (nil (Cons y nil))
+    ((Cons h b) (Cons h (snoc b y)))))
+
+(defun rev (l)
+(Pure (-> (
+    '(t))
+'(t)))
+(match l
+    (nil nil)
+    ((Cons h t) (snoc (rev t) h))))
+    ";
 let exprs = blisp::init(expr, vec![]).unwrap();
-let mut ctx = blisp::typing(exprs).unwrap();
+let ctx = blisp::typing(exprs).unwrap();
 
-let fun = |x: &BigInt, y: &BigInt, z: &BigInt| { <1>
-    let n = x * y * z;
-    println!("n = {}", n);
-    Some(n)
-};
-ctx.set_callback(Box::new(fun));
-
-let e = "(callback 100 2000 30000)"; <2>
-blisp::eval(e, &ctx);
+println!("{}", blisp::transpile(&ctx));
 ----
 
-<1> BLispから呼び出されるコールバック関数です. この関数の型は Fn:(&BigInt, &BigInt, &BigInt) -> Option<BigInt> でなければなりません。
+これは以下のようなCoqのコードを出力します。
+この出力には、BLispのプレリュードも含まれます。
 
-<2> Rustのコールバック関数を呼び出しています。
+[source, coq]
+----
+Require Import ZArith.
+Require Import Coq.Lists.List.
 
-このコードを呼び出すと、次のように出力されます。
+Inductive Option (t: Type): Type :=
+| Some (x0: t)
+| None.
 
- n = 6000000000
+Arguments Some{t}.
+Arguments None{t}.
 
-_call-rust_ はIO関数です. 従って、Pure関数からは呼び出すことは出来ません。
+Inductive Result (t e: Type): Type :=
+| Ok (x0: t)
+| Err (x0: e).
 
+Arguments Ok{t e}.
+Arguments Err{t e}.
+
+Definition car {t: Type} (x: list t): Option t :=
+match x with
+  | (cons n _) => (Some n)
+  | _ => (None)
+  end.
+
+Definition cdr {t: Type} (x: list t): list t :=
+match x with
+  | (cons _ l) => l
+  | _ => nil
+  end.
+
+Definition filter {t: Type} (f: t -> bool) (x: list t): list t :=
+(reverse (filter' f x nil ) ).
+
+Fixpoint filter' {t: Type} (f: t -> bool) (x l: list t): list t :=
+match x with
+  | (cons h a) => match (f h ) with
+    | true => (filter' f a (cons h l) )
+    | false => (filter' f a l )
+    end
+  | _ => l
+  end.
+
+Fixpoint fold {a b: Type} (f: a -> b -> b) (init: b) (x: list a): b :=
+match x with
+  | (cons h l) => (fold f (f h init ) l )
+  | _ => init
+  end.
+
+Fixpoint map {a b: Type} (f: a -> b) (x: list a): list b :=
+match x with
+  | (cons h l) => (cons (f h ) (map f l ))
+  | _ => nil
+  end.
+
+Fixpoint rev {t: Type} (l: list t): list t :=
+match l with
+  | nil => nil
+  | (cons h t) => (snoc (rev t ) h )
+  end.
+
+Definition reverse {t: Type} (x: list t): list t :=
+(reverse' x nil ).
+
+Fixpoint reverse' {t: Type} (x l: list t): list t :=
+match x with
+  | (cons h a) => (reverse' a (cons h l) )
+  | _ => l
+  end.
+
+Fixpoint snoc {t: Type} (l: list t) (y: t): list t :=
+match l with
+  | nil => (cons y nil)
+  | (cons h b) => (cons h (snoc b y ))
+  end.
+----
+
+このトランスパイラは実験的なものであることに注意してください。
+よって、いくつかの出力はCoqが解釈できません。
+その場合は、手動でソースコードを修正してください。
+簡単にできるはずです。
 
 == 例
 
