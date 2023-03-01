@@ -1,7 +1,15 @@
 [package]
-name = "embed_macro"
+name = "blisp_embedded"
 version = "0.1.0"
+authors = ["Yuuki Takano <ytakanoster@gmail.com>", "Fumiya Saito"]
 edition = "2021"
+description = "embedded macro for BLisp"
+repository = "https://github.com/ytakano/blisp"
+keywords = ["no_std", "scripting", "scripting-engine", "scripting-language", "embedded" ]
+categories = [ "no-std", "embedded" ]
+license-file = "LICENSE"
+readme = "README.md"
+homepage = "https://ytakano.github.io/blisp/"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
