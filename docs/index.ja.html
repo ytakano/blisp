@@ -545,7 +545,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <li><a href="#_ラムダ式">16. ラムダ式</a></li>
 <li><a href="#_文字列と文字">17. 文字列と文字</a></li>
 <li><a href="#_外部関数呼び出し">18. 外部関数呼び出し</a></li>
-<li><a href="#_外部関数呼び出し_call_rust_廃止予定">19. 外部関数呼び出し (<em>call-rust</em>, 廃止予定)</a></li>
+<li><a href="#_coqへのトランスパイラ_実験的">19. Coqへのトランスパイラ (実験的)</a></li>
 <li><a href="#_例">20. 例</a>
 <ul class="sectlevel2">
 <li><a href="#_リバース">20.1. リバース</a></li>
@@ -1332,67 +1332,123 @@ BLispとRustの間の型変換は <em>embedded</em> マクロが生成する関�
 </div>
 </div>
 <div class="sect1">
-<h2 id="_外部関数呼び出し_call_rust_廃止予定">19. 外部関数呼び出し (<em>call-rust</em>, 廃止予定)</h2>
+<h2 id="_coqへのトランスパイラ_実験的">19. Coqへのトランスパイラ (実験的)</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p><em>call-rust</em> はRustの関数を呼び出すための関数です。
-これは以下のように組み込み関数として定義されています。</p>
+<p>BLispは実験的にCoqへのトランスパイラを実装しています。
+トランスパイラは、以下のように <em>blisp::transpile</em> を呼び出すことで実行されます。</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-p">(</span><span class="tok-nv">define</span> <span class="tok-nv">call-rust</span>
-    <span class="tok-p">(</span><span class="tok-nv">IO</span> <span class="tok-p">(</span><span class="tok-nv">-&gt;</span> <span class="tok-p">(</span><span class="tok-nv">Int</span> <span class="tok-nv">Int</span> <span class="tok-nv">Int</span><span class="tok-p">)</span> <span class="tok-p">(</span><span class="tok-nv">Option</span> <span class="tok-nv">Int</span><span class="tok-p">)))</span> <span class="tok-c1">; type of call-rust</span>
-    <span class="tok-c1">; 省略</span>
-    <span class="tok-p">)</span></code></pre>
+<pre class="pygments highlight"><code data-lang="coq"><span></span><span class="tok-k">let</span> <span class="tok-n">expr</span> <span class="tok-o">=</span> <span class="tok-s2">&quot;</span>
+<span class="tok-s2">(defun snoc (l y)</span>
+<span class="tok-s2">(Pure (-&gt; (</span>
+<span class="tok-s2">    &#39;(t) t)</span>
+<span class="tok-s2">&#39;(t)))</span>
+<span class="tok-s2">(match l</span>
+<span class="tok-s2">    (nil (Cons y nil))</span>
+<span class="tok-s2">    ((Cons h b) (Cons h (snoc b y)))))</span>
+
+<span class="tok-s2">(defun rev (l)</span>
+<span class="tok-s2">(Pure (-&gt; (</span>
+<span class="tok-s2">    &#39;(t))</span>
+<span class="tok-s2">&#39;(t)))</span>
+<span class="tok-s2">(match l</span>
+<span class="tok-s2">    (nil nil)</span>
+<span class="tok-s2">    ((Cons h t) (snoc (rev t) h))))</span>
+<span class="tok-s2">    &quot;</span><span class="tok-o">;</span>
+<span class="tok-k">let</span> <span class="tok-n">exprs</span> <span class="tok-o">=</span> <span class="tok-n">blisp</span><span class="tok-o">::</span><span class="tok-n">init</span><span class="tok-o">(</span><span class="tok-n">expr</span><span class="tok-o">,</span> <span class="tok-n">vec</span><span class="tok-o">!</span><span class="tok-bp">[]</span><span class="tok-o">).</span><span class="tok-n">unwrap</span><span class="tok-bp">()</span><span class="tok-o">;</span>
+<span class="tok-k">let</span> <span class="tok-n">ctx</span> <span class="tok-o">=</span> <span class="tok-n">blisp</span><span class="tok-o">::</span><span class="tok-n">typing</span><span class="tok-o">(</span><span class="tok-n">exprs</span><span class="tok-o">).</span><span class="tok-n">unwrap</span><span class="tok-bp">()</span><span class="tok-o">;</span>
+
+<span class="tok-n">println</span><span class="tok-o">!(</span><span class="tok-s2">&quot;{}&quot;</span><span class="tok-o">,</span> <span class="tok-n">blisp</span><span class="tok-o">::</span><span class="tok-n">transpile</span><span class="tok-o">(&amp;</span><span class="tok-n">ctx</span><span class="tok-o">));</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>この関数は3つの整数値をとり、(Option Int)をリターンします。
-Rustの関数を呼び出すためには、以下のようにコールバック関数を設定しなければなりません。</p>
+<p>これは以下のようなCoqのコードを出力します。
+この出力には、BLispのプレリュードも含まれます。</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="rust"><span></span><span class="tok-k">use</span><span class="tok-w"> </span><span class="tok-n">blisp</span><span class="tok-p">;</span><span class="tok-w"></span>
-<span class="tok-k">use</span><span class="tok-w"> </span><span class="tok-n">num_bigint</span>::<span class="tok-n">BigInt</span><span class="tok-p">;</span><span class="tok-w"></span>
+<pre class="pygments highlight"><code data-lang="coq"><span></span><span class="tok-kn">Require</span> <span class="tok-kn">Import</span> <span class="tok-n">ZArith</span><span class="tok-o">.</span>
+<span class="tok-kn">Require</span> <span class="tok-kn">Import</span> <span class="tok-n">Coq</span><span class="tok-o">.</span><span class="tok-n">Lists</span><span class="tok-o">.</span><span class="tok-n">List</span><span class="tok-o">.</span>
 
-<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">expr</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s">&quot;</span>
-<span class="tok-s">(export callback (x y z)</span>
-<span class="tok-s">    (IO (-&gt; (Int Int Int) (Option Int)))</span>
-<span class="tok-s">    (call-rust x y z))&quot;</span><span class="tok-p">;</span><span class="tok-w"></span>
-<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">exprs</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">init</span><span class="tok-p">(</span><span class="tok-n">expr</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-fm">vec!</span><span class="tok-p">[]).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span>
-<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-k">mut</span><span class="tok-w"> </span><span class="tok-n">ctx</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">blisp</span>::<span class="tok-n">typing</span><span class="tok-p">(</span><span class="tok-n">exprs</span><span class="tok-p">).</span><span class="tok-n">unwrap</span><span class="tok-p">();</span><span class="tok-w"></span>
+<span class="tok-kn">Inductive</span> <span class="tok-n">Option</span> <span class="tok-o">(</span><span class="tok-n">t</span><span class="tok-o">:</span> <span class="tok-kt">Type</span><span class="tok-o">):</span> <span class="tok-kt">Type</span> <span class="tok-o">:=</span>
+<span class="tok-o">|</span> <span class="tok-n">Some</span> <span class="tok-o">(</span><span class="tok-n">x0</span><span class="tok-o">:</span> <span class="tok-n">t</span><span class="tok-o">)</span>
+<span class="tok-o">|</span> <span class="tok-n">None</span><span class="tok-o">.</span>
 
-<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">fun</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-o">|</span><span class="tok-n">x</span>: <span class="tok-kp">&amp;</span><span class="tok-nc">BigInt</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">y</span>: <span class="tok-kp">&amp;</span><span class="tok-nc">BigInt</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">z</span>: <span class="tok-kp">&amp;</span><span class="tok-nc">BigInt</span><span class="tok-o">|</span><span class="tok-w"> </span><span class="tok-p">{</span><span class="tok-w"> </span><b class="conum">(1)</b>
-<span class="tok-w">    </span><span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">n</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-n">x</span><span class="tok-w"> </span><span class="tok-o">*</span><span class="tok-w"> </span><span class="tok-n">y</span><span class="tok-w"> </span><span class="tok-o">*</span><span class="tok-w"> </span><span class="tok-n">z</span><span class="tok-p">;</span><span class="tok-w"></span>
-<span class="tok-w">    </span><span class="tok-fm">println!</span><span class="tok-p">(</span><span class="tok-s">&quot;n = {}&quot;</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-n">n</span><span class="tok-p">);</span><span class="tok-w"></span>
-<span class="tok-w">    </span><span class="tok-nb">Some</span><span class="tok-p">(</span><span class="tok-n">n</span><span class="tok-p">)</span><span class="tok-w"></span>
-<span class="tok-p">};</span><span class="tok-w"></span>
-<span class="tok-n">ctx</span><span class="tok-p">.</span><span class="tok-n">set_callback</span><span class="tok-p">(</span><span class="tok-nb">Box</span>::<span class="tok-n">new</span><span class="tok-p">(</span><span class="tok-n">fun</span><span class="tok-p">));</span><span class="tok-w"></span>
+<span class="tok-kn">Arguments</span> <span class="tok-n">Some</span><span class="tok-o">{</span><span class="tok-n">t</span><span class="tok-o">}.</span>
+<span class="tok-kn">Arguments</span> <span class="tok-n">None</span><span class="tok-o">{</span><span class="tok-n">t</span><span class="tok-o">}.</span>
 
-<span class="tok-kd">let</span><span class="tok-w"> </span><span class="tok-n">e</span><span class="tok-w"> </span><span class="tok-o">=</span><span class="tok-w"> </span><span class="tok-s">&quot;(callback 100 2000 30000)&quot;</span><span class="tok-p">;</span><span class="tok-w"> </span><b class="conum">(2)</b>
-<span class="tok-n">blisp</span>::<span class="tok-n">eval</span><span class="tok-p">(</span><span class="tok-n">e</span><span class="tok-p">,</span><span class="tok-w"> </span><span class="tok-o">&amp;</span><span class="tok-n">ctx</span><span class="tok-p">);</span><span class="tok-w"></span></code></pre>
+<span class="tok-kn">Inductive</span> <span class="tok-n">Result</span> <span class="tok-o">(</span><span class="tok-n">t</span> <span class="tok-n">e</span><span class="tok-o">:</span> <span class="tok-kt">Type</span><span class="tok-o">):</span> <span class="tok-kt">Type</span> <span class="tok-o">:=</span>
+<span class="tok-o">|</span> <span class="tok-n">Ok</span> <span class="tok-o">(</span><span class="tok-n">x0</span><span class="tok-o">:</span> <span class="tok-n">t</span><span class="tok-o">)</span>
+<span class="tok-o">|</span> <span class="tok-n">Err</span> <span class="tok-o">(</span><span class="tok-n">x0</span><span class="tok-o">:</span> <span class="tok-n">e</span><span class="tok-o">).</span>
+
+<span class="tok-kn">Arguments</span> <span class="tok-n">Ok</span><span class="tok-o">{</span><span class="tok-n">t</span> <span class="tok-n">e</span><span class="tok-o">}.</span>
+<span class="tok-kn">Arguments</span> <span class="tok-n">Err</span><span class="tok-o">{</span><span class="tok-n">t</span> <span class="tok-n">e</span><span class="tok-o">}.</span>
+
+<span class="tok-kn">Definition</span> <span class="tok-n">car</span> <span class="tok-o">{</span><span class="tok-n">t</span><span class="tok-o">:</span> <span class="tok-kt">Type</span><span class="tok-o">}</span> <span class="tok-o">(</span><span class="tok-n">x</span><span class="tok-o">:</span> <span class="tok-n">list</span> <span class="tok-n">t</span><span class="tok-o">):</span> <span class="tok-n">Option</span> <span class="tok-n">t</span> <span class="tok-o">:=</span>
+<span class="tok-k">match</span> <span class="tok-n">x</span> <span class="tok-k">with</span>
+  <span class="tok-o">|</span> <span class="tok-o">(</span><span class="tok-n">cons</span> <span class="tok-n">n</span> <span class="tok-o">_)</span> <span class="tok-o">=&gt;</span> <span class="tok-o">(</span><span class="tok-n">Some</span> <span class="tok-n">n</span><span class="tok-o">)</span>
+  <span class="tok-o">|</span> <span class="tok-o">_</span> <span class="tok-o">=&gt;</span> <span class="tok-o">(</span><span class="tok-n">None</span><span class="tok-o">)</span>
+  <span class="tok-k">end</span><span class="tok-o">.</span>
+
+<span class="tok-kn">Definition</span> <span class="tok-n">cdr</span> <span class="tok-o">{</span><span class="tok-n">t</span><span class="tok-o">:</span> <span class="tok-kt">Type</span><span class="tok-o">}</span> <span class="tok-o">(</span><span class="tok-n">x</span><span class="tok-o">:</span> <span class="tok-n">list</span> <span class="tok-n">t</span><span class="tok-o">):</span> <span class="tok-n">list</span> <span class="tok-n">t</span> <span class="tok-o">:=</span>
+<span class="tok-k">match</span> <span class="tok-n">x</span> <span class="tok-k">with</span>
+  <span class="tok-o">|</span> <span class="tok-o">(</span><span class="tok-n">cons</span> <span class="tok-o">_</span> <span class="tok-n">l</span><span class="tok-o">)</span> <span class="tok-o">=&gt;</span> <span class="tok-n">l</span>
+  <span class="tok-o">|</span> <span class="tok-o">_</span> <span class="tok-o">=&gt;</span> <span class="tok-n">nil</span>
+  <span class="tok-k">end</span><span class="tok-o">.</span>
+
+<span class="tok-kn">Definition</span> <span class="tok-n">filter</span> <span class="tok-o">{</span><span class="tok-n">t</span><span class="tok-o">:</span> <span class="tok-kt">Type</span><span class="tok-o">}</span> <span class="tok-o">(</span><span class="tok-n">f</span><span class="tok-o">:</span> <span class="tok-n">t</span> <span class="tok-o">-&gt;</span> <span class="tok-n">bool</span><span class="tok-o">)</span> <span class="tok-o">(</span><span class="tok-n">x</span><span class="tok-o">:</span> <span class="tok-n">list</span> <span class="tok-n">t</span><span class="tok-o">):</span> <span class="tok-n">list</span> <span class="tok-n">t</span> <span class="tok-o">:=</span>
+<span class="tok-o">(</span><span class="tok-n">reverse</span> <span class="tok-o">(</span><span class="tok-n">filter&#39;</span> <span class="tok-n">f</span> <span class="tok-n">x</span> <span class="tok-n">nil</span> <span class="tok-o">)</span> <span class="tok-o">).</span>
+
+<span class="tok-kn">Fixpoint</span> <span class="tok-n">filter&#39;</span> <span class="tok-o">{</span><span class="tok-n">t</span><span class="tok-o">:</span> <span class="tok-kt">Type</span><span class="tok-o">}</span> <span class="tok-o">(</span><span class="tok-n">f</span><span class="tok-o">:</span> <span class="tok-n">t</span> <span class="tok-o">-&gt;</span> <span class="tok-n">bool</span><span class="tok-o">)</span> <span class="tok-o">(</span><span class="tok-n">x</span> <span class="tok-n">l</span><span class="tok-o">:</span> <span class="tok-n">list</span> <span class="tok-n">t</span><span class="tok-o">):</span> <span class="tok-n">list</span> <span class="tok-n">t</span> <span class="tok-o">:=</span>
+<span class="tok-k">match</span> <span class="tok-n">x</span> <span class="tok-k">with</span>
+  <span class="tok-o">|</span> <span class="tok-o">(</span><span class="tok-n">cons</span> <span class="tok-n">h</span> <span class="tok-n">a</span><span class="tok-o">)</span> <span class="tok-o">=&gt;</span> <span class="tok-k">match</span> <span class="tok-o">(</span><span class="tok-n">f</span> <span class="tok-n">h</span> <span class="tok-o">)</span> <span class="tok-k">with</span>
+    <span class="tok-o">|</span> <span class="tok-bp">true</span> <span class="tok-o">=&gt;</span> <span class="tok-o">(</span><span class="tok-n">filter&#39;</span> <span class="tok-n">f</span> <span class="tok-n">a</span> <span class="tok-o">(</span><span class="tok-n">cons</span> <span class="tok-n">h</span> <span class="tok-n">l</span><span class="tok-o">)</span> <span class="tok-o">)</span>
+    <span class="tok-o">|</span> <span class="tok-bp">false</span> <span class="tok-o">=&gt;</span> <span class="tok-o">(</span><span class="tok-n">filter&#39;</span> <span class="tok-n">f</span> <span class="tok-n">a</span> <span class="tok-n">l</span> <span class="tok-o">)</span>
+    <span class="tok-k">end</span>
+  <span class="tok-o">|</span> <span class="tok-o">_</span> <span class="tok-o">=&gt;</span> <span class="tok-n">l</span>
+  <span class="tok-k">end</span><span class="tok-o">.</span>
+
+<span class="tok-kn">Fixpoint</span> <span class="tok-k">fold</span> <span class="tok-o">{</span><span class="tok-n">a</span> <span class="tok-n">b</span><span class="tok-o">:</span> <span class="tok-kt">Type</span><span class="tok-o">}</span> <span class="tok-o">(</span><span class="tok-n">f</span><span class="tok-o">:</span> <span class="tok-n">a</span> <span class="tok-o">-&gt;</span> <span class="tok-n">b</span> <span class="tok-o">-&gt;</span> <span class="tok-n">b</span><span class="tok-o">)</span> <span class="tok-o">(</span><span class="tok-n">init</span><span class="tok-o">:</span> <span class="tok-n">b</span><span class="tok-o">)</span> <span class="tok-o">(</span><span class="tok-n">x</span><span class="tok-o">:</span> <span class="tok-n">list</span> <span class="tok-n">a</span><span class="tok-o">):</span> <span class="tok-n">b</span> <span class="tok-o">:=</span>
+<span class="tok-k">match</span> <span class="tok-n">x</span> <span class="tok-k">with</span>
+  <span class="tok-o">|</span> <span class="tok-o">(</span><span class="tok-n">cons</span> <span class="tok-n">h</span> <span class="tok-n">l</span><span class="tok-o">)</span> <span class="tok-o">=&gt;</span> <span class="tok-o">(</span><span class="tok-k">fold</span> <span class="tok-n">f</span> <span class="tok-o">(</span><span class="tok-n">f</span> <span class="tok-n">h</span> <span class="tok-n">init</span> <span class="tok-o">)</span> <span class="tok-n">l</span> <span class="tok-o">)</span>
+  <span class="tok-o">|</span> <span class="tok-o">_</span> <span class="tok-o">=&gt;</span> <span class="tok-n">init</span>
+  <span class="tok-k">end</span><span class="tok-o">.</span>
+
+<span class="tok-kn">Fixpoint</span> <span class="tok-n">map</span> <span class="tok-o">{</span><span class="tok-n">a</span> <span class="tok-n">b</span><span class="tok-o">:</span> <span class="tok-kt">Type</span><span class="tok-o">}</span> <span class="tok-o">(</span><span class="tok-n">f</span><span class="tok-o">:</span> <span class="tok-n">a</span> <span class="tok-o">-&gt;</span> <span class="tok-n">b</span><span class="tok-o">)</span> <span class="tok-o">(</span><span class="tok-n">x</span><span class="tok-o">:</span> <span class="tok-n">list</span> <span class="tok-n">a</span><span class="tok-o">):</span> <span class="tok-n">list</span> <span class="tok-n">b</span> <span class="tok-o">:=</span>
+<span class="tok-k">match</span> <span class="tok-n">x</span> <span class="tok-k">with</span>
+  <span class="tok-o">|</span> <span class="tok-o">(</span><span class="tok-n">cons</span> <span class="tok-n">h</span> <span class="tok-n">l</span><span class="tok-o">)</span> <span class="tok-o">=&gt;</span> <span class="tok-o">(</span><span class="tok-n">cons</span> <span class="tok-o">(</span><span class="tok-n">f</span> <span class="tok-n">h</span> <span class="tok-o">)</span> <span class="tok-o">(</span><span class="tok-n">map</span> <span class="tok-n">f</span> <span class="tok-n">l</span> <span class="tok-o">))</span>
+  <span class="tok-o">|</span> <span class="tok-o">_</span> <span class="tok-o">=&gt;</span> <span class="tok-n">nil</span>
+  <span class="tok-k">end</span><span class="tok-o">.</span>
+
+<span class="tok-kn">Fixpoint</span> <span class="tok-n">rev</span> <span class="tok-o">{</span><span class="tok-n">t</span><span class="tok-o">:</span> <span class="tok-kt">Type</span><span class="tok-o">}</span> <span class="tok-o">(</span><span class="tok-n">l</span><span class="tok-o">:</span> <span class="tok-n">list</span> <span class="tok-n">t</span><span class="tok-o">):</span> <span class="tok-n">list</span> <span class="tok-n">t</span> <span class="tok-o">:=</span>
+<span class="tok-k">match</span> <span class="tok-n">l</span> <span class="tok-k">with</span>
+  <span class="tok-o">|</span> <span class="tok-n">nil</span> <span class="tok-o">=&gt;</span> <span class="tok-n">nil</span>
+  <span class="tok-o">|</span> <span class="tok-o">(</span><span class="tok-n">cons</span> <span class="tok-n">h</span> <span class="tok-n">t</span><span class="tok-o">)</span> <span class="tok-o">=&gt;</span> <span class="tok-o">(</span><span class="tok-n">snoc</span> <span class="tok-o">(</span><span class="tok-n">rev</span> <span class="tok-n">t</span> <span class="tok-o">)</span> <span class="tok-n">h</span> <span class="tok-o">)</span>
+  <span class="tok-k">end</span><span class="tok-o">.</span>
+
+<span class="tok-kn">Definition</span> <span class="tok-n">reverse</span> <span class="tok-o">{</span><span class="tok-n">t</span><span class="tok-o">:</span> <span class="tok-kt">Type</span><span class="tok-o">}</span> <span class="tok-o">(</span><span class="tok-n">x</span><span class="tok-o">:</span> <span class="tok-n">list</span> <span class="tok-n">t</span><span class="tok-o">):</span> <span class="tok-n">list</span> <span class="tok-n">t</span> <span class="tok-o">:=</span>
+<span class="tok-o">(</span><span class="tok-n">reverse&#39;</span> <span class="tok-n">x</span> <span class="tok-n">nil</span> <span class="tok-o">).</span>
+
+<span class="tok-kn">Fixpoint</span> <span class="tok-n">reverse&#39;</span> <span class="tok-o">{</span><span class="tok-n">t</span><span class="tok-o">:</span> <span class="tok-kt">Type</span><span class="tok-o">}</span> <span class="tok-o">(</span><span class="tok-n">x</span> <span class="tok-n">l</span><span class="tok-o">:</span> <span class="tok-n">list</span> <span class="tok-n">t</span><span class="tok-o">):</span> <span class="tok-n">list</span> <span class="tok-n">t</span> <span class="tok-o">:=</span>
+<span class="tok-k">match</span> <span class="tok-n">x</span> <span class="tok-k">with</span>
+  <span class="tok-o">|</span> <span class="tok-o">(</span><span class="tok-n">cons</span> <span class="tok-n">h</span> <span class="tok-n">a</span><span class="tok-o">)</span> <span class="tok-o">=&gt;</span> <span class="tok-o">(</span><span class="tok-n">reverse&#39;</span> <span class="tok-n">a</span> <span class="tok-o">(</span><span class="tok-n">cons</span> <span class="tok-n">h</span> <span class="tok-n">l</span><span class="tok-o">)</span> <span class="tok-o">)</span>
+  <span class="tok-o">|</span> <span class="tok-o">_</span> <span class="tok-o">=&gt;</span> <span class="tok-n">l</span>
+  <span class="tok-k">end</span><span class="tok-o">.</span>
+
+<span class="tok-kn">Fixpoint</span> <span class="tok-n">snoc</span> <span class="tok-o">{</span><span class="tok-n">t</span><span class="tok-o">:</span> <span class="tok-kt">Type</span><span class="tok-o">}</span> <span class="tok-o">(</span><span class="tok-n">l</span><span class="tok-o">:</span> <span class="tok-n">list</span> <span class="tok-n">t</span><span class="tok-o">)</span> <span class="tok-o">(</span><span class="tok-n">y</span><span class="tok-o">:</span> <span class="tok-n">t</span><span class="tok-o">):</span> <span class="tok-n">list</span> <span class="tok-n">t</span> <span class="tok-o">:=</span>
+<span class="tok-k">match</span> <span class="tok-n">l</span> <span class="tok-k">with</span>
+  <span class="tok-o">|</span> <span class="tok-n">nil</span> <span class="tok-o">=&gt;</span> <span class="tok-o">(</span><span class="tok-n">cons</span> <span class="tok-n">y</span> <span class="tok-n">nil</span><span class="tok-o">)</span>
+  <span class="tok-o">|</span> <span class="tok-o">(</span><span class="tok-n">cons</span> <span class="tok-n">h</span> <span class="tok-n">b</span><span class="tok-o">)</span> <span class="tok-o">=&gt;</span> <span class="tok-o">(</span><span class="tok-n">cons</span> <span class="tok-n">h</span> <span class="tok-o">(</span><span class="tok-n">snoc</span> <span class="tok-n">b</span> <span class="tok-n">y</span> <span class="tok-o">))</span>
+  <span class="tok-k">end</span><span class="tok-o">.</span></code></pre>
 </div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>BLispから呼び出されるコールバック関数です. この関数の型は Fn:(&amp;BigInt, &amp;BigInt, &amp;BigInt) &#8594; Option&lt;BigInt&gt; でなければなりません。</p>
-</li>
-<li>
-<p>Rustのコールバック関数を呼び出しています。</p>
-</li>
-</ol>
 </div>
 <div class="paragraph">
-<p>このコードを呼び出すと、次のように出力されます。</p>
-</div>
-<div class="literalblock">
-<div class="content">
-<pre>n = 6000000000</pre>
-</div>
-</div>
-<div class="paragraph">
-<p><em>call-rust</em> はIO関数です. 従って、Pure関数からは呼び出すことは出来ません。</p>
+<p>このトランスパイラは実験的なものであることに注意してください。
+よって、いくつかの出力はCoqが解釈できません。
+その場合は、手動でソースコードを修正してください。
+簡単にできるはずです。</p>
 </div>
 </div>
 </div>
@@ -1489,7 +1545,7 @@ Rustの関数を呼び出すためには、以下のようにコールバック�
 <div id="footer">
 <div id="footer-text">
 Version 0.4.0<br>
-Last updated 2023-02-28 20:58:39 +0900
+Last updated 2023-03-01 23:39:24 +0900
 </div>
 </div>
 <script type="text/x-mathjax-config">
