@@ -158,9 +158,13 @@ example:
 
 ## Macro
 
-- $MACRO := ( define-syntax $ID $SYNTAX_RULES )
-- $SYNTAX_RULES := ( syntax-rules ( $ID* ) $SYNTAX_PATTERNS )
-- $SYNTAX_PATTERNS := $SYNTAX_PATTERN | $SYNTAX_PATTERNS
-- $SYNTAX_PATTERN := ( $SYNTAX $APPLY )
-- $SYNTAX := ( $ID_LITERAL+ ) | ( $SYNTAX )
-- $ID_LITERAL := $ID | $LITERAL
+- $MACRO := ( macro $ID $MACRO_RULE+ )
+- $MACRO_RULE := ( $MACRO_PATTERN $MACRO_TEMPLATE )
+- $MACRO_PATTERN := $APPLY
+- $MACRO_TEMPLATE := $APPLY
+
+```common-lisp
+(macro add
+  (($e1 $e2) (+ $e1 $e2))
+  (($e1 $e2 $e3 ...) (+ $e1 (add $e2 $e3 ...))))
+```
