@@ -35,7 +35,7 @@ pub struct Parser<'a> {
     remain: &'a str,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     Str(String, Pos),
     Char(char, Pos),
