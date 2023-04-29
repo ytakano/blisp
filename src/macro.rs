@@ -1,11 +1,17 @@
-use crate::parser::Expr;
+use crate::{parser::Expr, Pos};
 use alloc::{
     collections::{btree_map::Entry, BTreeMap, LinkedList},
     string::String,
 };
 
-pub fn expand() {
-    // TODO
+#[derive(Debug)]
+pub struct MacroErr {
+    pub pos: Pos,
+    pub msg: &'static str,
+}
+
+pub fn expand() -> usize {
+    todo!()
 }
 
 /// `e1` is a pattern and `e2` is an expression to be matched.
@@ -125,4 +131,62 @@ fn eq_exprs(es1: &LinkedList<Expr>, es2: &LinkedList<Expr>) -> bool {
     }
 
     es1.iter().zip(es2.iter()).all(|(e1, e2)| eq_expr(e1, e2))
+}
+
+pub(crate) fn process_macros(exprs: &mut LinkedList<Expr>) -> Result<(), MacroErr> {
+    find_macros(exprs)?;
+
+    Ok(())
+}
+
+type Macros = BTreeMap<String, LinkedList<MacroRule>>;
+
+struct MacroRule {
+    pattern: Expr,
+    template: Expr,
+}
+
+fn find_macros(exprs: &LinkedList<Expr>) -> Result<Macros, MacroErr> {
+    let mut result = BTreeMap::new();
+
+    for e in exprs.iter() {
+        if let Expr::Apply(es, _) = e {
+            let mut it = es.iter();
+
+            let Some(front) = it.next() else { continue; };
+
+            if let Expr::ID(id_macro, _) = front {
+                if id_macro == "macro" {
+                    let id = it.next();
+                    let Some(Expr::ID(id, _)) = id else {
+                        return Err(MacroErr { pos: e.get_pos(), msg: "invalid macro" });
+                    };
+
+                    let mut rules = LinkedList::new();
+                    for rule in it {
+                        let Expr::Apply(rule_exprs, _) = rule else {
+                            return Err(MacroErr { pos: rule.get_pos(), msg: "invalid macro rule" });
+                        };
+
+                        if rule_exprs.len() != 2 {
+                            return Err(MacroErr {
+                                pos: rule.get_pos(),
+                                msg: "the number of argument of macro rule is not 2",
+                            });
+                        }
+
+                        let mut rule_it = rule_exprs.iter();
+                        let pattern = rule_it.next().unwrap().clone();
+                        let template = rule_it.next().unwrap().clone();
+
+                        rules.push_back(MacroRule { pattern, template });
+                    }
+
+                    result.insert(id.clone(), rules);
+                }
+            }
+        }
+    }
+
+    Ok(result)
 }

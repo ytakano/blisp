@@ -1,5 +1,6 @@
 use super::{parser, Pos};
 use crate::{
+    r#macro::process_macros,
     runtime::{Environment, RTData},
     ExprsAndFFI,
 };
@@ -2845,12 +2846,14 @@ pub(crate) fn typing_expr(
     Ok((expr, lambda))
 }
 
-pub fn exprs2context(exprs: ExprsAndFFI) -> Result<Context, TypingErr> {
+pub fn exprs2context(mut exprs: ExprsAndFFI) -> Result<Context, TypingErr> {
     let mut funs = BTreeMap::new();
     let mut ext_funs = BTreeMap::new();
     let mut ext_ffi = BTreeMap::new();
     let mut data = BTreeMap::new();
     let msg = "top expression must be data, defun, or export";
+
+    process_macros(&mut exprs.exprs);
 
     for e in exprs.exprs.iter() {
         match e {
@@ -2901,6 +2904,8 @@ pub fn exprs2context(exprs: ExprsAndFFI) -> Result<Context, TypingErr> {
                             }
 
                             data.insert(d.name.id.id.clone(), d);
+                        } else if id == "macro" {
+                            // Do nothing.
                         } else {
                             return Err(TypingErr::new(msg, e));
                         }

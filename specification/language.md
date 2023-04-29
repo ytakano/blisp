@@ -159,9 +159,7 @@ example:
 ## Macro
 
 - $MACRO := ( macro $ID $MACRO_RULE+ )
-- $MACRO_RULE := ( $MACRO_PATTERN $MACRO_TEMPLATE )
-- $MACRO_PATTERN := $APPLY
-- $MACRO_TEMPLATE := $APPLY
+- $MACRO_RULE := ( $EXPR $EXPR )
 
 ```common-lisp
 (macro add
