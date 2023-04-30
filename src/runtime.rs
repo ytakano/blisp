@@ -1,4 +1,4 @@
-use crate::r#macro::{self, MacroErr};
+use crate::r#macro;
 
 use super::{parser, semantics, LispErr, Pos};
 use alloc::{

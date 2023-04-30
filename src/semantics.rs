@@ -943,11 +943,7 @@ impl Context {
         let sbst = Sbst::new();
         let (ret, sbst) = self.typing_expr(&mut defun.expr, sbst, &mut var_type, &mut num_tv)?;
 
-        let args = args_orig
-            .iter()
-            .into_iter()
-            .map(|x| x.apply_sbst(&sbst))
-            .collect();
+        let args = args_orig.iter().map(|x| x.apply_sbst(&sbst)).collect();
 
         let fun_type1 = self.to_type(&defun.fun_type, &mut num_tv).unwrap(); // defined type
         let fun_type2 = ty_fun(&defun.effect, args, ret); // inferred type
@@ -3012,7 +3008,7 @@ fn expr2type_id(expr: &parser::Expr) -> Result<TIDNode, TypingErr> {
     match expr {
         parser::Expr::ID(id, pos) => match id.chars().next() {
             Some(c) => {
-                if ('A'..='Z').contains(&c) {
+                if c.is_ascii_uppercase() {
                     Ok(TIDNode {
                         id: id.to_string(),
                         pos: *pos,
@@ -3031,7 +3027,7 @@ fn expr2id(expr: &parser::Expr) -> Result<IDNode, TypingErr> {
     match expr {
         parser::Expr::ID(id, pos) => match id.chars().next() {
             Some(c) => {
-                if ('A'..='Z').contains(&c) {
+                if c.is_ascii_uppercase() {
                     Err(TypingErr::new(
                         "the first character must not be captal",
                         expr,
@@ -3331,7 +3327,7 @@ fn expr2type(expr: &parser::Expr) -> Result<TypeExpr, TypingErr> {
                 "Char" => Ok(TypeExpr::Char(TECharNode)),
                 _ => {
                     let c = id.chars().next().unwrap();
-                    if ('A'..='Z').contains(&c) {
+                    if c.is_ascii_uppercase() {
                         let tid = expr2type_id(expr)?;
                         Ok(TypeExpr::Data(TEDataNode {
                             id: tid,
@@ -3448,7 +3444,7 @@ fn expr2typed_expr(expr: &parser::Expr) -> Result<LangExpr, TypingErr> {
         })),
         parser::Expr::ID(id, pos) => {
             let c = id.chars().next().unwrap();
-            if ('A'..='Z').contains(&c) {
+            if c.is_ascii_uppercase() {
                 // $TID
                 let tid = expr2type_id(expr)?;
                 Ok(LangExpr::DataExpr(DataNode {
@@ -3497,7 +3493,7 @@ fn expr2typed_expr(expr: &parser::Expr) -> Result<LangExpr, TypingErr> {
             match iter.next() {
                 Some(parser::Expr::ID(id, _)) => {
                     let c = id.chars().next().unwrap();
-                    if ('A'..='Z').contains(&c) {
+                    if c.is_ascii_uppercase() {
                         // $TID
                         return expr2data_expr(expr);
                     } else if id == "if" {
@@ -3638,7 +3634,7 @@ fn expr2letpat(expr: &parser::Expr) -> Result<Pattern, TypingErr> {
         parser::Expr::ID(id, pos) => {
             // $ID
             let c = id.chars().next().unwrap();
-            if ('A'..='Z').contains(&c) {
+            if c.is_ascii_uppercase() {
                 Err(TypingErr::new("invalid pattern", expr))
             } else {
                 Ok(Pattern::PatID(IDNode {
@@ -3722,7 +3718,7 @@ fn expr2mpat(expr: &parser::Expr) -> Result<Pattern, TypingErr> {
     match expr {
         parser::Expr::ID(id, pos) => {
             let c = id.chars().next().unwrap();
-            if ('A'..='Z').contains(&c) {
+            if c.is_ascii_uppercase() {
                 // $TID
                 let tid = expr2type_id(expr)?;
                 Ok(Pattern::PatData(PatDataNode {

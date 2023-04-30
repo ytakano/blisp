@@ -14,7 +14,7 @@ pub struct MacroErr {
 pub fn match_pattern(e1: &Expr, e2: &Expr, ctx: &mut BTreeMap<String, LinkedList<Expr>>) -> bool {
     match (e1, e2) {
         (Expr::ID(left, _), _) => {
-            if let Some('$') = left.chars().nth(0) {
+            if let Some('$') = left.chars().next() {
                 // If `e1` is `$id`, then a map from `$id` to `e1` is added to `ctx`.
                 let entry = ctx.entry(left.clone());
                 match entry {
@@ -35,10 +35,7 @@ pub fn match_pattern(e1: &Expr, e2: &Expr, ctx: &mut BTreeMap<String, LinkedList
                     }
                 }
             } else {
-                match e2 {
-                    Expr::ID(right, _) if left == right => true,
-                    _ => false,
-                }
+                matches!(e2, Expr::ID(right, _) if left == right)
             }
         }
         (Expr::Bool(left, _), Expr::Bool(right, _)) => left == right,
@@ -86,7 +83,7 @@ pub fn match_list(
                 let Some(back_next) = rev.next() else { return false };
 
                 if let Expr::ID(id, _) = back_next {
-                    if let Some('$') = id.chars().nth(0) {
+                    if let Some('$') = id.chars().next() {
                         let Some(exprs) = ctx.get_mut(id) else { return false; };
                         for expr in it_right {
                             exprs.push_back(expr.clone());
@@ -151,7 +148,7 @@ pub(crate) fn process_macros(exprs: &mut LinkedList<Expr>) -> Result<Macros, Mac
 }
 
 pub(crate) fn apply(expr: &mut Expr, macros: &Macros) -> Result<(), MacroErr> {
-    apply_macros(&macros, expr)
+    apply_macros(macros, expr)
 }
 
 fn apply_macros(macros: &Macros, expr: &mut Expr) -> Result<(), MacroErr> {
@@ -261,8 +258,8 @@ fn find_macros(exprs: &LinkedList<Expr>) -> Result<Macros, MacroErr> {
                         let pat = rule_it.next().unwrap();
                         let pattern = if let Expr::Apply(arguments, pos) = pat {
                             let mut args = arguments.clone();
-                            args.push_front(Expr::ID(id.clone(), pos.clone()));
-                            Expr::Apply(args, pos.clone())
+                            args.push_front(Expr::ID(id.clone(), *pos));
+                            Expr::Apply(args, *pos)
                         } else {
                             return Err(MacroErr {
                                 pos: e.get_pos(),

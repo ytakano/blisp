@@ -18,7 +18,7 @@ pub(crate) fn to_coq_type(
         S::TypeExpr::Char(_) => "ascii".to_string(),
         S::TypeExpr::Id(e) => {
             if let Some(c) = e.id.chars().next() {
-                if ('a'..='z').contains(&c) {
+                if c.is_ascii_lowercase() {
                     let mut flag = false;
                     for s in targs.iter() {
                         if *s == e.id {

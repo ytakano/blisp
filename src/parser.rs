@@ -205,7 +205,7 @@ impl<'a> Parser<'a> {
         let mut i = 0;
 
         for c in self.remain.chars() {
-            let m = if ('0'..='9').contains(&c) {
+            let m = if c.is_ascii_digit() {
                 c as u32 - '0' as u32
             } else if ('a'..='f').contains(&c) {
                 c as u32 - 'a' as u32 + 10
@@ -327,7 +327,7 @@ impl<'a> Parser<'a> {
         let mut n = Zero::zero();
 
         for a in c.chars() {
-            if ('0'..='9').contains(&a) {
+            if a.is_ascii_digit() {
                 n *= 10;
                 n += a as usize - '0' as usize;
                 i += 1;
@@ -413,12 +413,12 @@ impl<'a> Parser<'a> {
                         pos: self.pos,
                         msg: "invalid )",
                     })
-                } else if ('0'..='9').contains(&a) {
+                } else if a.is_ascii_digit() {
                     self.parse_num()
                 } else if a == '-' {
                     match self.remain.chars().nth(1) {
                         Some(b) => {
-                            if ('0'..='9').contains(&b) {
+                            if b.is_ascii_digit() {
                                 self.parse_num()
                             } else {
                                 self.parse_id_bool()
