@@ -47,7 +47,3 @@
     (match x
         ((Cons h a) (reverse' a (Cons h l)))
         (_ l)))
-
-(macro add
-  (($e1 $e2) (+ $e1 $e2))
-  (($e1 $e2 $e3 ...) (+ $e1 (add $e2 $e3 ...))))

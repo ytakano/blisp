@@ -1,3 +1,5 @@
+use crate::r#macro::{self, MacroErr};
+
 use super::{parser, semantics, LispErr, Pos};
 use alloc::{
     boxed::Box,
@@ -415,13 +417,25 @@ pub(crate) fn eval(
     ctx: &semantics::Context,
 ) -> Result<LinkedList<Result<String, String>>, LispErr> {
     let mut ps = parser::Parser::new(code, crate::FileType::Eval);
-    let exprs = match ps.parse() {
+    let mut exprs: LinkedList<parser::Expr> = match ps.parse() {
         Ok(e) => e,
         Err(e) => {
             let msg = format!("Syntax Error: {}", e.msg);
             return Err(LispErr { msg, pos: e.pos });
         }
     };
+
+    if let Err(e) = r#macro::process_macros(&mut exprs) {
+        let msg = format!("Macro Error: {}", e.msg);
+        return Err(LispErr::new(msg, e.pos));
+    }
+
+    for expr in exprs.iter_mut() {
+        if let Err(e) = r#macro::apply(expr, &ctx.macros) {
+            let msg: String = format!("Macro Error: {}", e.msg);
+            return Err(LispErr { msg, pos: e.pos });
+        }
+    }
 
     let mut typed_exprs = LinkedList::new();
     for expr in &exprs {

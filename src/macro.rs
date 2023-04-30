@@ -10,10 +10,6 @@ pub struct MacroErr {
     pub msg: &'static str,
 }
 
-pub fn expand() -> usize {
-    todo!()
-}
-
 /// `e1` is a pattern and `e2` is an expression to be matched.
 pub fn match_pattern(e1: &Expr, e2: &Expr, ctx: &mut BTreeMap<String, LinkedList<Expr>>) -> bool {
     match (e1, e2) {
@@ -26,6 +22,7 @@ pub fn match_pattern(e1: &Expr, e2: &Expr, ctx: &mut BTreeMap<String, LinkedList
                         let mut list = LinkedList::new();
                         list.push_back(e2.clone());
                         ent.insert(list);
+
                         true
                     }
                     Entry::Occupied(ent) => {
@@ -60,7 +57,17 @@ pub fn match_list(
     right: &LinkedList<Expr>,
     ctx: &mut BTreeMap<String, LinkedList<Expr>>,
 ) -> bool {
-    if left.len() <= right.len() {
+    if left.len() < 3 {
+        for (e1, e2) in left.iter().zip(right.iter()) {
+            if !match_pattern(e1, e2, ctx) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    if left.len() - 1 <= right.len() {
         if let Some(Expr::ID(dots, _)) = left.back() {
             if dots == "..." {
                 let mut it_left = left.iter();
@@ -133,15 +140,89 @@ fn eq_exprs(es1: &LinkedList<Expr>, es2: &LinkedList<Expr>) -> bool {
     es1.iter().zip(es2.iter()).all(|(e1, e2)| eq_expr(e1, e2))
 }
 
-pub(crate) fn process_macros(exprs: &mut LinkedList<Expr>) -> Result<(), MacroErr> {
-    find_macros(exprs)?;
+pub(crate) fn process_macros(exprs: &mut LinkedList<Expr>) -> Result<Macros, MacroErr> {
+    let macros = find_macros(exprs)?;
+
+    for expr in exprs.iter_mut() {
+        apply_macros(&macros, expr)?;
+    }
+
+    Ok(macros)
+}
+
+pub(crate) fn apply(expr: &mut Expr, macros: &Macros) -> Result<(), MacroErr> {
+    apply_macros(&macros, expr)
+}
+
+fn apply_macros(macros: &Macros, expr: &mut Expr) -> Result<(), MacroErr> {
+    if let Expr::Apply(exprs, _) = expr {
+        if let Some(Expr::ID(id, _)) = exprs.front() {
+            if id == "macro" {
+                return Ok(());
+            }
+        }
+    }
+
+    apply_macros_recursively(macros, expr, 0)
+}
+
+fn apply_macros_expr(
+    pos: Pos,
+    macros: &Macros,
+    expr: &Expr,
+    count: u8,
+) -> Result<Option<Expr>, MacroErr> {
+    if count == 0xff {
+        return Err(MacroErr {
+            pos,
+            msg: "too deep macro",
+        });
+    }
+
+    for (_, rules) in macros.iter() {
+        let mut ctx = BTreeMap::new();
+
+        for rule in rules.iter() {
+            if match_pattern(&rule.pattern, expr, &mut ctx) {
+                let expr = expand(pos, &rule.template, &ctx).pop_front().unwrap();
+
+                if let Some(e) = apply_macros_expr(pos, macros, &expr, count + 1)? {
+                    return Ok(Some(e));
+                } else {
+                    return Ok(Some(expr));
+                }
+            }
+        }
+    }
+
+    Ok(None)
+}
+
+fn apply_macros_recursively(macros: &Macros, expr: &mut Expr, count: u8) -> Result<(), MacroErr> {
+    if count == 0xff {
+        panic!("{}: too deep macro", expr.get_pos());
+    }
+
+    if let Some(e) = apply_macros_expr(expr.get_pos(), macros, expr, count)? {
+        *expr = e;
+    }
+
+    match expr {
+        Expr::Apply(exprs, _) | Expr::List(exprs, _) | Expr::Tuple(exprs, _) => {
+            for expr in exprs {
+                apply_macros_recursively(macros, expr, count + 1)?;
+            }
+        }
+        _ => (),
+    }
 
     Ok(())
 }
 
-type Macros = BTreeMap<String, LinkedList<MacroRule>>;
+pub(crate) type Macros = BTreeMap<String, LinkedList<MacroRule>>;
 
-struct MacroRule {
+#[derive(Debug)]
+pub(crate) struct MacroRule {
     pattern: Expr,
     template: Expr,
 }
@@ -171,22 +252,102 @@ fn find_macros(exprs: &LinkedList<Expr>) -> Result<Macros, MacroErr> {
                         if rule_exprs.len() != 2 {
                             return Err(MacroErr {
                                 pos: rule.get_pos(),
-                                msg: "the number of argument of macro rule is not 2",
+                                msg: "the number of arguments of a macro rule is not 2",
                             });
                         }
 
                         let mut rule_it = rule_exprs.iter();
-                        let pattern = rule_it.next().unwrap().clone();
+
+                        let pat = rule_it.next().unwrap();
+                        let pattern = if let Expr::Apply(arguments, pos) = pat {
+                            let mut args = arguments.clone();
+                            args.push_front(Expr::ID(id.clone(), pos.clone()));
+                            Expr::Apply(args, pos.clone())
+                        } else {
+                            return Err(MacroErr {
+                                pos: e.get_pos(),
+                                msg: "invalid macro pattern",
+                            });
+                        };
+
                         let template = rule_it.next().unwrap().clone();
 
                         rules.push_back(MacroRule { pattern, template });
                     }
 
-                    result.insert(id.clone(), rules);
+                    if let Entry::Vacant(entry) = result.entry(id.clone()) {
+                        entry.insert(rules);
+                    } else {
+                        return Err(MacroErr {
+                            pos: e.get_pos(),
+                            msg: "multiply defined",
+                        });
+                    }
                 }
             }
         }
     }
 
     Ok(result)
+}
+
+fn expand(pos: Pos, template: &Expr, ctx: &BTreeMap<String, LinkedList<Expr>>) -> LinkedList<Expr> {
+    match template {
+        Expr::ID(id, _) => {
+            if let Some(templates) = ctx.get(id) {
+                templates
+                    .iter()
+                    .fold(LinkedList::new(), |mut result, template| {
+                        let mut exprs = expand(pos, template, ctx);
+                        result.append(&mut exprs);
+                        result
+                    })
+            } else {
+                let mut result = LinkedList::new();
+                result.push_back(template.clone());
+                result
+            }
+        }
+        Expr::Apply(templates, _) => {
+            let exprs = expand_list(pos, templates, ctx);
+            let mut result = LinkedList::new();
+
+            // TODO: rename variables
+
+            result.push_back(Expr::Apply(exprs, pos));
+            result
+        }
+        Expr::List(templates, _) => {
+            let exprs = expand_list(pos, templates, ctx);
+            let mut result = LinkedList::new();
+            result.push_back(Expr::List(exprs, pos));
+            result
+        }
+        Expr::Tuple(templates, _) => {
+            let exprs = expand_list(pos, templates, ctx);
+            let mut result = LinkedList::new();
+            result.push_back(Expr::Tuple(exprs, pos));
+            result
+        }
+        expr => {
+            let mut result = LinkedList::new();
+            result.push_back(expr.clone());
+            result
+        }
+    }
+}
+
+fn expand_list(
+    pos: Pos,
+    templates: &LinkedList<Expr>,
+    ctx: &BTreeMap<String, LinkedList<Expr>>,
+) -> LinkedList<Expr> {
+    let mut result = LinkedList::new();
+
+    for template in templates {
+        let mut exprs = expand(pos, template, ctx);
+        result.append(&mut exprs);
+    }
+
+    result
 }

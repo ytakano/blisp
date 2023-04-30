@@ -159,10 +159,10 @@ example:
 ## Macro
 
 - $MACRO := ( macro $ID $MACRO_RULE+ )
-- $MACRO_RULE := ( $EXPR $EXPR )
+- $MACRO_RULE := ( ( $EXPR* ) ( $EXPR* ) )
 
 ```common-lisp
 (macro add
   (($e1 $e2) (+ $e1 $e2))
-  (($e1 $e2 $e3 ...) (+ $e1 (add $e2 $e3 ...))))
+  (($e1 $e2 $e3 ...) (+ $e1 (add $e2 $e3))))
 ```

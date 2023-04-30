@@ -85,6 +85,8 @@
 
 extern crate alloc;
 
+use core::fmt::Display;
+
 use alloc::{
     boxed::Box,
     collections::linked_list::LinkedList,
@@ -100,6 +102,7 @@ pub mod runtime;
 pub mod semantics;
 
 pub use blisp_embedded::embedded;
+use r#macro::{process_macros, Macros};
 use runtime::FFI;
 
 #[derive(Debug, Clone, Copy)]
@@ -118,6 +121,12 @@ pub struct Pos {
     pub column: usize, // column number, 0 origin
 }
 
+impl Display for Pos {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{:?}:{}:{}", self.file_id, self.line, self.column)
+    }
+}
+
 /// error message
 #[derive(Debug)]
 pub struct LispErr {
@@ -131,9 +140,10 @@ impl LispErr {
     }
 }
 
-pub struct ExprsAndFFI {
+pub struct TypingContext {
     exprs: LinkedList<parser::Expr>,
     ext_funs: Vec<Box<dyn FFI>>,
+    macros: Macros,
 }
 
 /// initialize BLisp with code
@@ -148,7 +158,7 @@ pub struct ExprsAndFFI {
 ///
 /// blisp::init(code, vec![]).unwrap();
 /// ```
-pub fn init(code: &str, ext_funs: Vec<Box<dyn FFI>>) -> Result<ExprsAndFFI, LispErr> {
+pub fn init(code: &str, ext_funs: Vec<Box<dyn FFI>>) -> Result<TypingContext, LispErr> {
     let prelude = include_str!("prelude.lisp");
     let mut ps = parser::Parser::new(prelude, FileType::Prelude);
     let mut exprs = match ps.parse() {
@@ -176,7 +186,20 @@ pub fn init(code: &str, ext_funs: Vec<Box<dyn FFI>>) -> Result<ExprsAndFFI, Lisp
     match ps.parse() {
         Ok(mut e) => {
             exprs.append(&mut e);
-            Ok(ExprsAndFFI { exprs, ext_funs })
+
+            let macros = match process_macros(&mut exprs) {
+                Ok(macros) => macros,
+                Err(e) => {
+                    let msg = format!("Macro Error: {}", e.msg);
+                    return Err(LispErr::new(msg, e.pos));
+                }
+            };
+
+            Ok(TypingContext {
+                exprs,
+                ext_funs,
+                macros,
+            })
         }
         Err(e) => {
             let msg = format!("Syntax Error: {}", e.msg);
@@ -198,7 +221,7 @@ pub fn init(code: &str, ext_funs: Vec<Box<dyn FFI>>) -> Result<ExprsAndFFI, Lisp
 /// let exprs = blisp::init(code, vec![]).unwrap();
 /// blisp::typing(exprs).unwrap();
 /// ```
-pub fn typing(exprs: ExprsAndFFI) -> Result<semantics::Context, LispErr> {
+pub fn typing(exprs: TypingContext) -> Result<semantics::Context, LispErr> {
     match semantics::exprs2context(exprs) {
         Ok(c) => Ok(c),
         Err(e) => {
@@ -251,7 +274,23 @@ mod tests {
 
     #[test]
     fn test_macro() {
-        r#macro::expand();
+        let expr = "
+(macro add
+    (($e1 $e2) (+ $e1 $e2))
+    (($e1 $e2 $e3 ...) (+ $e1 (add $e2 $e3))))
+
+(add 1 2 3 4 5)
+
+(defun test_add () (Pure (-> () Int))
+    (add 1 2 3 4 (add 5 6) 7))
+
+(add 1)
+";
+        let typing_context = init(expr, vec![]).unwrap();
+
+        for expr in typing_context.exprs.iter() {
+            println!("{expr}");
+        }
     }
 
     fn eval_result(code: &str, ctx: &semantics::Context) {

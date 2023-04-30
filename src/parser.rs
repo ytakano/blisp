@@ -20,7 +20,7 @@ use alloc::{
     collections::linked_list::LinkedList,
     string::{String, ToString},
 };
-use core::usize;
+use core::{fmt::Display, usize};
 use num_bigint::BigInt;
 use num_traits::Zero;
 
@@ -45,6 +45,58 @@ pub enum Expr {
     List(LinkedList<Expr>, Pos),
     Tuple(LinkedList<Expr>, Pos),
     Apply(LinkedList<Expr>, Pos),
+}
+
+impl Display for Expr {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        fn fmt_exprs(
+            f: &mut core::fmt::Formatter<'_>,
+            exprs: &LinkedList<Expr>,
+        ) -> core::fmt::Result {
+            for (n, expr) in exprs.iter().enumerate() {
+                if n == 0 {
+                    write!(f, "{expr}")?;
+                } else {
+                    write!(f, " {expr}")?;
+                }
+            }
+
+            Ok(())
+        }
+
+        match self {
+            Expr::Bool(val, _) => {
+                write!(f, "{val}")
+            }
+            Expr::Char(val, _) => {
+                write!(f, "'{val}'")
+            }
+            Expr::Str(val, _) => {
+                write!(f, "\"{val}\"")
+            }
+            Expr::Num(val, _) => {
+                write!(f, "{val}")
+            }
+            Expr::ID(val, _) => {
+                write!(f, "{val}")
+            }
+            Expr::Apply(exprs, _) => {
+                write!(f, "(")?;
+                fmt_exprs(f, exprs)?;
+                write!(f, ")")
+            }
+            Expr::List(exprs, _) => {
+                write!(f, "'(")?;
+                fmt_exprs(f, exprs)?;
+                write!(f, ")")
+            }
+            Expr::Tuple(exprs, _) => {
+                write!(f, "[")?;
+                fmt_exprs(f, exprs)?;
+                write!(f, "]")
+            }
+        }
+    }
 }
 
 impl Expr {

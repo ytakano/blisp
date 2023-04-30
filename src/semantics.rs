@@ -1,8 +1,8 @@
 use super::{parser, Pos};
 use crate::{
-    r#macro::process_macros,
+    r#macro::Macros,
     runtime::{Environment, RTData},
-    ExprsAndFFI,
+    TypingContext,
 };
 use alloc::{
     boxed::Box,
@@ -785,6 +785,7 @@ pub struct Context {
     pub(crate) built_in: BTreeSet<String>,
     label2data: BTreeMap<String, String>,
     pub(crate) callback: CallbackFn,
+    pub(crate) macros: Macros,
 }
 
 impl Context {
@@ -793,6 +794,7 @@ impl Context {
         ext_funs: BTreeMap<String, Extern>,
         ext_ffi: FFIFn,
         data: BTreeMap<String, DataType>,
+        macros: Macros,
     ) -> Context {
         let mut built_in = BTreeSet::new();
 
@@ -838,6 +840,7 @@ impl Context {
             lambda: BTreeMap::new(),
             lambda_ident: 0,
             callback: Box::new(|_, _, _| None),
+            macros,
         }
     }
 
@@ -2846,16 +2849,14 @@ pub(crate) fn typing_expr(
     Ok((expr, lambda))
 }
 
-pub fn exprs2context(mut exprs: ExprsAndFFI) -> Result<Context, TypingErr> {
+pub fn exprs2context(typing_context: TypingContext) -> Result<Context, TypingErr> {
     let mut funs = BTreeMap::new();
     let mut ext_funs = BTreeMap::new();
     let mut ext_ffi = BTreeMap::new();
     let mut data = BTreeMap::new();
     let msg = "top expression must be data, defun, or export";
 
-    process_macros(&mut exprs.exprs);
-
-    for e in exprs.exprs.iter() {
+    for e in typing_context.exprs.iter() {
         match e {
             parser::Expr::Apply(es, _) => {
                 let mut iter = es.iter();
@@ -2921,11 +2922,11 @@ pub fn exprs2context(mut exprs: ExprsAndFFI) -> Result<Context, TypingErr> {
         }
     }
 
-    for ffi in exprs.ext_funs.iter() {
+    for ffi in typing_context.ext_funs.iter() {
         ext_ffi.insert(ffi.name(), ffi.ffi());
     }
 
-    let mut ctx = Context::new(funs, ext_funs, ext_ffi, data);
+    let mut ctx = Context::new(funs, ext_funs, ext_ffi, data, typing_context.macros);
     ctx.typing()?;
 
     Ok(ctx)
