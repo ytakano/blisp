@@ -54,7 +54,11 @@ pub fn match_list(
     right: &LinkedList<Expr>,
     ctx: &mut BTreeMap<String, LinkedList<Expr>>,
 ) -> bool {
-    if left.len() < 3 {
+    if left.len() < 2 {
+        if left.len() != right.len() {
+            return false;
+        }
+
         for (e1, e2) in left.iter().zip(right.iter()) {
             if !match_pattern(e1, e2, ctx) {
                 return false;
