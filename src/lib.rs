@@ -45,25 +45,30 @@
 //! ### Foreign Function Interface
 //!
 //! ```
-//! use blisp;
+//! use blisp::{self, embedded};
 //! use num_bigint::BigInt;
 //!
-//! let expr = "
-//! (export callback (x y z)
-//!     (IO (-> (Int Int Int) (Option Int)))
-//!     (call-rust x y z))";
-//! let exprs = blisp::init(expr, vec![]).unwrap();
-//! let mut ctx = blisp::typing(exprs).unwrap();
+//! #[embedded]
+//! fn add_four_ints(a: BigInt, b: (BigInt, BigInt), c: Option<BigInt>) -> Result<BigInt, String> {
+//!     let mut result = a + b.0 + b.1;
+//!     if let Some(n) = c {
+//!         result += n;
+//!     }
 //!
-//! let fun = |x: &BigInt, y: &BigInt, z: &BigInt| {
-//!     let n = x * y * z;
-//!     println!("n = {}", n);
-//!     Some(n)
-//! };
-//! ctx.set_callback(Box::new(fun));
+//!     Ok(result)
+//! }
 //!
-//! let e = "(callback 100 2000 30000)";
-//! blisp::eval(e, &ctx);
+//! let code = "
+//! (export call_add_four_ints (n)
+//!     (IO (-> ((Option Int)) (Result Int String)))
+//!     (add_four_ints 1 [2 3] n))"; // call `add_four_ints` in Rust here.
+//!
+//! let exprs = blisp::init(code, vec![Box::new(AddFourInts)]).unwrap(); // extern `add_four_ints`
+//! let ctx = blisp::typing(exprs).unwrap();
+//! let result = blisp::eval("(call_add_four_ints (Some 4))", &ctx).unwrap();
+//!
+//! let front = result.front().unwrap().as_ref().unwrap();
+//! assert_eq!(front, "(Ok 10)");
 //! ```
 //!
 //! ### Expressions

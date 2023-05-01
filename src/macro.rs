@@ -125,15 +125,6 @@ fn eq_exprs(es1: &LinkedList<Expr>, es2: &LinkedList<Expr>) -> bool {
 pub(crate) fn process_macros(exprs: &mut LinkedList<Expr>) -> Result<Macros, MacroErr> {
     let macros = parse_macros(exprs)?;
 
-    #[cfg(test)]
-    for (key, value) in macros.iter() {
-        println!("{key}:");
-        for rule in value {
-            println!("pattern: {}", rule.pattern);
-            println!("template: {}", rule.template);
-        }
-    }
-
     for expr in exprs.iter_mut() {
         apply_macros(&macros, expr)?;
     }
@@ -252,9 +243,6 @@ fn parse_macros(exprs: &LinkedList<Expr>) -> Result<Macros, MacroErr> {
                         let mut pattern = rule_it.next().unwrap().clone();
                         if let Expr::Apply(arguments, _) = &mut pattern {
                             if let Some(Expr::ID(front, _)) = arguments.front_mut() {
-                                #[cfg(test)]
-                                println!("front = {front}");
-
                                 if front == "_" {
                                     *front = id.clone();
                                 } else if front != id {
@@ -264,9 +252,6 @@ fn parse_macros(exprs: &LinkedList<Expr>) -> Result<Macros, MacroErr> {
                                     });
                                 }
                             }
-
-                            #[cfg(test)]
-                            println!("pattern = {pattern}");
 
                             let template = rule_it.next().unwrap().clone();
 
