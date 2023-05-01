@@ -34,6 +34,8 @@ pub fn match_pattern(e1: &Expr, e2: &Expr, ctx: &mut BTreeMap<String, LinkedList
                         }
                     }
                 }
+            } else if left == "_" {
+                true
             } else {
                 matches!(e2, Expr::ID(right, _) if left == right)
             }

@@ -159,8 +159,8 @@ pub struct TypingContext {
 /// blisp::init(code, vec![]).unwrap();
 /// ```
 pub fn init(code: &str, ext_funs: Vec<Box<dyn FFI>>) -> Result<TypingContext, LispErr> {
-    // let prelude = include_str!("prelude.lisp");
-    let prelude = "";
+    let prelude = include_str!("prelude.lisp");
+    // let prelude = "";
     let mut ps = parser::Parser::new(prelude, FileType::Prelude);
     let mut exprs = match ps.parse() {
         Ok(e) => e,
@@ -288,6 +288,8 @@ mod tests {
     ((_ []) ((lambda (x) x) '()))
     ((_ [$e ...]) ((lambda (x) x) '($e ...))))
 
+(macro none ((_ _) ([])))
+
 (tuple_to_list [])
 (tuple_to_list [1 2 3])
 
@@ -297,6 +299,8 @@ mod tests {
     (add 1 2 3 4 (minus 5 6 7) 8))
 
 (add 1)
+
+(none 123)
 ";
 
         let typing_context = init(expr, vec![]).unwrap();
