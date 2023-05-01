@@ -277,16 +277,16 @@ mod tests {
     fn test_macro() {
         let expr = "
 (macro add
-    (($e1 $e2) (+ $e1 $e2))
-    (($e1 $e2 $e3 ...) (+ $e1 (add $e2 $e3))))
+    ((add $e1 $e2) (+ $e1 $e2))
+    ((add $e1 $e2 $e3 ...) (+ $e1 (add $e2 $e3 ...))))
 
 (macro minus
-    (($e1 $e2) (- $e1 $e2))
-    (($e1 $e2 $e3 ...) (- $e1 (minus $e2 $e3))))
+    ((_ $e1 $e2) (- $e1 $e2))
+    ((_ $e1 $e2 $e3 ...) (- $e1 (minus $e2 $e3 ...))))
 
 (macro tuple_to_list
-    (([]) ((lambda (x) x) '()))
-    (([$e ...]) ((lambda (x) x) '($e))))
+    ((_ []) ((lambda (x) x) '()))
+    ((_ [$e ...]) ((lambda (x) x) '($e ...))))
 
 (tuple_to_list [])
 (tuple_to_list [1 2 3])

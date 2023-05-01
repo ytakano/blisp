@@ -54,69 +54,48 @@ pub fn match_list(
     right: &LinkedList<Expr>,
     ctx: &mut BTreeMap<String, LinkedList<Expr>>,
 ) -> bool {
-    if left.len() < 2 {
-        if left.len() != right.len() {
-            return false;
-        }
+    let mut prev = None;
+    let mut it_left = left.iter();
+    let mut it_right = right.iter();
 
-        for (e1, e2) in left.iter().zip(right.iter()) {
-            if !match_pattern(e1, e2, ctx) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    if left.len() - 1 <= right.len() {
-        if let Some(Expr::ID(dots, _)) = left.back() {
-            if dots == "..." {
-                let mut it_left = left.iter();
-                let mut it_right = right.iter();
-
-                for _ in 0..left.len() - 1 {
-                    let e1 = it_left.next().unwrap();
-                    let e2 = it_right.next().unwrap();
-                    if !match_pattern(e1, e2, ctx) {
-                        return false;
-                    }
-                }
-
-                let mut rev = left.iter().rev();
-                let Some(_) = rev.next() else { return false };
-                let Some(back_next) = rev.next() else { return false };
-
-                if let Expr::ID(id, _) = back_next {
-                    if let Some('$') = id.chars().next() {
-                        let Some(exprs) = ctx.get_mut(id) else { return false; };
-                        for expr in it_right {
-                            exprs.push_back(expr.clone());
+    loop {
+        match (it_left.next(), it_right.next()) {
+            (Some(e1), Some(e2)) => {
+                if let Expr::ID(id, _) = e1 {
+                    if id == "..." {
+                        if let Some(key) = &prev {
+                            let Some(exprs) = ctx.get_mut(key) else { return false; };
+                            exprs.push_back(e2.clone());
+                            break;
                         }
-
-                        return true;
                     } else {
-                        return false;
+                        prev = Some(id.clone());
                     }
-                } else {
-                    return false;
                 }
-            }
-        }
 
-        if left.len() == right.len() {
-            for (e1, e2) in left.iter().zip(right.iter()) {
                 if !match_pattern(e1, e2, ctx) {
                     return false;
                 }
             }
-
-            true
-        } else {
-            false
+            (Some(e1), None) => {
+                if let Expr::ID(id, _) = e1 {
+                    return id == "...";
+                } else {
+                    return false;
+                }
+            }
+            (None, Some(_)) => return false,
+            _ => return true,
         }
-    } else {
-        false
     }
+
+    let key = prev.unwrap();
+    let exprs = ctx.get_mut(&key).unwrap();
+    for expr in it_right {
+        exprs.push_back(expr.clone());
+    }
+
+    true
 }
 
 fn eq_expr(e1: &Expr, e2: &Expr) -> bool {
@@ -142,7 +121,16 @@ fn eq_exprs(es1: &LinkedList<Expr>, es2: &LinkedList<Expr>) -> bool {
 }
 
 pub(crate) fn process_macros(exprs: &mut LinkedList<Expr>) -> Result<Macros, MacroErr> {
-    let macros = find_macros(exprs)?;
+    let macros = parse_macros(exprs)?;
+
+    #[cfg(test)]
+    for (key, value) in macros.iter() {
+        println!("{key}:");
+        for rule in value {
+            println!("pattern: {}", rule.pattern);
+            println!("template: {}", rule.template);
+        }
+    }
 
     for expr in exprs.iter_mut() {
         apply_macros(&macros, expr)?;
@@ -228,7 +216,7 @@ pub(crate) struct MacroRule {
     template: Expr,
 }
 
-fn find_macros(exprs: &LinkedList<Expr>) -> Result<Macros, MacroErr> {
+fn parse_macros(exprs: &LinkedList<Expr>) -> Result<Macros, MacroErr> {
     let mut result = BTreeMap::new();
 
     for e in exprs.iter() {
@@ -259,21 +247,34 @@ fn find_macros(exprs: &LinkedList<Expr>) -> Result<Macros, MacroErr> {
 
                         let mut rule_it = rule_exprs.iter();
 
-                        let pat = rule_it.next().unwrap();
-                        let pattern = if let Expr::Apply(arguments, pos) = pat {
-                            let mut args = arguments.clone();
-                            args.push_front(Expr::ID(id.clone(), *pos));
-                            Expr::Apply(args, *pos)
+                        let mut pattern = rule_it.next().unwrap().clone();
+                        if let Expr::Apply(arguments, _) = &mut pattern {
+                            if let Some(Expr::ID(front, _)) = arguments.front_mut() {
+                                #[cfg(test)]
+                                println!("front = {front}");
+
+                                if front == "_" {
+                                    *front = id.clone();
+                                } else if front != id {
+                                    return Err(MacroErr {
+                                        pos: pattern.get_pos(),
+                                        msg: "invalid macro pattern",
+                                    });
+                                }
+                            }
+
+                            #[cfg(test)]
+                            println!("pattern = {pattern}");
+
+                            let template = rule_it.next().unwrap().clone();
+
+                            rules.push_back(MacroRule { pattern, template });
                         } else {
                             return Err(MacroErr {
-                                pos: e.get_pos(),
+                                pos: pattern.get_pos(),
                                 msg: "invalid macro pattern",
                             });
                         };
-
-                        let template = rule_it.next().unwrap().clone();
-
-                        rules.push_back(MacroRule { pattern, template });
                     }
 
                     if let Entry::Vacant(entry) = result.entry(id.clone()) {
@@ -295,16 +296,13 @@ fn find_macros(exprs: &LinkedList<Expr>) -> Result<Macros, MacroErr> {
 fn expand(pos: Pos, template: &Expr, ctx: &BTreeMap<String, LinkedList<Expr>>) -> LinkedList<Expr> {
     match template {
         Expr::ID(id, _) => {
-            if let Some(templates) = ctx.get(id) {
-                templates
-                    .iter()
-                    .fold(LinkedList::new(), |mut result, template| {
-                        let mut exprs = expand(pos, template, ctx);
-                        result.append(&mut exprs);
-                        result
-                    })
-            } else {
+            if let Some(exprs) = ctx.get(id) {
+                let expr = exprs.front().unwrap();
                 let mut result = LinkedList::new();
+                result.push_back(expr.clone());
+                result
+            } else {
+                let mut result: LinkedList<Expr> = LinkedList::new();
                 result.push_back(template.clone());
                 result
             }
@@ -345,7 +343,34 @@ fn expand_list(
 ) -> LinkedList<Expr> {
     let mut result = LinkedList::new();
 
+    let mut prev = None;
+
     for template in templates {
+        if let Expr::ID(id, _) = template {
+            if id == "..." {
+                if let Some(p) = &prev {
+                    if let Some(exprs) = ctx.get(p) {
+                        let mut it = exprs.iter();
+                        let _ = it.next();
+
+                        for expr in it {
+                            result.push_back(expr.clone());
+                        }
+                    } else {
+                        prev = None;
+                    }
+                } else {
+                    prev = None;
+                }
+
+                continue;
+            } else {
+                prev = Some(id.clone());
+            }
+        } else {
+            prev = None;
+        }
+
         let mut exprs = expand(pos, template, ctx);
         result.append(&mut exprs);
     }

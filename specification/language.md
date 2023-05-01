@@ -163,6 +163,6 @@ example:
 
 ```common-lisp
 (macro add
-  (($e1 $e2) (+ $e1 $e2))
-  (($e1 $e2 $e3 ...) (+ $e1 (add $e2 $e3))))
+  ((add $e1 $e2) (+ $e1 $e2))
+  ((_ $e1 $e2 $e3 ...) (+ $e1 (add $e2 $e3 ...))))
 ```
