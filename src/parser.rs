@@ -569,6 +569,11 @@ impl<'a> Parser<'a> {
                         self.remain = &self.remain[1..];
                     }
                 }
+            } else {
+                return Err(SyntaxErr {
+                    pos: self.pos,
+                    msg: "string is not ended",
+                });
             }
         }
 
