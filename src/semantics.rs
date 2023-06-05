@@ -772,7 +772,7 @@ impl TApp for TEDataNode {
     }
 }
 
-pub type CallbackFn = Box<dyn Fn(&BigInt, &BigInt, &BigInt) -> Option<BigInt>>;
+pub type CallbackFn = Box<dyn Fn(&BigInt, &BigInt, &BigInt) -> Option<BigInt> + Send>;
 pub type FFIFn = BTreeMap<&'static str, fn(env: &mut Environment<'_>, args: &[RTData]) -> RTData>;
 
 pub struct Context {

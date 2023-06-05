@@ -147,7 +147,7 @@ impl LispErr {
 
 pub struct TypingContext {
     exprs: LinkedList<parser::Expr>,
-    ext_funs: Vec<Box<dyn FFI>>,
+    ext_funs: Vec<Box<dyn FFI + Send>>,
     macros: Macros,
 }
 
@@ -163,7 +163,7 @@ pub struct TypingContext {
 ///
 /// blisp::init(code, vec![]).unwrap();
 /// ```
-pub fn init(code: &str, ext_funs: Vec<Box<dyn FFI>>) -> Result<TypingContext, LispErr> {
+pub fn init(code: &str, ext_funs: Vec<Box<dyn FFI + Send>>) -> Result<TypingContext, LispErr> {
     let prelude = include_str!("prelude.lisp");
     // let prelude = "";
     let mut ps = parser::Parser::new(prelude, FileType::Prelude);
