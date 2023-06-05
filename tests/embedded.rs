@@ -23,6 +23,9 @@ fn add_four_ints(a: BigInt, b: (BigInt, BigInt), c: Option<BigInt>) -> Result<Bi
     Ok(result)
 }
 
+#[embedded]
+fn no_return() {}
+
 #[test]
 fn test_embedded() {
     // test_fun
@@ -48,4 +51,14 @@ fn test_embedded() {
 
     let front = result.front().unwrap().as_ref().unwrap();
     assert_eq!(front, "(Ok 10)");
+
+    // no_return
+    let code = "(export call_no_return ()
+        (IO (-> () []))
+        (no_return)
+    )";
+    let exprs = blisp::init(code, vec![Box::new(NoReturn)]).unwrap();
+    let ctx = blisp::typing(exprs).unwrap();
+    let result = blisp::eval("(call_no_return)", &ctx).unwrap();
+    result.front().unwrap().as_ref().unwrap();
 }

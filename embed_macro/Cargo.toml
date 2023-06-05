@@ -1,6 +1,6 @@
 [package]
 name = "blisp_embedded"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Yuuki Takano <ytakanoster@gmail.com>", "Fumiya Saito"]
 edition = "2021"
 description = "embedded macro for BLisp"

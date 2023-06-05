@@ -188,7 +188,7 @@ fn inputs_type(data: &Signature) -> String {
 
 fn output_type(data: &Signature) -> String {
     let ret = match &data.output {
-        syn::ReturnType::Default => panic!("return type is necessary"),
+        syn::ReturnType::Default => "[]".to_string(),
         syn::ReturnType::Type(_, ty) => parse_type(&*ty),
     };
 

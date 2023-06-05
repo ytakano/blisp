@@ -1560,6 +1560,12 @@ where
     }
 }
 
+impl RustToRTData<()> for RTData {
+    fn from(env: &mut Environment<'_>, _: ()) -> Self {
+        RTData::LData(env.root.make_obj("Tuple".to_string(), Some(vec![])))
+    }
+}
+
 impl<T0, T1> RustToRTData<(T0, T1)> for RTData
 where
     RTData: RustToRTData<T0> + RustToRTData<T1>,
