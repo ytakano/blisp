@@ -490,4 +490,22 @@ mod tests {
 
         println!("{}", transpile(&ctx));
     }
+
+    #[test]
+    fn test_multibyte() {
+        let expr = "あ";
+        let _exprs = init(expr, vec![]).unwrap();
+
+        let expr = "";
+        let exprs = init(expr, vec![]).unwrap();
+        let ctx = typing(exprs).unwrap();
+
+        let e = "\"あ\"";
+        let r = eval(e, &ctx).unwrap();
+        println!("{r:?}");
+
+        let e = "`あ`";
+        let r = eval(e, &ctx).unwrap();
+        println!("{r:?}");
+    }
 }

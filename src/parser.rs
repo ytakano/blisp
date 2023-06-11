@@ -146,7 +146,7 @@ impl<'a> Parser<'a> {
             if is_paren(s) || is_space(s) || s == ';' {
                 break;
             }
-            i += 1;
+            i += s.to_string().len();
         }
 
         if i == 0 {
@@ -165,7 +165,7 @@ impl<'a> Parser<'a> {
             } else if c == "false" {
                 Ok(Expr::Bool(false, pos))
             } else {
-                Ok(Expr::ID(c, pos))
+                Ok(Expr::ID(c.to_string(), pos))
             }
         }
     }
@@ -489,7 +489,7 @@ impl<'a> Parser<'a> {
                 }),
                 c => {
                     if let Some('`') = self.remain.chars().nth(1) {
-                        self.remain = &self.remain[2..];
+                        self.remain = &self.remain[c.to_string().len() + 1..];
                         self.pos.column += 2;
                         Ok(Expr::Char(c, pos))
                     } else {
@@ -566,7 +566,7 @@ impl<'a> Parser<'a> {
 
                         prev = c;
                         str.push(c);
-                        self.remain = &self.remain[1..];
+                        self.remain = &self.remain[c.to_string().len()..];
                     }
                 }
             } else {
