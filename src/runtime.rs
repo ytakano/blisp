@@ -1629,6 +1629,54 @@ where
     }
 }
 
+impl<T> RustToRTData<Vec<T>> for RTData
+where
+    RTData: RustToRTData<T>
+{
+    fn from(env: &mut Environment<'_>, vec: Vec<T>) -> Self {
+        Self::LData(collection_to_list(env, vec.into_iter()))
+    }
+}
+
+/// Convert a collection into a cons list.
+fn collection_to_list<I, T>(env: &mut Environment<'_>, iter: I) -> LDataType
+where
+    I: DoubleEndedIterator<Item = T>,
+    RTData: RustToRTData<T>,
+{
+    let mut iter = iter
+        .map(|item| {
+            (
+                "Cons".to_string(),
+                Some(vec![<RTData as RustToRTData<T>>::from(env, item)]),
+            )
+        })
+        .chain([("Nil".to_string(), None)].into_iter())
+        .collect::<Vec<_>>()
+        .into_iter()
+        .map(|(label, data)| env.root.make_obj(label, data))
+        .rev()
+        .peekable();
+
+    let mut root_cons = None;
+    while let Some(item) = iter.next() {
+        match iter.peek_mut() {
+            Some(next) => {
+                next.get_ldata_mut()
+                    .data
+                    .as_mut()
+                    .expect("all items after a nil should contain a value")
+                    .push(RTData::LData(item));
+            }
+            None => {
+                root_cons = Some(item);
+            }
+        }
+    }
+
+    root_cons.expect("chaining a nil should ensure that the iterator always has a value")
+}
+
 pub trait FFI {
     /// Extern expression of BLisp
     fn blisp_extern(&self) -> &'static str;
