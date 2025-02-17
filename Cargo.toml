@@ -1,12 +1,18 @@
 [package]
 name = "blisp"
-version = "0.4.5"
+version = "0.4.6"
 authors = ["Yuuki Takano <ytakanoster@gmail.com>", "Fumiya Saito"]
 edition = "2021"
 description = "A lisp like statically typed programing language for no_std."
 repository = "https://github.com/ytakano/blisp"
-keywords = ["no_std", "scripting", "scripting-engine", "scripting-language", "embedded" ]
-categories = [ "no-std", "embedded" ]
+keywords = [
+    "no_std",
+    "scripting",
+    "scripting-engine",
+    "scripting-language",
+    "embedded",
+]
+categories = ["no-std", "embedded"]
 license-file = "LICENSE"
 readme = "README.md"
 homepage = "https://ytakano.github.io/blisp/"

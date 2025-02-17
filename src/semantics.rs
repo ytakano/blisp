@@ -4172,7 +4172,9 @@ fn check_pattern_exhaustive(
         });
     }
 
-    let Some(ty) = patterns.front().unwrap().get_type() else { return Ok(()) };
+    let Some(ty) = patterns.front().unwrap().get_type() else {
+        return Ok(());
+    };
 
     // list up labels of type
     // example:

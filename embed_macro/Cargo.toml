@@ -5,8 +5,14 @@ authors = ["Yuuki Takano <ytakanoster@gmail.com>", "Fumiya Saito"]
 edition = "2021"
 description = "embedded macro for BLisp"
 repository = "https://github.com/ytakano/blisp"
-keywords = ["no_std", "scripting", "scripting-engine", "scripting-language", "embedded" ]
-categories = [ "no-std", "embedded" ]
+keywords = [
+    "no_std",
+    "scripting",
+    "scripting-engine",
+    "scripting-language",
+    "embedded",
+]
+categories = ["no-std", "embedded"]
 license-file = "LICENSE"
 readme = "README.md"
 homepage = "https://ytakano.github.io/blisp/"
@@ -20,4 +26,4 @@ proc-macro = true
 syn = { version = "2.0", features = ["full"] }
 quote = "1.0"
 proc-macro2 = "1.0"
-convert_case = "0.6"
+convert_case = "0.7"

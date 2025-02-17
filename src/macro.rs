@@ -66,7 +66,9 @@ pub fn match_list(
                 if let Expr::ID(id, _) = e1 {
                     if id == "..." {
                         if let Some(key) = &prev {
-                            let Some(exprs) = ctx.get_mut(key) else { return false; };
+                            let Some(exprs) = ctx.get_mut(key) else {
+                                return false;
+                            };
                             exprs.push_back(e2.clone());
                             break;
                         }
@@ -216,19 +218,27 @@ fn parse_macros(exprs: &LinkedList<Expr>) -> Result<Macros, MacroErr> {
         if let Expr::Apply(es, _) = e {
             let mut it = es.iter();
 
-            let Some(front) = it.next() else { continue; };
+            let Some(front) = it.next() else {
+                continue;
+            };
 
             if let Expr::ID(id_macro, _) = front {
                 if id_macro == "macro" {
                     let id = it.next();
                     let Some(Expr::ID(id, _)) = id else {
-                        return Err(MacroErr { pos: e.get_pos(), msg: "invalid macro" });
+                        return Err(MacroErr {
+                            pos: e.get_pos(),
+                            msg: "invalid macro",
+                        });
                     };
 
                     let mut rules = LinkedList::new();
                     for rule in it {
                         let Expr::Apply(rule_exprs, _) = rule else {
-                            return Err(MacroErr { pos: rule.get_pos(), msg: "invalid macro rule" });
+                            return Err(MacroErr {
+                                pos: rule.get_pos(),
+                                msg: "invalid macro rule",
+                            });
                         };
 
                         if rule_exprs.len() != 2 {

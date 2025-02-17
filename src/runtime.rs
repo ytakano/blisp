@@ -1611,36 +1611,11 @@ macro_rules! impl_rust_to_rt_data_tuple {
     }
 }
 impl_rust_to_rt_data_tuple![
-    [
-        (v0, V0),
-        (v1, V1),
-    ],
-    [
-        (v0, V0),
-        (v1, V1),
-        (v2, V2),
-    ],
-    [
-        (v0, V0),
-        (v1, V1),
-        (v2, V2),
-        (v3, V3),
-    ],
-    [
-        (v0, V0),
-        (v1, V1),
-        (v2, V2),
-        (v3, V3),
-        (v4, V4),
-    ],
-    [
-        (v0, V0),
-        (v1, V1),
-        (v2, V2),
-        (v3, V3),
-        (v4, V4),
-        (v5, V5),
-    ],
+    [(v0, V0), (v1, V1),],
+    [(v0, V0), (v1, V1), (v2, V2),],
+    [(v0, V0), (v1, V1), (v2, V2), (v3, V3),],
+    [(v0, V0), (v1, V1), (v2, V2), (v3, V3), (v4, V4),],
+    [(v0, V0), (v1, V1), (v2, V2), (v3, V3), (v4, V4), (v5, V5),],
     [
         (v0, V0),
         (v1, V1),
@@ -1714,7 +1689,7 @@ impl_rust_to_rt_data_tuple![
 
 impl<T> RustToRTData<Vec<T>> for RTData
 where
-    RTData: RustToRTData<T>
+    RTData: RustToRTData<T>,
 {
     fn from(env: &mut Environment<'_>, vec: Vec<T>) -> Self {
         Self::LData(collection_to_list(env, vec.into_iter()))
@@ -1722,7 +1697,7 @@ where
 }
 impl<T, const N: usize> RustToRTData<[T; N]> for RTData
 where
-    RTData: RustToRTData<T>
+    RTData: RustToRTData<T>,
 {
     fn from(env: &mut Environment<'_>, slice: [T; N]) -> Self {
         Self::LData(collection_to_list(env, slice.into_iter()))
