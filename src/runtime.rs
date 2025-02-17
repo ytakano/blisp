@@ -1382,123 +1382,156 @@ where
     }
 }
 
-/// Convert a BLisp's Tuple to a Rust's Tuple
-/// where the length is 2.
-impl<T0, T1> RTDataToRust<(T0, T1)> for RTData
-where
-    RTData: RTDataToRust<T0> + RTDataToRust<T1>,
-{
-    fn into(&self) -> (T0, T1) {
-        if let RTData::LData(data) = self {
-            let ldata = data.get_ldata();
-            match ldata.label.as_str() {
-                "Tuple" => {
-                    if let Some(v) = &ldata.data {
-                        let v0: T0 = RTDataToRust::into(&v[0]);
-                        let v1: T1 = RTDataToRust::into(&v[1]);
-                        (v0, v1)
-                    } else {
-                        panic!("invalid Tuple")
-                    }
-                }
-                _ => panic!("label is not Tuple"),
-            }
-        } else {
-            panic!("data is not Tuple");
-        }
-    }
-}
+macro_rules! impl_rt_data_to_rust_tuple {
+    ($($(#[$impl_attrs:meta])*
+    [ $(($index:literal, $name_snake:ident, $name_pascal:ident)),+ $(,)? ]),+ $(,)?) => {
+        $($(#[$impl_attrs])*
+        impl<$($name_pascal),*> RTDataToRust<($($name_pascal),*)> for RTData
+        where $(RTData: RTDataToRust<$name_pascal>),* {
+            fn into(&self) -> ($($name_pascal),*) {
+                if let RTData::LData(data) = self {
+                    let ldata = data.get_ldata();
+                    if ldata.label.as_str() == "Tuple" {
+                        if let Some(v) = &ldata.data {
+                            $(let $name_snake: $name_pascal = RTDataToRust::into(&v[$index]);)*
 
-/// Convert a BLisp's Tuple to a Rust's Tuple
-/// where the length is 3.
-impl<T0, T1, T2> RTDataToRust<(T0, T1, T2)> for RTData
-where
-    RTData: RTDataToRust<T0> + RTDataToRust<T1> + RTDataToRust<T2>,
-{
-    fn into(&self) -> (T0, T1, T2) {
-        if let RTData::LData(data) = self {
-            let ldata = data.get_ldata();
-            match ldata.label.as_str() {
-                "Tuple" => {
-                    if let Some(v) = &ldata.data {
-                        let v0: T0 = RTDataToRust::into(&v[0]);
-                        let v1: T1 = RTDataToRust::into(&v[1]);
-                        let v2: T2 = RTDataToRust::into(&v[2]);
-                        (v0, v1, v2)
+                            ($($name_snake),*)
+                        } else {
+                            panic!("invalid Tuple")
+                        }
                     } else {
-                        panic!("invalid Tuple")
+                        panic!("label is not Tuple")
                     }
+                } else {
+                    panic!("data is not a Tuple")
                 }
-                _ => panic!("label is not Tuple"),
             }
-        } else {
-            panic!("data is not Tuple");
-        }
+        })*
     }
 }
-
-/// Convert a BLisp's Tuple to a Rust's Tuple
-/// where the length is 4.
-impl<T0, T1, T2, T3> RTDataToRust<(T0, T1, T2, T3)> for RTData
-where
-    RTData: RTDataToRust<T0> + RTDataToRust<T1> + RTDataToRust<T2> + RTDataToRust<T3>,
-{
-    fn into(&self) -> (T0, T1, T2, T3) {
-        if let RTData::LData(data) = self {
-            let ldata = data.get_ldata();
-            match ldata.label.as_str() {
-                "Tuple" => {
-                    if let Some(v) = &ldata.data {
-                        let v0: T0 = RTDataToRust::into(&v[0]);
-                        let v1: T1 = RTDataToRust::into(&v[1]);
-                        let v2: T2 = RTDataToRust::into(&v[2]);
-                        let v3: T3 = RTDataToRust::into(&v[3]);
-                        (v0, v1, v2, v3)
-                    } else {
-                        panic!("invalid Tuple")
-                    }
-                }
-                _ => panic!("label is not Tuple"),
-            }
-        } else {
-            panic!("data is not Tuple");
-        }
-    }
-}
-
-/// Convert a BLisp's Tuple to a Rust's Tuple
-/// where the length is 5.
-impl<T0, T1, T2, T3, T4> RTDataToRust<(T0, T1, T2, T3, T4)> for RTData
-where
-    RTData: RTDataToRust<T0>
-        + RTDataToRust<T1>
-        + RTDataToRust<T2>
-        + RTDataToRust<T3>
-        + RTDataToRust<T4>,
-{
-    fn into(&self) -> (T0, T1, T2, T3, T4) {
-        if let RTData::LData(data) = self {
-            let ldata = data.get_ldata();
-            match ldata.label.as_str() {
-                "Tuple" => {
-                    if let Some(v) = &ldata.data {
-                        let v0: T0 = RTDataToRust::into(&v[0]);
-                        let v1: T1 = RTDataToRust::into(&v[1]);
-                        let v2: T2 = RTDataToRust::into(&v[2]);
-                        let v3: T3 = RTDataToRust::into(&v[3]);
-                        let v4: T4 = RTDataToRust::into(&v[4]);
-                        (v0, v1, v2, v3, v4)
-                    } else {
-                        panic!("invalid Tuple")
-                    }
-                }
-                _ => panic!("label is not Tuple"),
-            }
-        } else {
-            panic!("data is not Tuple");
-        }
-    }
-}
+impl_rt_data_to_rust_tuple![
+    /// Convert a BLisp's Tuple to a Rust's Tuple
+    /// where the length is 2.
+    [
+        (0, v0, T0),
+        (1, v1, T1),
+    ],
+    /// Convert a BLisp's Tuple to a Rust's Tuple
+    /// where the length is 3.
+    [
+        (0, v0, T0),
+        (1, v1, T1),
+        (2, v2, T2),
+    ],
+    /// Convert a BLisp's Tuple to a Rust's Tuple
+    /// where the length is 4.
+    [
+        (0, v0, T0),
+        (1, v1, T1),
+        (2, v2, T2),
+        (3, v3, T3),
+    ],
+    /// Convert a BLisp's Tuple to a Rust's Tuple
+    /// where the length is 5.
+    [
+        (0, v0, T0),
+        (1, v1, T1),
+        (2, v2, T2),
+        (3, v3, T3),
+        (4, v4, T4),
+    ],
+    /// Convert a BLisp's Tuple to a Rust's Tuple
+    /// where the length is 6.
+    [
+        (0, v0, T0),
+        (1, v1, T1),
+        (2, v2, T2),
+        (3, v3, T3),
+        (4, v4, T4),
+        (5, v5, T5),
+    ],
+    /// Convert a BLisp's Tuple to a Rust's Tuple
+    /// where the length is 7.
+    [
+        (0, v0, T0),
+        (1, v1, T1),
+        (2, v2, T2),
+        (3, v3, T3),
+        (4, v4, T4),
+        (5, v5, T5),
+        (6, v6, T6),
+    ],
+    /// Convert a BLisp's Tuple to a Rust's Tuple
+    /// where the length is 8.
+    [
+        (0, v0, T0),
+        (1, v1, T1),
+        (2, v2, T2),
+        (3, v3, T3),
+        (4, v4, T4),
+        (5, v5, T5),
+        (6, v6, T6),
+        (7, v7, T7),
+    ],
+    /// Convert a BLisp's Tuple to a Rust's Tuple
+    /// where the length is 9.
+    [
+        (0, v0, T0),
+        (1, v1, T1),
+        (2, v2, T2),
+        (3, v3, T3),
+        (4, v4, T4),
+        (5, v5, T5),
+        (6, v6, T6),
+        (7, v7, T7),
+        (8, v8, T8),
+    ],
+    /// Convert a BLisp's Tuple to a Rust's Tuple
+    /// where the length is 10.
+    [
+        (0, v0, T0),
+        (1, v1, T1),
+        (2, v2, T2),
+        (3, v3, T3),
+        (4, v4, T4),
+        (5, v5, T5),
+        (6, v6, T6),
+        (7, v7, T7),
+        (8, v8, T8),
+        (9, v9, T9),
+    ],
+    /// Convert a BLisp's Tuple to a Rust's Tuple
+    /// where the length is 11.
+    [
+        (0, v0, T0),
+        (1, v1, T1),
+        (2, v2, T2),
+        (3, v3, T3),
+        (4, v4, T4),
+        (5, v5, T5),
+        (6, v6, T6),
+        (7, v7, T7),
+        (8, v8, T8),
+        (9, v9, T9),
+        (10, v10, T10),
+    ],
+    /// Convert a BLisp's Tuple to a Rust's Tuple
+    /// where the length is 12.
+    [
+        (0, v0, T0),
+        (1, v1, T1),
+        (2, v2, T2),
+        (3, v3, T3),
+        (4, v4, T4),
+        (5, v5, T5),
+        (6, v6, T6),
+        (7, v7, T7),
+        (8, v8, T8),
+        (9, v9, T9),
+        (10, v10, T10),
+        (11, v11, T11),
+    ],
+];
 
 pub trait RustToRTData<T> {
     fn from(env: &mut Environment<'_>, value: T) -> Self;
@@ -1566,67 +1599,173 @@ impl RustToRTData<()> for RTData {
     }
 }
 
-impl<T0, T1> RustToRTData<(T0, T1)> for RTData
+macro_rules! impl_rust_to_rt_data_tuple {
+    ($([ $(($name_snake:ident, $name_pascal:ident)),+ $(,)? ]),+ $(,)?) => {
+        $(impl<$($name_pascal),*> RustToRTData<($($name_pascal),*)> for RTData
+        where $(RTData: RustToRTData<$name_pascal>),* {
+            fn from(env: &mut Environment<'_>, ($($name_snake),*): ($($name_pascal),*)) -> Self {
+                $(let $name_snake = <RTData as RustToRTData<$name_pascal>>::from(env, $name_snake);)*
+                RTData::LData(env.root.make_obj("Tuple".to_string(), Some(vec![$($name_snake),*])))
+            }
+        })*
+    }
+}
+impl_rust_to_rt_data_tuple![
+    [
+        (v0, V0),
+        (v1, V1),
+    ],
+    [
+        (v0, V0),
+        (v1, V1),
+        (v2, V2),
+    ],
+    [
+        (v0, V0),
+        (v1, V1),
+        (v2, V2),
+        (v3, V3),
+    ],
+    [
+        (v0, V0),
+        (v1, V1),
+        (v2, V2),
+        (v3, V3),
+        (v4, V4),
+    ],
+    [
+        (v0, V0),
+        (v1, V1),
+        (v2, V2),
+        (v3, V3),
+        (v4, V4),
+        (v5, V5),
+    ],
+    [
+        (v0, V0),
+        (v1, V1),
+        (v2, V2),
+        (v3, V3),
+        (v4, V4),
+        (v5, V5),
+        (v6, V6),
+    ],
+    [
+        (v0, V0),
+        (v1, V1),
+        (v2, V2),
+        (v3, V3),
+        (v4, V4),
+        (v5, V5),
+        (v6, V6),
+        (v7, V7),
+    ],
+    [
+        (v0, V0),
+        (v1, V1),
+        (v2, V2),
+        (v3, V3),
+        (v4, V4),
+        (v5, V5),
+        (v6, V6),
+        (v7, V7),
+        (v8, V8),
+    ],
+    [
+        (v0, V0),
+        (v1, V1),
+        (v2, V2),
+        (v3, V3),
+        (v4, V4),
+        (v5, V5),
+        (v6, V6),
+        (v7, V7),
+        (v8, V8),
+        (v9, V9),
+    ],
+    [
+        (v0, V0),
+        (v1, V1),
+        (v2, V2),
+        (v3, V3),
+        (v4, V4),
+        (v5, V5),
+        (v6, V6),
+        (v7, V7),
+        (v8, V8),
+        (v9, V9),
+        (v10, V10),
+    ],
+    [
+        (v0, V0),
+        (v1, V1),
+        (v2, V2),
+        (v3, V3),
+        (v4, V4),
+        (v5, V5),
+        (v6, V6),
+        (v7, V7),
+        (v8, V8),
+        (v9, V9),
+        (v10, V10),
+        (v11, V11),
+    ],
+];
+
+impl<T> RustToRTData<Vec<T>> for RTData
 where
-    RTData: RustToRTData<T0> + RustToRTData<T1>,
+    RTData: RustToRTData<T>
 {
-    fn from(env: &mut Environment<'_>, (v0, v1): (T0, T1)) -> Self {
-        let v0 = RustToRTData::from(env, v0);
-        let v1 = RustToRTData::from(env, v1);
-        RTData::LData(env.root.make_obj("Tuple".to_string(), Some(vec![v0, v1])))
+    fn from(env: &mut Environment<'_>, vec: Vec<T>) -> Self {
+        Self::LData(collection_to_list(env, vec.into_iter()))
+    }
+}
+impl<T, const N: usize> RustToRTData<[T; N]> for RTData
+where
+    RTData: RustToRTData<T>
+{
+    fn from(env: &mut Environment<'_>, slice: [T; N]) -> Self {
+        Self::LData(collection_to_list(env, slice.into_iter()))
     }
 }
 
-impl<T0, T1, T2> RustToRTData<(T0, T1, T2)> for RTData
+/// Convert a collection into a cons list.
+fn collection_to_list<I, T>(env: &mut Environment<'_>, iter: I) -> LDataType
 where
-    RTData: RustToRTData<T0> + RustToRTData<T1> + RustToRTData<T2>,
+    I: DoubleEndedIterator<Item = T>,
+    RTData: RustToRTData<T>,
 {
-    fn from(env: &mut Environment<'_>, (v0, v1, v2): (T0, T1, T2)) -> Self {
-        let v0 = RustToRTData::from(env, v0);
-        let v1 = RustToRTData::from(env, v1);
-        let v2 = RustToRTData::from(env, v2);
-        RTData::LData(
-            env.root
-                .make_obj("Tuple".to_string(), Some(vec![v0, v1, v2])),
-        )
-    }
-}
+    let mut iter = iter
+        .map(|item| {
+            (
+                "Cons".to_string(),
+                Some(vec![<RTData as RustToRTData<T>>::from(env, item)]),
+            )
+        })
+        .chain([("Nil".to_string(), None)].into_iter())
+        .collect::<Vec<_>>()
+        .into_iter()
+        .map(|(label, data)| env.root.make_obj(label, data))
+        .rev()
+        .peekable();
 
-impl<T0, T1, T2, T3> RustToRTData<(T0, T1, T2, T3)> for RTData
-where
-    RTData: RustToRTData<T0> + RustToRTData<T1> + RustToRTData<T2> + RustToRTData<T3>,
-{
-    fn from(env: &mut Environment<'_>, (v0, v1, v2, v3): (T0, T1, T2, T3)) -> Self {
-        let v0 = RustToRTData::from(env, v0);
-        let v1 = RustToRTData::from(env, v1);
-        let v2 = RustToRTData::from(env, v2);
-        let v3 = RustToRTData::from(env, v3);
-        RTData::LData(
-            env.root
-                .make_obj("Tuple".to_string(), Some(vec![v0, v1, v2, v3])),
-        )
+    let mut root_cons = None;
+    while let Some(item) = iter.next() {
+        match iter.peek_mut() {
+            Some(next) => {
+                next.get_ldata_mut()
+                    .data
+                    .as_mut()
+                    .expect("all items after a nil should contain a value")
+                    .push(RTData::LData(item));
+            }
+            None => {
+                root_cons = Some(item);
+            }
+        }
     }
-}
 
-impl<T0, T1, T2, T3, T4> RustToRTData<(T0, T1, T2, T3, T4)> for RTData
-where
-    RTData: RustToRTData<T0>
-        + RustToRTData<T1>
-        + RustToRTData<T2>
-        + RustToRTData<T3>
-        + RustToRTData<T4>,
-{
-    fn from(env: &mut Environment<'_>, (v0, v1, v2, v3, v4): (T0, T1, T2, T3, T4)) -> Self {
-        let v0 = RustToRTData::from(env, v0);
-        let v1 = RustToRTData::from(env, v1);
-        let v2 = RustToRTData::from(env, v2);
-        let v3 = RustToRTData::from(env, v3);
-        let v4 = RustToRTData::from(env, v4);
-        RTData::LData(
-            env.root
-                .make_obj("Tuple".to_string(), Some(vec![v0, v1, v2, v3, v4])),
-        )
-    }
+    root_cons.expect("chaining a nil should ensure that the iterator always has a value")
 }
 
 pub trait FFI {
