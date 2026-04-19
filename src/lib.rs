@@ -278,6 +278,16 @@ pub fn transpile(ctx: &semantics::Context) -> String {
 mod tests {
     use super::*;
 
+    fn eval_first(code: &str, ctx: &semantics::Context) -> String {
+        eval(code, ctx)
+            .unwrap()
+            .front()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .clone()
+    }
+
     #[test]
     fn test_macro() {
         let expr = "
@@ -313,6 +323,51 @@ mod tests {
         for expr in typing_context.exprs.iter() {
             println!("{expr}");
         }
+    }
+
+    #[test]
+    fn test_macro_hygiene_lambda() {
+        let expr = "
+(macro with_tmp
+    ((_ $x) ((lambda (tmp) (+ tmp $x)) 1)))
+
+(export test (tmp) (Pure (-> (Int) Int))
+    (with_tmp tmp))
+";
+
+        let ctx = typing(init(expr, vec![]).unwrap()).unwrap();
+        assert_eq!(eval_first("(test 10)", &ctx), "11");
+    }
+
+    #[test]
+    fn test_macro_hygiene_let() {
+        let expr = "
+(macro with_tmp
+    ((_ $x) (let ((tmp 1)) (+ tmp $x))))
+
+(export test (tmp) (Pure (-> (Int) Int))
+    (with_tmp tmp))
+";
+
+        let ctx = typing(init(expr, vec![]).unwrap()).unwrap();
+        assert_eq!(eval_first("(test 10)", &ctx), "11");
+    }
+
+    #[test]
+    fn test_macro_hygiene_match() {
+        let expr = "
+(macro match_some
+    ((_ $x)
+        (match (Some 1)
+            ((Some v) (+ v $x))
+            (None 0))))
+
+(export test (v) (Pure (-> (Int) Int))
+    (match_some v))
+";
+
+        let ctx = typing(init(expr, vec![]).unwrap()).unwrap();
+        assert_eq!(eval_first("(test 10)", &ctx), "11");
     }
 
     fn eval_result(code: &str, ctx: &semantics::Context) {

@@ -1,5 +1,9 @@
 # Version History
 
+## 0.4.7
+
+- add `macro` to define macros
+
 ## 0.4.0
 
 - add `embedded` macro for FFIs

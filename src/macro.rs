@@ -1,6 +1,7 @@
 use crate::{parser::Expr, Pos};
 use alloc::{
     collections::{btree_map::Entry, BTreeMap, LinkedList},
+    format,
     string::String,
 };
 
@@ -126,81 +127,340 @@ fn eq_exprs(es1: &LinkedList<Expr>, es2: &LinkedList<Expr>) -> bool {
 
 pub(crate) fn process_macros(exprs: &mut LinkedList<Expr>) -> Result<Macros, MacroErr> {
     let macros = parse_macros(exprs)?;
+    let mut expander = MacroExpander::new(&macros);
 
     for expr in exprs.iter_mut() {
-        apply_macros(&macros, expr)?;
+        expander.apply_macros(expr)?;
     }
 
     Ok(macros)
 }
 
 pub(crate) fn apply(expr: &mut Expr, macros: &Macros) -> Result<(), MacroErr> {
-    apply_macros(macros, expr)
+    MacroExpander::new(macros).apply_macros(expr)
 }
 
-fn apply_macros(macros: &Macros, expr: &mut Expr) -> Result<(), MacroErr> {
-    if let Expr::Apply(exprs, _) = expr {
-        if let Some(Expr::ID(id, _)) = exprs.front() {
-            if id == "macro" {
-                return Ok(());
-            }
+struct MacroExpander<'a> {
+    macros: &'a Macros,
+    fresh_counter: u64,
+}
+
+impl<'a> MacroExpander<'a> {
+    fn new(macros: &'a Macros) -> MacroExpander<'a> {
+        MacroExpander {
+            macros,
+            fresh_counter: 0,
         }
     }
 
-    apply_macros_recursively(macros, expr, 0)
-}
+    fn apply_macros(&mut self, expr: &mut Expr) -> Result<(), MacroErr> {
+        if let Expr::Apply(exprs, _) = expr {
+            if let Some(Expr::ID(id, _)) = exprs.front() {
+                if id == "macro" {
+                    return Ok(());
+                }
+            }
+        }
 
-fn apply_macros_expr(
-    pos: Pos,
-    macros: &Macros,
-    expr: &Expr,
-    count: u8,
-) -> Result<Option<Expr>, MacroErr> {
-    if count == 0xff {
-        return Err(MacroErr {
-            pos,
-            msg: "too deep macro",
-        });
+        self.apply_macros_recursively(expr, 0)
     }
 
-    for (_, rules) in macros.iter() {
-        let mut ctx = BTreeMap::new();
+    fn apply_macros_expr(
+        &mut self,
+        pos: Pos,
+        expr: &Expr,
+        count: u8,
+    ) -> Result<Option<Expr>, MacroErr> {
+        if count == 0xff {
+            return Err(MacroErr {
+                pos,
+                msg: "too deep macro",
+            });
+        }
 
-        for rule in rules.iter() {
-            if match_pattern(&rule.pattern, expr, &mut ctx) {
-                let expr = expand(pos, &rule.template, &ctx).pop_front().unwrap();
+        for (_, rules) in self.macros.iter() {
+            for rule in rules.iter() {
+                let mut ctx = BTreeMap::new();
+                if match_pattern(&rule.pattern, expr, &mut ctx) {
+                    let expr = self.expand(pos, &rule.template, &ctx).pop_front().unwrap();
 
-                if let Some(e) = apply_macros_expr(pos, macros, &expr, count + 1)? {
-                    return Ok(Some(e));
+                    if let Some(e) = self.apply_macros_expr(pos, &expr, count + 1)? {
+                        return Ok(Some(e));
+                    } else {
+                        return Ok(Some(expr));
+                    }
+                }
+            }
+        }
+
+        Ok(None)
+    }
+
+    fn apply_macros_recursively(&mut self, expr: &mut Expr, count: u8) -> Result<(), MacroErr> {
+        if count == 0xff {
+            panic!("{}: too deep macro", expr.get_pos());
+        }
+
+        if let Some(e) = self.apply_macros_expr(expr.get_pos(), expr, count)? {
+            *expr = e;
+        }
+
+        match expr {
+            Expr::Apply(exprs, _) | Expr::List(exprs, _) | Expr::Tuple(exprs, _) => {
+                for expr in exprs {
+                    self.apply_macros_recursively(expr, count + 1)?;
+                }
+            }
+            _ => (),
+        }
+
+        Ok(())
+    }
+
+    fn expand(
+        &mut self,
+        pos: Pos,
+        template: &Expr,
+        ctx: &BTreeMap<String, LinkedList<Expr>>,
+    ) -> LinkedList<Expr> {
+        let template = self.freshen_template(template);
+        expand_expr(pos, &template, ctx)
+    }
+
+    fn freshen_template(&mut self, template: &Expr) -> Expr {
+        let mut env = BTreeMap::new();
+        self.rename_expr(template, &mut env)
+    }
+
+    fn rename_expr(&mut self, expr: &Expr, env: &mut BTreeMap<String, String>) -> Expr {
+        match expr {
+            Expr::ID(id, pos) => {
+                if let Some(renamed) = env.get(id) {
+                    Expr::ID(renamed.clone(), *pos)
                 } else {
-                    return Ok(Some(expr));
+                    expr.clone()
+                }
+            }
+            Expr::Bool(_, _) | Expr::Char(_, _) | Expr::Num(_, _) | Expr::Str(_, _) => expr.clone(),
+            Expr::List(exprs, pos) => Expr::List(self.rename_exprs(exprs, env), *pos),
+            Expr::Tuple(exprs, pos) => Expr::Tuple(self.rename_exprs(exprs, env), *pos),
+            Expr::Apply(exprs, pos) => {
+                let Some(head) = exprs.front() else {
+                    return expr.clone();
+                };
+
+                match head {
+                    Expr::ID(id, _) if id == "lambda" => self.rename_lambda(exprs, *pos, env),
+                    Expr::ID(id, _) if id == "let" => self.rename_let(exprs, *pos, env),
+                    Expr::ID(id, _) if id == "match" => self.rename_match(exprs, *pos, env),
+                    _ => Expr::Apply(self.rename_exprs(exprs, env), *pos),
                 }
             }
         }
     }
 
-    Ok(None)
-}
+    fn rename_exprs(
+        &mut self,
+        exprs: &LinkedList<Expr>,
+        env: &mut BTreeMap<String, String>,
+    ) -> LinkedList<Expr> {
+        let mut result = LinkedList::new();
 
-fn apply_macros_recursively(macros: &Macros, expr: &mut Expr, count: u8) -> Result<(), MacroErr> {
-    if count == 0xff {
-        panic!("{}: too deep macro", expr.get_pos());
+        for expr in exprs {
+            result.push_back(self.rename_expr(expr, env));
+        }
+
+        result
     }
 
-    if let Some(e) = apply_macros_expr(expr.get_pos(), macros, expr, count)? {
-        *expr = e;
-    }
+    fn rename_lambda(
+        &mut self,
+        exprs: &LinkedList<Expr>,
+        pos: Pos,
+        env: &mut BTreeMap<String, String>,
+    ) -> Expr {
+        let mut result = LinkedList::new();
+        let mut iter = exprs.iter();
 
-    match expr {
-        Expr::Apply(exprs, _) | Expr::List(exprs, _) | Expr::Tuple(exprs, _) => {
-            for expr in exprs {
-                apply_macros_recursively(macros, expr, count + 1)?;
+        result.push_back(iter.next().unwrap().clone());
+
+        if let Some(args) = iter.next() {
+            let mut local_env = env.clone();
+            result.push_back(self.rename_lambda_args(args, &mut local_env));
+
+            for expr in iter {
+                result.push_back(self.rename_expr(expr, &mut local_env));
             }
         }
-        _ => (),
+
+        Expr::Apply(result, pos)
     }
 
-    Ok(())
+    fn rename_lambda_args(
+        &mut self,
+        args: &Expr,
+        env: &mut BTreeMap<String, String>,
+    ) -> Expr {
+        match args {
+            Expr::Apply(exprs, pos) => {
+                let mut renamed = LinkedList::new();
+                for expr in exprs {
+                    renamed.push_back(self.rename_binder(expr, env));
+                }
+                Expr::Apply(renamed, *pos)
+            }
+            _ => self.rename_expr(args, env),
+        }
+    }
+
+    fn rename_let(
+        &mut self,
+        exprs: &LinkedList<Expr>,
+        pos: Pos,
+        env: &mut BTreeMap<String, String>,
+    ) -> Expr {
+        let mut result = LinkedList::new();
+        let mut iter = exprs.iter();
+
+        result.push_back(iter.next().unwrap().clone());
+
+        let mut body_env = env.clone();
+        if let Some(bindings) = iter.next() {
+            result.push_back(self.rename_let_bindings(bindings, env, &mut body_env));
+        }
+
+        for expr in iter {
+            result.push_back(self.rename_expr(expr, &mut body_env));
+        }
+
+        Expr::Apply(result, pos)
+    }
+
+    fn rename_let_bindings(
+        &mut self,
+        bindings: &Expr,
+        env: &mut BTreeMap<String, String>,
+        body_env: &mut BTreeMap<String, String>,
+    ) -> Expr {
+        match bindings {
+            Expr::Apply(defs, pos) => {
+                let mut renamed_defs = LinkedList::new();
+
+                for def in defs {
+                    match def {
+                        Expr::Apply(def_exprs, def_pos) if def_exprs.len() == 2 => {
+                            let mut def_iter = def_exprs.iter();
+                            let pattern = def_iter.next().unwrap();
+                            let value = def_iter.next().unwrap();
+
+                            let value = self.rename_expr(value, env);
+                            let pattern = self.rename_pattern(pattern, body_env);
+
+                            let mut renamed_def = LinkedList::new();
+                            renamed_def.push_back(pattern);
+                            renamed_def.push_back(value);
+                            renamed_defs.push_back(Expr::Apply(renamed_def, *def_pos));
+                        }
+                        _ => renamed_defs.push_back(self.rename_expr(def, env)),
+                    }
+                }
+
+                Expr::Apply(renamed_defs, *pos)
+            }
+            _ => self.rename_expr(bindings, env),
+        }
+    }
+
+    fn rename_match(
+        &mut self,
+        exprs: &LinkedList<Expr>,
+        pos: Pos,
+        env: &mut BTreeMap<String, String>,
+    ) -> Expr {
+        let mut result = LinkedList::new();
+        let mut iter = exprs.iter();
+
+        result.push_back(iter.next().unwrap().clone());
+
+        if let Some(cond) = iter.next() {
+            result.push_back(self.rename_expr(cond, env));
+        }
+
+        for case in iter {
+            result.push_back(self.rename_match_case(case, env));
+        }
+
+        Expr::Apply(result, pos)
+    }
+
+    fn rename_match_case(&mut self, case: &Expr, env: &mut BTreeMap<String, String>) -> Expr {
+        match case {
+            Expr::Apply(case_exprs, pos) if case_exprs.len() == 2 => {
+                let mut iter = case_exprs.iter();
+                let pattern = iter.next().unwrap();
+                let body = iter.next().unwrap();
+
+                let mut case_env = env.clone();
+                let pattern = self.rename_pattern(pattern, &mut case_env);
+                let body = self.rename_expr(body, &mut case_env);
+
+                let mut renamed_case = LinkedList::new();
+                renamed_case.push_back(pattern);
+                renamed_case.push_back(body);
+                Expr::Apply(renamed_case, *pos)
+            }
+            _ => self.rename_expr(case, env),
+        }
+    }
+
+    fn rename_pattern(&mut self, pattern: &Expr, env: &mut BTreeMap<String, String>) -> Expr {
+        match pattern {
+            Expr::ID(_, _) => self.rename_binder(pattern, env),
+            Expr::Tuple(exprs, pos) => {
+                let mut renamed = LinkedList::new();
+                for expr in exprs {
+                    renamed.push_back(self.rename_pattern(expr, env));
+                }
+                Expr::Tuple(renamed, *pos)
+            }
+            Expr::Apply(exprs, pos) => {
+                let mut renamed = LinkedList::new();
+                let mut iter = exprs.iter();
+
+                if let Some(head) = iter.next() {
+                    renamed.push_back(self.rename_expr(head, env));
+                }
+
+                for expr in iter {
+                    renamed.push_back(self.rename_pattern(expr, env));
+                }
+
+                Expr::Apply(renamed, *pos)
+            }
+            _ => pattern.clone(),
+        }
+    }
+
+    fn rename_binder(&mut self, expr: &Expr, env: &mut BTreeMap<String, String>) -> Expr {
+        match expr {
+            Expr::ID(id, pos) => {
+                if id == "_" || is_pattern_var(id) {
+                    expr.clone()
+                } else {
+                    let fresh = self.fresh_name(id);
+                    env.insert(id.clone(), fresh.clone());
+                    Expr::ID(fresh, *pos)
+                }
+            }
+            _ => self.rename_expr(expr, env),
+        }
+    }
+
+    fn fresh_name(&mut self, id: &str) -> String {
+        let fresh = format!("__blisp_macro_{}_{}", self.fresh_counter, id);
+        self.fresh_counter += 1;
+        fresh
+    }
 }
 
 pub(crate) type Macros = BTreeMap<String, LinkedList<MacroRule>>;
@@ -290,7 +550,11 @@ fn parse_macros(exprs: &LinkedList<Expr>) -> Result<Macros, MacroErr> {
     Ok(result)
 }
 
-fn expand(pos: Pos, template: &Expr, ctx: &BTreeMap<String, LinkedList<Expr>>) -> LinkedList<Expr> {
+fn is_pattern_var(id: &str) -> bool {
+    matches!(id.chars().next(), Some('$'))
+}
+
+fn expand_expr(pos: Pos, template: &Expr, ctx: &BTreeMap<String, LinkedList<Expr>>) -> LinkedList<Expr> {
     match template {
         Expr::ID(id, _) => {
             if let Some(exprs) = ctx.get(id) {
@@ -307,8 +571,6 @@ fn expand(pos: Pos, template: &Expr, ctx: &BTreeMap<String, LinkedList<Expr>>) -
         Expr::Apply(templates, _) => {
             let exprs = expand_list(pos, templates, ctx);
             let mut result = LinkedList::new();
-
-            // TODO: rename variables
 
             result.push_back(Expr::Apply(exprs, pos));
             result
@@ -368,7 +630,7 @@ fn expand_list(
             prev = None;
         }
 
-        let mut exprs = expand(pos, template, ctx);
+        let mut exprs = expand_expr(pos, template, ctx);
         result.append(&mut exprs);
     }
 

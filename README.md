@@ -15,6 +15,7 @@ and [baremetalisp](https://github.com/ytakano/baremetalisp) which is a toy OS.
 - Generics
 - Hindley–Milner based type inference
 - Effect system to separate side effects from pure functions
+- Hygienic macro expansion for local binders introduced by macro templates
 - Big integer
 - Supporting no_std environments
 

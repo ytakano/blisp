@@ -537,6 +537,44 @@ Of course, this can be written as follows.
 (fold + 0 '(20 50 60))
 ----
 
+== Macro
+
+Macros can be defined by `macro`.
+Each rule consists of a pattern and a template, and the first matching rule is expanded.
+
+[source, lisp]
+----
+(macro add
+    ((add $e1 $e2) (+ $e1 $e2))
+    ((add $e1 $e2 $e3 ...) (+ $e1 (add $e2 $e3 ...))))
+----
+
+Identifiers beginning with `$` are pattern variables.
+They are substituted with the expressions matched at the call site.
+`...` can be used after a pattern variable or a template fragment to match and expand the remaining arguments.
+
+[source, lisp]
+----
+(add 1 2)         ; 3
+(add 1 2 3 4 5)   ; 15
+----
+
+Macros can also generate expressions that introduce local bindings.
+For example, a temporary variable can be introduced in a lambda expression.
+
+[source, lisp]
+----
+(macro with_tmp
+    ((_ $x) ((lambda (tmp) (+ tmp $x)) 1)))
+
+(export test (tmp) (Pure (-> (Int) Int))
+    (with_tmp tmp))
+----
+
+BLisp macros are hygienic for local binders introduced by macro templates.
+Variables introduced by `lambda` arguments, `let` bindings, and `match` pattern variables are renamed to fresh internal names during expansion, so they do not capture variables from the call site.
+Top-level names such as `defun`, `export`, and `data` definitions are not renamed automatically.
+
 == String and Character
 
 _chars_ converts String to (List Char).
