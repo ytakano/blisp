@@ -255,9 +255,11 @@ sqrtの引数が0以下の場合は、sqrtはNoneをリターンします。
 [source, lisp]
 ----
 ; in BLisp
-(data Gender ; 型名
-    Male     ; 値
-    Female)  ; 値
+(data Cardinal ; 型名
+    East       ; 値
+    North      ; 値
+    West       ; 値
+    South)     ; 値
 ----
 
 型名とその値の最初の文字は大文字でなければなりません。これはRustの以下のコードと同等です。
@@ -265,9 +267,11 @@ sqrtの引数が0以下の場合は、sqrtはNoneをリターンします。
 [source, rust]
 ----
 // in Rust
-enum Gender {
-    Male,
-    Female
+enum Cardinal {
+    East,
+    North,
+    West,
+    South
 }
 ----
 
