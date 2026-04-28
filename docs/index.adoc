@@ -261,9 +261,11 @@ Algebraic data type can be defined as follows.
 [source, lisp]
 ----
 ; in BLisp
-(data Gender ; type name
-    Male     ; value
-    Female)  ; value
+(data Cardinal ; type name
+    East       ; value
+    North      ; value
+    West       ; value
+    South)     ; value
 ----
 
 Type name's and its value's first character must be uppercase.
@@ -272,9 +274,11 @@ This is equivalent to Rust's following code.
 [source, rust]
 ----
 // in Rust
-enum Gender {
-    Male,
-    Female
+enum Cardinal {
+    East,
+    North,
+    West,
+    South
 }
 ----
 
