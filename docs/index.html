@@ -874,9 +874,11 @@ quad can be called from Rust&#8217;s eval, and it calls double internally.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="lisp"><span></span><span class="tok-c1">; in BLisp</span>
-<span class="tok-p">(</span><span class="tok-nv">data</span><span class="tok-w"> </span><span class="tok-nv">Gender</span><span class="tok-w"> </span><span class="tok-c1">; type name</span>
-<span class="tok-w">    </span><span class="tok-nv">Male</span><span class="tok-w">     </span><span class="tok-c1">; value</span>
-<span class="tok-w">    </span><span class="tok-nv">Female</span><span class="tok-p">)</span><span class="tok-w">  </span><span class="tok-c1">; value</span></code></pre>
+<span class="tok-p">(</span><span class="tok-nv">data</span><span class="tok-w"> </span><span class="tok-nv">Cardinal</span><span class="tok-w"> </span><span class="tok-c1">; type name</span>
+<span class="tok-w">    </span><span class="tok-nv">East</span><span class="tok-w">       </span><span class="tok-c1">; value</span>
+<span class="tok-w">    </span><span class="tok-nv">North</span><span class="tok-w">      </span><span class="tok-c1">; value</span>
+<span class="tok-w">    </span><span class="tok-nv">West</span><span class="tok-w">       </span><span class="tok-c1">; value</span>
+<span class="tok-w">    </span><span class="tok-nv">South</span><span class="tok-p">)</span><span class="tok-w">     </span><span class="tok-c1">; value</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -886,9 +888,11 @@ This is equivalent to Rust&#8217;s following code.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="rust"><span></span><span class="tok-c1">// in Rust</span>
-<span class="tok-k">enum</span> <span class="tok-nc">Gender</span><span class="tok-w"> </span><span class="tok-p">{</span>
-<span class="tok-w">    </span><span class="tok-n">Male</span><span class="tok-p">,</span>
-<span class="tok-w">    </span><span class="tok-n">Female</span>
+<span class="tok-k">enum</span> <span class="tok-nc">Cardinal</span><span class="tok-w"> </span><span class="tok-p">{</span>
+<span class="tok-w">    </span><span class="tok-n">East</span><span class="tok-p">,</span>
+<span class="tok-w">    </span><span class="tok-n">North</span><span class="tok-p">,</span>
+<span class="tok-w">    </span><span class="tok-n">West</span><span class="tok-p">,</span>
+<span class="tok-w">    </span><span class="tok-n">South</span>
 <span class="tok-p">}</span></code></pre>
 </div>
 </div>
@@ -1600,7 +1604,7 @@ It is probably easy.</p>
 <div id="footer">
 <div id="footer-text">
 Version 0.4.0<br>
-Last updated 2026-04-20 07:53:07 +0900
+Last updated 2026-04-28 09:28:41 +0900
 </div>
 </div>
 <script type="text/x-mathjax-config">
